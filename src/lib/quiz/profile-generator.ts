@@ -2,16 +2,16 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { QuizAnswer, UserPreferences } from '@/types/quiz';
 
 export interface GeneratedProfile {
-  cuisinePreferences: string[];
+  travelMotivations: string[];
+  planningStyle: string;
+  authenticityPreference: string;
   activityTypes: string[];
-  budgetRange: 'budget' | 'moderate' | 'luxury';
-  travelPace: 'relaxed' | 'moderate' | 'packed';
-  accommodationStyle: 'hostel' | 'hotel' | 'boutique' | 'luxury' | 'airbnb';
-  socialPreferences: 'solo' | 'small_group' | 'large_group';
-  accessibilityNeeds: string[];
-  climatePreferences: string[];
-  culturalInterests: string[];
-  adventureTolerance: number;
+  travelPace: string;
+  timeRhythm: string;
+  cuisinePreferences: string[];
+  budgetRange: string;
+  socialPreferences: string;
+  comfortZone: number;
 }
 
 export function generateProfile(answers: Record<string, QuizAnswer>): GeneratedProfile {
@@ -21,10 +21,10 @@ export function generateProfile(answers: Record<string, QuizAnswer>): GeneratedP
     return Array.isArray(answer.value) ? answer.value : [answer.value as string];
   };
 
-  const getSingleValue = <T extends string>(questionId: string, defaultValue: T): T => {
+  const getSingleValue = (questionId: string, defaultValue: string): string => {
     const answer = answers[questionId];
     if (!answer) return defaultValue;
-    return answer.value as T;
+    return answer.value as string;
   };
 
   const getNumberValue = (questionId: string, defaultValue: number): number => {
@@ -33,20 +33,17 @@ export function generateProfile(answers: Record<string, QuizAnswer>): GeneratedP
     return typeof answer.value === 'number' ? answer.value : defaultValue;
   };
 
-  // Filter out 'none' from accessibility needs
-  const accessibilityNeeds = getArrayValue('accessibility').filter((v) => v !== 'none');
-
   return {
-    cuisinePreferences: getArrayValue('cuisine'),
+    travelMotivations: getArrayValue('travel_motivations'),
+    planningStyle: getSingleValue('planning_style', 'structured_flexible'),
+    authenticityPreference: getSingleValue('authenticity', 'balanced'),
     activityTypes: getArrayValue('activities'),
-    budgetRange: getSingleValue('budget', 'moderate'),
     travelPace: getSingleValue('pace', 'moderate'),
-    accommodationStyle: getSingleValue('accommodation', 'hotel'),
-    socialPreferences: getSingleValue('social', 'small_group'),
-    accessibilityNeeds,
-    climatePreferences: getArrayValue('climate'),
-    culturalInterests: getArrayValue('culture'),
-    adventureTolerance: getNumberValue('adventure', 5),
+    timeRhythm: getSingleValue('time_rhythm', 'steady_daytime'),
+    cuisinePreferences: getArrayValue('cuisine'),
+    budgetRange: getSingleValue('budget', 'moderate'),
+    socialPreferences: getSingleValue('social', 'couple'),
+    comfortZone: getNumberValue('comfort_zone', 5),
   };
 }
 
@@ -62,16 +59,16 @@ export async function saveUserPreferences(
     .upsert(
       {
         user_id: userId,
-        cuisine_preferences: profile.cuisinePreferences,
+        travel_motivations: profile.travelMotivations,
+        planning_style: profile.planningStyle,
+        authenticity_preference: profile.authenticityPreference,
         activity_types: profile.activityTypes,
-        budget_range: profile.budgetRange,
         travel_pace: profile.travelPace,
-        accommodation_style: profile.accommodationStyle,
+        time_rhythm: profile.timeRhythm,
+        cuisine_preferences: profile.cuisinePreferences,
+        budget_range: profile.budgetRange,
         social_preferences: profile.socialPreferences,
-        accessibility_needs: profile.accessibilityNeeds,
-        climate_preferences: profile.climatePreferences,
-        cultural_interests: profile.culturalInterests,
-        adventure_tolerance: profile.adventureTolerance,
+        comfort_zone: profile.comfortZone,
         raw_answers: answers,
         updated_at: new Date().toISOString(),
       },
@@ -114,16 +111,16 @@ export async function getUserPreferences(
 interface PreferencesRow {
   id: string;
   user_id: string;
-  cuisine_preferences: string[];
+  travel_motivations: string[];
+  planning_style: string;
+  authenticity_preference: string;
   activity_types: string[];
-  budget_range: 'budget' | 'moderate' | 'luxury';
-  travel_pace: 'relaxed' | 'moderate' | 'packed';
-  accommodation_style: 'hostel' | 'hotel' | 'boutique' | 'luxury' | 'airbnb';
-  social_preferences: 'solo' | 'small_group' | 'large_group';
-  accessibility_needs: string[];
-  climate_preferences: string[];
-  cultural_interests: string[];
-  adventure_tolerance: number;
+  travel_pace: string;
+  time_rhythm: string;
+  cuisine_preferences: string[];
+  budget_range: string;
+  social_preferences: string;
+  comfort_zone: number;
   raw_answers: Record<string, QuizAnswer>;
   created_at: string;
   updated_at: string;
@@ -133,16 +130,16 @@ function mapRowToPreferences(row: PreferencesRow): UserPreferences {
   return {
     id: row.id,
     userId: row.user_id,
-    cuisinePreferences: row.cuisine_preferences,
+    travelMotivations: row.travel_motivations,
+    planningStyle: row.planning_style,
+    authenticityPreference: row.authenticity_preference,
     activityTypes: row.activity_types,
-    budgetRange: row.budget_range,
     travelPace: row.travel_pace,
-    accommodationStyle: row.accommodation_style,
+    timeRhythm: row.time_rhythm,
+    cuisinePreferences: row.cuisine_preferences,
+    budgetRange: row.budget_range,
     socialPreferences: row.social_preferences,
-    accessibilityNeeds: row.accessibility_needs,
-    climatePreferences: row.climate_preferences,
-    culturalInterests: row.cultural_interests,
-    adventureTolerance: row.adventure_tolerance,
+    comfortZone: row.comfort_zone,
     rawAnswers: row.raw_answers,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),

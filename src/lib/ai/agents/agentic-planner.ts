@@ -41,10 +41,15 @@ async function createPlanningStrategy(
   const strategyPrompt = `You are a strategic itinerary planner. Create a high-level strategy for a ${tripDays}-day trip to ${research.destination}.
 
 USER PROFILE:
+- Travel Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
+- Planning Style: ${preferences.planningStyle || 'balanced'}
+- Authenticity Preference: ${preferences.authenticityPreference || 'balanced'}
 - Interests: ${preferences.activityTypes.join(', ')}
 - Budget: ${preferences.budgetRange}
 - Pace: ${preferences.travelPace}
-- Adventure: ${preferences.adventureTolerance}/10
+- Time Rhythm: ${preferences.timeRhythm || 'daytime'}
+- Comfort Zone: ${preferences.comfortZone || 5}/10
+- Social Style: ${preferences.socialPreferences || 'couple'}
 
 AVAILABLE OPTIONS:
 - ${research.attractions.length} attractions
@@ -52,11 +57,12 @@ AVAILABLE OPTIONS:
 - ${research.activities.length} activities
 
 STRATEGIC QUESTIONS:
-1. How should we pace the trip? (arrival day lighter, build up, wind down?)
-2. What theme/focus for each day?
-3. How to balance activities vs relaxation?
-4. How to group locations efficiently?
-5. How to handle meals strategically?
+1. How should we pace the trip based on their ${preferences.travelPace} pace and ${preferences.timeRhythm || 'daytime'} energy rhythm?
+2. What theme/focus for each day that matches their motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}?
+3. How to balance activities vs relaxation for their comfort zone (${preferences.comfortZone || 5}/10)?
+4. Should we prioritize ${preferences.authenticityPreference || 'balanced'} experiences (tourist vs local)?
+5. How to structure days for ${preferences.socialPreferences || 'couple'} travel style?
+6. Given their ${preferences.planningStyle || 'balanced'} planning style, how much flexibility to build in?
 
 Return JSON with your strategy:
 {
@@ -108,7 +114,15 @@ async function buildDayWithReasoning(
   const dayPrompt = `You are planning Day ${dayNumber} of an itinerary.
 
 THEME: ${theme}
-USER: ${preferences.activityTypes.slice(0, 3).join(', ')}, ${preferences.budgetRange} budget, ${preferences.travelPace} pace
+USER PERSONALITY:
+- Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
+- Authenticity: ${preferences.authenticityPreference || 'balanced'} (avoid tourist traps if "pure_authentic")
+- Time Rhythm: ${preferences.timeRhythm || 'steady_daytime'} (schedule activities for their peak energy)
+- Comfort Zone: ${preferences.comfortZone || 5}/10 (${(preferences.comfortZone || 5) > 7 ? 'push boundaries' : (preferences.comfortZone || 5) < 4 ? 'keep familiar' : 'balanced challenge'})
+- Social: ${preferences.socialPreferences || 'couple'} (consider group dynamics)
+- Interests: ${preferences.activityTypes.slice(0, 3).join(', ')}
+- Budget: ${preferences.budgetRange}
+- Pace: ${preferences.travelPace}
 
 AVAILABLE OPTIONS (not yet used):
 Attractions: ${availableOptions.attractions.filter(a => !usedItems.has(a.name)).slice(0, 10).map(a => `${a.name} (${a.category}, ${a.estimatedDuration}min, ${a.priceRange})`).join(', ') || 'None available - create generic activities'}
@@ -121,9 +135,23 @@ ${availableOptions.attractions.length === 0 && availableOptions.restaurants.leng
 'NOTE: No specific data available. Create realistic activities based on your knowledge of the destination.' : ''}
 
 BUILD THIS DAY:
-- Morning (9am-12pm): 1-2 activities
-- Afternoon (12pm-5pm): Lunch + 1-2 activities  
-- Evening (5pm-9pm): 1 activity + dinner
+${preferences.timeRhythm === 'early_bird' ? '- Early Morning (7am-9am): 1 sunrise/early activity\n- Morning (9am-12pm): 1-2 activities' : 
+  preferences.timeRhythm === 'night_owl' ? '- Late Morning (10am-1pm): 1-2 activities (they sleep in)\n- Afternoon (1pm-6pm): Lunch + 2 activities\n- Evening/Night (6pm-11pm): 2 activities + dinner (their peak time)' :
+  '- Morning (9am-12pm): 1-2 activities\n- Afternoon (12pm-5pm): Lunch + 1-2 activities\n- Evening (5pm-9pm): 1 activity + dinner'}
+
+PERSONALITY-DRIVEN CURATION:
+- Authenticity: ${preferences.authenticityPreference === 'pure_authentic' ? 'ONLY local spots, hidden gems, avoid anything touristy' : 
+                 preferences.authenticityPreference === 'mostly_authentic' ? 'Prefer local but 1 popular spot OK' :
+                 preferences.authenticityPreference === 'tourist_friendly' ? 'Popular attractions are fine' :
+                 'Mix of local and popular'}
+- Challenge Level: ${(preferences.comfortZone || 5) > 7 ? 'Include adventurous/unusual activities' : 
+                     (preferences.comfortZone || 5) < 4 ? 'Stick to well-known, comfortable options' :
+                     'Balanced mix'}
+- Social Fit: ${preferences.socialPreferences?.includes('solo') ? 'Solo-friendly activities, opportunities to meet people if social' :
+               preferences.socialPreferences === 'family' ? 'Family-friendly, kid-appropriate' :
+               preferences.socialPreferences === 'couple' ? 'Romantic/intimate experiences' :
+               'Group-friendly activities'}
+- Motivations: Prioritize activities matching: ${preferences.travelMotivations?.join(', ') || 'general exploration'}
 
 CRITICAL RULES:
 1. You MUST include activities for morning, afternoon, and evening. Do not return empty arrays.

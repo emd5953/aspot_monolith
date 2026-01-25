@@ -83,16 +83,21 @@ async function createResearchPlan(
   const planningPrompt = `You are a research planning agent. Create a strategic plan for gathering travel data about ${destination}.
 
 USER PREFERENCES:
+- Travel Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
+- Authenticity Preference: ${preferences.authenticityPreference || 'balanced'}
 - Interests: ${preferences.activityTypes.join(', ')}
 - Cuisines: ${preferences.cuisinePreferences.join(', ')}
 - Budget: ${preferences.budgetRange}
-- Adventure level: ${preferences.adventureTolerance}/10
+- Comfort Zone: ${preferences.comfortZone || 5}/10
+- Social Style: ${preferences.socialPreferences || 'couple'}
 - Travel pace: ${preferences.travelPace}
 
 TASK: Decide which sources to scrape and in what order. Consider:
 1. What data is most critical for these preferences?
-2. Which sources are most reliable for this destination?
-3. What might be missing from generic searches?
+2. Which sources match their authenticity preference (${preferences.authenticityPreference || 'balanced'})?
+3. For comfort zone ${preferences.comfortZone || 5}/10, what type of experiences?
+4. Their motivations (${preferences.travelMotivations?.join(', ') || 'exploration'}) - what sources cover this?
+5. What might be missing from generic searches?
 
 AVAILABLE SOURCE TYPES:
 - TripAdvisor (attractions, reviews)
@@ -323,12 +328,29 @@ SCRAPED DATA:
 ${scrapedData.map(d => `[${d.name}]\n${d.content.slice(0, 3000)}`).join('\n\n---\n\n')}
 
 USER PREFERENCES:
+- Travel Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
+- Authenticity: ${preferences.authenticityPreference || 'balanced'}
 - Interests: ${preferences.activityTypes.join(', ')}
 - Cuisines: ${preferences.cuisinePreferences.join(', ')}
 - Budget: ${preferences.budgetRange}
-- Adventure: ${preferences.adventureTolerance}/10
+- Comfort Zone: ${preferences.comfortZone || 5}/10
 
-Extract the BEST options that match preferences. Return JSON:
+Extract the BEST options that match preferences. CRITICAL CURATION RULES:
+1. Authenticity Filter: ${preferences.authenticityPreference === 'pure_authentic' ? 'ONLY include hidden gems, local favorites, off-beaten-path spots. EXCLUDE major tourist attractions.' :
+                         preferences.authenticityPreference === 'mostly_authentic' ? 'Prioritize local spots but 1-2 popular attractions OK.' :
+                         preferences.authenticityPreference === 'tourist_friendly' ? 'Popular tourist spots are fine, they\'re popular for a reason.' :
+                         'Mix of well-known and local experiences.'}
+
+2. Challenge Level: ${(preferences.comfortZone || 5) > 7 ? 'Include adventurous, unusual, challenging experiences. Push boundaries.' :
+                     (preferences.comfortZone || 5) < 4 ? 'Stick to well-established, comfortable, familiar options.' :
+                     'Balanced mix of comfortable and slightly challenging.'}
+
+3. Motivation Alignment: Prioritize options that match: ${preferences.travelMotivations?.join(', ') || 'general exploration'}
+   ${preferences.travelMotivations?.includes('food') ? '- Extra focus on unique dining experiences' : ''}
+   ${preferences.travelMotivations?.includes('learning') ? '- Include educational/historical context' : ''}
+   ${preferences.travelMotivations?.includes('adventure') ? '- Include thrilling/active options' : ''}
+   ${preferences.travelMotivations?.includes('relaxation') ? '- Include calm, peaceful spots' : ''}
+   ${preferences.travelMotivations?.includes('connection') ? '- Include social/interactive experiences' : ''}
 {
   "attractions": [
     {"name": "", "description": "", "category": "museums|sightseeing|nature|nightlife", "estimatedDuration": 90, "priceRange": "free|budget|moderate|expensive", "rating": 4.5, "location": "", "tips": ""}

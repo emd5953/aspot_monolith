@@ -37,16 +37,20 @@ export interface QuizProgress {
 export interface UserPreferences {
   id: string;
   userId: string;
-  cuisinePreferences: string[];
+  // Personality traits
+  travelMotivations: string[];
+  planningStyle: string;
+  authenticityPreference: string;
+  timeRhythm: string;
+  comfortZone: number;
+  // Activity & interests
   activityTypes: string[];
-  budgetRange: 'budget' | 'moderate' | 'luxury';
-  travelPace: 'relaxed' | 'moderate' | 'packed';
-  accommodationStyle: 'hostel' | 'hotel' | 'boutique' | 'luxury' | 'airbnb';
-  socialPreferences: 'solo' | 'small_group' | 'large_group';
-  accessibilityNeeds: string[];
-  climatePreferences: string[];
-  culturalInterests: string[];
-  adventureTolerance: number;
+  cuisinePreferences: string[];
+  // Practical preferences
+  budgetRange: string;
+  travelPace: string;
+  socialPreferences: string;
+  // Legacy/computed fields
   rawAnswers: Record<string, QuizAnswer>;
   createdAt: Date;
   updatedAt: Date;
