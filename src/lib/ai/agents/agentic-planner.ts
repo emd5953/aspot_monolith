@@ -10,7 +10,8 @@
 
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { PlannerRequest, ItineraryPlan, DayPlan, ScheduledItem } from './types';
+import { PlanRequest, ItineraryPlan, DayPlan, ScheduledItem, ResearchResult } from './types';
+import { UserPreferences } from '@/types/quiz';
 
 interface PlanningStrategy {
   approach: string;
@@ -30,9 +31,10 @@ interface ReasoningStep {
  * Agent creates a strategic planning approach
  */
 async function createPlanningStrategy(
-  request: PlannerRequest
+  request: PlanRequest
 ): Promise<PlanningStrategy> {
-  const { research, preferences, startDate, endDate, feedback } = request;
+  const { research, preferences, startDate, endDate } = request;
+  const feedback = undefined; // No feedback in initial planning
   
   const tripDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
@@ -48,8 +50,6 @@ AVAILABLE OPTIONS:
 - ${research.attractions.length} attractions
 - ${research.restaurants.length} restaurants
 - ${research.activities.length} activities
-
-${feedback ? `PREVIOUS FEEDBACK TO ADDRESS:\n${feedback.map(f => `- ${f.issue}: ${f.suggestion}`).join('\n')}` : ''}
 
 STRATEGIC QUESTIONS:
 1. How should we pace the trip? (arrival day lighter, build up, wind down?)
@@ -95,11 +95,11 @@ async function buildDayWithReasoning(
   dayNumber: number,
   theme: string,
   availableOptions: {
-    attractions: typeof request.research.attractions;
-    restaurants: typeof request.research.restaurants;
-    activities: typeof request.research.activities;
+    attractions: ResearchResult['attractions'];
+    restaurants: ResearchResult['restaurants'];
+    activities: ResearchResult['activities'];
   },
-  preferences: PlannerRequest['preferences'],
+  preferences: UserPreferences,
   usedItems: Set<string>
 ): Promise<{
   day: DayPlan;
@@ -202,11 +202,13 @@ Return VALID JSON (no markdown, no extra text):
 
     const day: DayPlan = {
       dayNumber,
+      date: new Date().toISOString().split('T')[0], // Will be set properly by orchestrator
       morning: parsed.morning || [],
       afternoon: parsed.afternoon || [],
       evening: parsed.evening || [],
       theme: parsed.theme || theme,
       notes: parsed.reasoning?.join(' ') || '',
+      estimatedCost: '$$$', // Will be calculated later
     };
 
     return { day, reasoning: parsed.reasoning || [] };
@@ -216,11 +218,13 @@ Return VALID JSON (no markdown, no extra text):
   return {
     day: {
       dayNumber,
+      date: new Date().toISOString().split('T')[0],
       morning: [],
       afternoon: [],
       evening: [],
       theme,
       notes: '',
+      estimatedCost: '$$$',
     },
     reasoning: ['Fallback day structure'],
   };
@@ -229,22 +233,18 @@ Return VALID JSON (no markdown, no extra text):
 /**
  * Truly Agentic Planner
  */
-export async function runAgenticPlanner(request: PlannerRequest): Promise<{
+export async function runAgenticPlanner(request: PlanRequest): Promise<{
   plan: ItineraryPlan;
   thoughts: string[];
   reasoningSteps: ReasoningStep[];
 }> {
-  const { research, preferences, startDate, endDate, previousPlan, feedback } = request;
+  const { research, preferences, startDate, endDate } = request;
   const thoughts: string[] = [];
   const reasoningSteps: ReasoningStep[] = [];
 
   const tripDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
   thoughts.push(`🤖 AGENTIC PLANNER activated for ${tripDays}-day trip`);
-  
-  if (previousPlan) {
-    thoughts.push(`🔄 Revising previous plan based on ${feedback?.length || 0} issues`);
-  }
 
   // STEP 1: Create strategic approach
   thoughts.push('');
@@ -314,11 +314,9 @@ export async function runAgenticPlanner(request: PlannerRequest): Promise<{
 
   const plan: ItineraryPlan = {
     destination: research.destination,
-    startDate,
-    endDate,
+    summary: `${tripDays}-day trip to ${research.destination}`,
     days,
-    totalDays: tripDays,
-    preferences,
+    totalEstimatedCost: '$$$',
   };
 
   thoughts.push(`🎉 Plan complete: ${tripDays} days, ${plan.days.reduce((sum, d) => sum + d.morning.length + d.afternoon.length + d.evening.length, 0)} activities`);

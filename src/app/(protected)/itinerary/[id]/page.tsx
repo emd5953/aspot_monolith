@@ -182,14 +182,14 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
     setShowEditDayModal(true);
   };
 
-  const handleEditDaySubmit = async (prompt: string) => {
+  const handleEditDaySubmit = async (prompt: string, mode: 'fast' | 'credible') => {
     if (!editingDay) return;
 
     try {
       const res = await fetch(`/api/itinerary/${id}/days/${editingDay.dayId}/regenerate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, mode }),
       });
 
       if (!res.ok) {

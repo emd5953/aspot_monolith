@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getProgress, startQuiz } from '@/lib/quiz/progress-service';
+import { startQuiz } from '@/lib/quiz/progress-service';
 import { QuizFlow } from '@/components/quiz/quiz-flow';
 
 export default async function QuizPage() {
@@ -11,12 +11,9 @@ export default async function QuizPage() {
     redirect('/login');
   }
 
-  // Get or create quiz progress
-  let progress = await getProgress(supabase, user.id);
-  
-  if (!progress) {
-    progress = await startQuiz(supabase, user.id);
-  }
+  // Always start fresh - quiz is for updating preferences
+  const progress = await startQuiz(supabase, user.id);
 
-  return <QuizFlow initialProgress={progress} userId={user.id} />;
+  // Use timestamp as key to force remount and reset state
+  return <QuizFlow key={Date.now()} initialProgress={progress} userId={user.id} />;
 }

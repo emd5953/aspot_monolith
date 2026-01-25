@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { destination, startDate, endDate, title, useAgenticMode } = body;
+    const { destination, startDate, endDate, title, useAgenticMode, activityDensity } = body;
 
     if (!destination || !startDate || !endDate) {
       return NextResponse.json(
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         title,
+        activityDensity: activityDensity || 'moderate',
       },
       preferences,
       useAgenticMode // Pass the mode to generator

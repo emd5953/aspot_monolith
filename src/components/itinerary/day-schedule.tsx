@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ActivityCard } from './activity-card';
+import { TimelineView } from './timeline-view';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 
@@ -12,6 +13,7 @@ interface Activity {
   locationName?: string;
   startTime?: string;
   endTime?: string;
+  duration?: number;
   category: string;
   estimatedCost?: number;
   sortOrder: number;
@@ -42,6 +44,7 @@ export function DaySchedule({
   onEditDay,
 }: DayScheduleProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
 
   const formatDate = (d: Date) => {
     return d.toLocaleDateString('en-US', {
@@ -82,6 +85,9 @@ export function DaySchedule({
 
   const sortedActivities = [...activities].sort((a, b) => a.sortOrder - b.sortOrder);
 
+  // Check if activities have timing info
+  const hasTimingInfo = sortedActivities.some(a => a.startTime && a.endTime);
+
   return (
     <HandDrawnCard decoration="tack" className="p-6 bg-muted/30">
       <div className="flex items-center justify-between mb-6">
@@ -92,6 +98,30 @@ export function DaySchedule({
           <p className="text-base text-foreground/70 font-body">{formatDate(date)}</p>
         </div>
         <div className="flex items-center gap-2">
+          {hasTimingInfo && (
+            <div className="flex border-2 border-foreground border-wobbly-sm overflow-hidden">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1 text-sm font-body transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-accent text-white'
+                    : 'bg-card text-foreground hover:bg-muted'
+                }`}
+              >
+                📋 List
+              </button>
+              <button
+                onClick={() => setViewMode('timeline')}
+                className={`px-3 py-1 text-sm font-body transition-colors border-l-2 border-foreground ${
+                  viewMode === 'timeline'
+                    ? 'bg-accent text-white'
+                    : 'bg-card text-foreground hover:bg-muted'
+                }`}
+              >
+                ⏱️ Timeline
+              </button>
+            </div>
+          )}
           {onEditDay && (
             <HandDrawnButton
               onClick={onEditDay}
@@ -125,6 +155,10 @@ export function DaySchedule({
             <p className="text-foreground/60 font-body">
               📭 No activities planned for this day yet
             </p>
+          </HandDrawnCard>
+        ) : viewMode === 'timeline' && hasTimingInfo ? (
+          <HandDrawnCard className="p-6 bg-card">
+            <TimelineView activities={sortedActivities} />
           </HandDrawnCard>
         ) : (
           sortedActivities.map((activity) => (

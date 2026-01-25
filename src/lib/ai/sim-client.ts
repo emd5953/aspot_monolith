@@ -128,7 +128,7 @@ export async function executeItineraryWorkflow(
     return { success: false, error: 'Workflow ID not configured' };
   }
 
-  return executeSimWorkflow(SIM_ITINERARY_WORKFLOW_ID, input);
+  return executeSimWorkflow(SIM_ITINERARY_WORKFLOW_ID, input as unknown as Record<string, unknown>);
 }
 
 /**

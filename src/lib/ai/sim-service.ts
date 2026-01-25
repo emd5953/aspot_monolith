@@ -41,7 +41,7 @@ export interface DayPlan {
 /**
  * Calculate how well an attraction matches user preferences
  */
-function scoreAttraction(attraction: Attraction, preferences: UserPreferences): number {
+function scoreAttraction(attraction: Attraction, preferences: UserPreferences): { score: number; reasons: string[] } {
   let score = 50; // Base score
   const reasons: string[] = [];
 

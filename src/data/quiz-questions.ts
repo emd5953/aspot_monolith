@@ -8,6 +8,7 @@ export const quizQuestions: QuizQuestion[] = [
     question: 'What cuisines do you love?',
     subtext: 'Select all that appeal to you',
     type: 'multiple',
+    minSelections: 1,
     maxSelections: 5,
     options: [
       { id: 'italian', label: 'Italian', value: 'italian' },
@@ -30,6 +31,7 @@ export const quizQuestions: QuizQuestion[] = [
     question: 'How do you like to spend your travel days?',
     subtext: 'Pick up to 4 activities',
     type: 'multiple',
+    minSelections: 1,
     maxSelections: 4,
     options: [
       { id: 'beaches', label: 'Beaches & relaxation', value: 'beaches' },
@@ -110,6 +112,7 @@ export const quizQuestions: QuizQuestion[] = [
     question: 'Any accessibility considerations?',
     subtext: 'Select all that apply',
     type: 'multiple',
+    minSelections: 1,
     options: [
       { id: 'none', label: 'None', value: 'none' },
       { id: 'wheelchair', label: 'Wheelchair accessible', value: 'wheelchair' },
@@ -126,6 +129,7 @@ export const quizQuestions: QuizQuestion[] = [
     question: 'What weather do you prefer?',
     subtext: 'Pick up to 2',
     type: 'multiple',
+    minSelections: 1,
     maxSelections: 2,
     options: [
       { id: 'tropical', label: 'Warm & tropical', value: 'tropical' },
@@ -143,6 +147,7 @@ export const quizQuestions: QuizQuestion[] = [
     question: 'What cultural experiences interest you?',
     subtext: 'Pick up to 4',
     type: 'multiple',
+    minSelections: 1,
     maxSelections: 4,
     options: [
       { id: 'history', label: 'History & heritage', value: 'history' },

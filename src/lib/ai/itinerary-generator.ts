@@ -16,10 +16,26 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserPreferences } from '@/types/quiz';
 import { fetchDestinationData } from './firecrawl-service';
-import { generateRecommendations, buildItinerary, DayPlan } from './sim-service';
+import { generateRecommendations, buildItinerary, DayPlan, ActivityRecommendation } from './sim-service';
 import { runOrchestrator, OrchestratorOutput } from './agents/orchestrator';
 import { runAgenticOrchestrator, AgenticOrchestratorOutput } from './agents/agentic-orchestrator';
 import { ItineraryPlan, ScheduledItem } from './agents/types';
+import { scheduleActivities, SchedulingOptions } from './smart-scheduler';
+
+// Helper interface for database operations
+interface SimpleActivity {
+  id?: string;
+  title: string;
+  description: string;
+  locationName: string;
+  category: string;
+  startTime?: string;
+  endTime?: string;
+  duration?: number;
+  estimatedCost?: number;
+  sortOrder: number;
+  notes: string;
+}
 
 export interface ItineraryInput {
   userId: string;
@@ -27,6 +43,7 @@ export interface ItineraryInput {
   startDate: Date;
   endDate: Date;
   title?: string;
+  activityDensity?: 'relaxed' | 'moderate' | 'packed';
 }
 
 export interface GeneratedItinerary {
@@ -49,7 +66,8 @@ async function generateItineraryFast(
   destination: string,
   startDate: Date,
   endDate: Date,
-  preferences: UserPreferences
+  preferences: UserPreferences,
+  activityDensity: 'relaxed' | 'moderate' | 'packed' = 'moderate'
 ): Promise<DayPlan[]> {
   const { generateText } = await import('ai');
   const { openai } = await import('@ai-sdk/openai');
@@ -58,14 +76,25 @@ async function generateItineraryFast(
     (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
   ) + 1;
 
+  const densityGuide = {
+    relaxed: '2-3 activities (excluding meals)',
+    moderate: '4-5 activities (excluding meals)',
+    packed: '6-8 activities (excluding meals)',
+  };
+
   const prompt = `Create a ${tripDuration}-day itinerary for ${destination}.
 
 Traveler: ${preferences.activityTypes.slice(0, 3).join(', ')}, ${preferences.cuisinePreferences.slice(0, 2).join(', ')}, ${preferences.budgetRange} budget, ${preferences.travelPace} pace.
 
-IMPORTANT: Include specific location names/addresses for each activity so they can be shown on a map.
+Activity Density: ${activityDensity} (${densityGuide[activityDensity]})
 
-Return JSON with ${tripDuration} days, each with 3-5 activities:
-{"days":[{"dayNumber":1,"activities":[{"name":"Eiffel Tower","description":"Iconic landmark","category":"attraction","duration":90,"locationName":"Champ de Mars, 5 Avenue Anatole France, 75007 Paris"}]}]}`;
+IMPORTANT: 
+- Include specific location names/addresses for each activity so they can be shown on a map
+- DO NOT include meal activities (breakfast/lunch/dinner) - they will be added automatically
+- Focus on attractions, activities, entertainment, shopping, etc.
+
+Return JSON with ${tripDuration} days, each with ${densityGuide[activityDensity]}:
+{"days":[{"dayNumber":1,"activities":[{"name":"Eiffel Tower","description":"Iconic landmark","category":"attraction","locationName":"Champ de Mars, 5 Avenue Anatole France, 75007 Paris"}]}]}`;
 
   const result = await generateText({
     model: openai('gpt-4o-mini'),
@@ -80,22 +109,31 @@ Return JSON with ${tripDuration} days, each with 3-5 activities:
 
   const parsed = JSON.parse(jsonMatch[0]);
   
-  return (parsed.days || []).map((day: { dayNumber: number; activities: Array<{ name: string; description: string; category: string; duration: number; locationName?: string }> }, index: number) => {
+  return (parsed.days || []).map((day: { dayNumber: number; activities: Array<{ name: string; description: string; category: string; locationName?: string }> }, index: number) => {
     const dayDate = new Date(startDate);
     dayDate.setDate(dayDate.getDate() + index);
+
+    // Prepare activities for scheduling
+    const rawActivities = (day.activities || []).map((act: { name: string; description: string; category: string; locationName?: string }, i: number) => ({
+      id: `temp-${index}-${i}`,
+      title: act.name || 'Activity',
+      description: act.description || '',
+      locationName: act.locationName || act.name,
+      category: act.category || 'activity',
+      sortOrder: i + 1,
+      notes: '',
+    }));
+
+    // Apply smart scheduling with meals and time gaps
+    const scheduledActivities = scheduleActivities(rawActivities, {
+      activityDensity,
+      mealPreferences: preferences.cuisinePreferences,
+    });
 
     return {
       dayNumber: day.dayNumber || index + 1,
       date: dayDate,
-      activities: (day.activities || []).map((act: { name: string; description: string; category: string; duration: number; locationName?: string }, i: number) => ({
-        id: `temp-${index}-${i}`,
-        title: act.name || 'Activity',
-        description: act.description || '',
-        locationName: act.locationName || act.name, // Use location if provided, fallback to name
-        category: act.category || 'activity',
-        sortOrder: i + 1,
-        notes: '',
-      })),
+      activities: scheduledActivities,
       notes: '',
     };
   });
@@ -112,7 +150,7 @@ export async function generateItinerary(
   useAgenticMode: boolean = false,
   useTrulyAgentic: boolean = false // NEW: Use the truly agentic system
 ): Promise<GeneratedItinerary> {
-  const { userId, destination, startDate, endDate, title } = input;
+  const { userId, destination, startDate, endDate, title, activityDensity = 'moderate' } = input;
   
   // Calculate trip duration
   const tripDuration = Math.ceil(
@@ -134,11 +172,11 @@ export async function generateItinerary(
     const startTime = Date.now();
     
     try {
-      dayPlans = await generateItineraryFast(destination, startDate, endDate, preferences);
+      dayPlans = await generateItineraryFast(destination, startDate, endDate, preferences, activityDensity);
       console.log(`[TIMING] Single-call generation completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
     } catch (error) {
       console.error('Fast generation error:', error);
-      dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
+      dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate, activityDensity);
     }
   } else if (useTrulyAgentic) {
     // TRULY AGENTIC MODE: Full reasoning, adaptive stopping, dynamic tool selection
@@ -246,21 +284,47 @@ function convertAgentPlanToDayPlans(plan: ItineraryPlan, startDate: Date): DayPl
     const dayDate = new Date(startDate);
     dayDate.setDate(dayDate.getDate() + index);
 
+    // Convert to ActivityRecommendation format
+    const activities: ActivityRecommendation[] = allItems.map((item, i) => ({
+      type: (item.type === 'restaurant' ? 'restaurant' : item.type === 'attraction' ? 'attraction' : 'activity') as 'attraction' | 'restaurant' | 'activity',
+      item: {
+        name: item.name,
+        description: item.description || '',
+        category: item.type || 'activity',
+      } as any, // Type assertion to avoid complex type issues
+      matchScore: 80,
+      matchReasons: item.matchReasons || [],
+      suggestedTimeSlot: i < allItems.length / 3 ? 'morning' : i < (2 * allItems.length) / 3 ? 'afternoon' : 'evening',
+      suggestedDuration: item.duration || 90,
+    }));
+
     return {
       dayNumber: day.dayNumber,
       date: dayDate,
-      activities: allItems.map((item, i) => ({
-        id: `activity-${index}-${i}`,
-        title: item.name,
-        description: item.description || '',
-        locationName: item.name, // Use name as location fallback
-        category: item.type || 'activity',
-        sortOrder: i + 1,
-        notes: item.matchReasons?.join(', ') || '',
-      })),
+      activities,
+      totalDuration: allItems.reduce((sum, item) => sum + (item.duration || 0), 0),
       notes: day.notes || (day.theme ? `Theme: ${day.theme}` : ''),
     };
   });
+}
+
+/**
+ * Convert ActivityRecommendation to SimpleActivity for database
+ */
+function activityToSimple(activity: ActivityRecommendation, index: number): SimpleActivity {
+  const item = activity.item as any; // Type assertion to handle union type
+  return {
+    title: item.name || '',
+    description: item.description || '',
+    locationName: item.name || '',
+    category: activity.type || 'activity',
+    startTime: undefined,
+    endTime: undefined,
+    duration: activity.suggestedDuration || undefined,
+    estimatedCost: undefined,
+    sortOrder: index + 1,
+    notes: activity.matchReasons?.join(', ') || '',
+  };
 }
 
 function getTimeSlot(time: string): 'morning' | 'afternoon' | 'evening' {
@@ -277,7 +341,8 @@ async function generateLocalItinerary(
   destination: string,
   tripDuration: number,
   preferences: UserPreferences,
-  startDate: Date
+  startDate: Date,
+  activityDensity: 'relaxed' | 'moderate' | 'packed' = 'moderate'
 ): Promise<DayPlan[]> {
   // Step 1: Fetch destination data via Firecrawl
   console.log(`Fetching destination data for ${destination}...`);
@@ -352,16 +417,20 @@ async function saveItineraryToDatabase(
     // Create activity records for this day
     for (let i = 0; i < dayPlan.activities.length; i++) {
       const activity = dayPlan.activities[i];
+      const simpleActivity = activityToSimple(activity, i);
 
       const activityData = {
         day_id: day.id,
-        title: activity.title || '',
-        description: activity.description || '',
-        location_name: activity.locationName || '',
-        category: activity.category || 'activity',
-        estimated_cost: activity.estimatedCost || null,
-        sort_order: activity.sortOrder || i + 1,
-        notes: activity.notes || '',
+        title: simpleActivity.title,
+        description: simpleActivity.description,
+        location_name: simpleActivity.locationName,
+        category: simpleActivity.category,
+        start_time: simpleActivity.startTime || null,
+        end_time: simpleActivity.endTime || null,
+        duration: simpleActivity.duration || null,
+        estimated_cost: simpleActivity.estimatedCost || null,
+        sort_order: simpleActivity.sortOrder,
+        notes: simpleActivity.notes,
       };
 
       const { error: activityError } = await supabase
@@ -419,12 +488,15 @@ export async function getItinerary(
       notes: day.notes || '',
       activities: day.activities
         .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
-        .map((act: { id: string; title: string; description: string; category: string; sort_order: number; notes: string; location_name?: string; estimated_cost?: number }) => ({
+        .map((act: { id: string; title: string; description: string; category: string; start_time?: string; end_time?: string; duration?: number; sort_order: number; notes: string; location_name?: string; estimated_cost?: number }) => ({
           id: act.id,
           title: act.title,
           description: act.description,
           locationName: act.location_name,
           category: act.category,
+          startTime: act.start_time,
+          endTime: act.end_time,
+          duration: act.duration,
           estimatedCost: act.estimated_cost,
           sortOrder: act.sort_order,
           notes: act.notes,
@@ -706,16 +778,20 @@ export async function regenerateItinerary(
     // Create activity records for this day
     for (let i = 0; i < dayPlan.activities.length; i++) {
       const activity = dayPlan.activities[i];
+      const simpleActivity = activityToSimple(activity, i);
 
       const activityData = {
         day_id: day.id,
-        title: activity.title || '',
-        description: activity.description || '',
-        location_name: activity.locationName || '',
-        category: activity.category || 'activity',
-        estimated_cost: activity.estimatedCost || null,
-        sort_order: activity.sortOrder || i + 1,
-        notes: activity.notes || '',
+        title: simpleActivity.title,
+        description: simpleActivity.description,
+        location_name: simpleActivity.locationName,
+        category: simpleActivity.category,
+        start_time: simpleActivity.startTime || null,
+        end_time: simpleActivity.endTime || null,
+        duration: simpleActivity.duration || null,
+        estimated_cost: simpleActivity.estimatedCost || null,
+        sort_order: simpleActivity.sortOrder,
+        notes: simpleActivity.notes,
       };
 
       const { error: activityError } = await supabase

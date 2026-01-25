@@ -176,8 +176,6 @@ export async function runAgenticOrchestrator(
       preferences,
       startDate,
       endDate,
-      previousPlan: currentPlan,
-      feedback: reviewIssues,
     });
 
     currentPlan = planResult.plan;

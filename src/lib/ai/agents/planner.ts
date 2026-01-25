@@ -150,7 +150,7 @@ RESPOND WITH VALID JSON:
           console.warn(`⚠️ Duplicates detected in Day ${index + 1}:`, duplicates);
           // Remove duplicates - keep first occurrence only
           const seen = new Set<string>();
-          const filterDuplicates = (items: Partial<ScheduledItem>[]) => 
+          const filterDuplicates = (items: ScheduledItem[]) => 
             items.filter(item => {
               if (!item.name || seen.has(item.name)) return false;
               seen.add(item.name);

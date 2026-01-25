@@ -10,7 +10,7 @@ interface EditDayModalProps {
   dayNumber: number;
   currentActivities: string[];
   onClose: () => void;
-  onSubmit: (prompt: string) => Promise<void>;
+  onSubmit: (prompt: string, mode: 'fast' | 'credible') => Promise<void>;
 }
 
 export function EditDayModal({
@@ -21,6 +21,7 @@ export function EditDayModal({
   onSubmit,
 }: EditDayModalProps) {
   const [prompt, setPrompt] = useState('');
+  const [mode, setMode] = useState<'fast' | 'credible'>('fast');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -31,7 +32,7 @@ export function EditDayModal({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(prompt.trim());
+      await onSubmit(prompt.trim(), mode);
       setPrompt('');
       onClose();
     } catch (error) {
@@ -85,6 +86,58 @@ export function EditDayModal({
           </HandDrawnCard>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Mode Selection */}
+            <div>
+              <label className="block text-foreground font-body text-lg mb-3">
+                🎯 Generation Mode
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMode('fast')}
+                  disabled={isSubmitting}
+                  className={`p-4 border-2 border-foreground transition-all ${
+                    mode === 'fast'
+                      ? 'bg-accent/20 border-accent shadow-hand-drawn'
+                      : 'bg-card hover:bg-muted'
+                  }`}
+                >
+                  <div className="text-left">
+                    <div className="font-heading text-lg mb-1">⚡ Fast Mode</div>
+                    <div className="text-sm text-foreground/70 font-body">
+                      AI-generated activities
+                      <br />
+                      <span className="text-xs">~8-10 seconds</span>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('credible')}
+                  disabled={isSubmitting}
+                  className={`p-4 border-2 border-foreground transition-all ${
+                    mode === 'credible'
+                      ? 'bg-accent/20 border-accent shadow-hand-drawn'
+                      : 'bg-card hover:bg-muted'
+                  }`}
+                >
+                  <div className="text-left">
+                    <div className="font-heading text-lg mb-1">🔍 Credible Mode</div>
+                    <div className="text-sm text-foreground/70 font-body">
+                      Real web-scraped data
+                      <br />
+                      <span className="text-xs">~20-30 seconds</span>
+                    </div>
+                  </div>
+                </button>
+              </div>
+              <p className="text-xs text-foreground/60 mt-2 font-body">
+                {mode === 'fast' 
+                  ? '💡 Fast mode uses AI knowledge - quick but may suggest outdated places'
+                  : '💡 Credible mode scrapes live data from TripAdvisor, Google Maps, etc.'}
+              </p>
+            </div>
+
             <div>
               <label className="block text-foreground font-body text-lg mb-2">
                 What are you feeling? 💭
@@ -150,7 +203,7 @@ export function EditDayModal({
           </form>
 
           <p className="text-xs text-foreground/50 text-center mt-4 font-body">
-            ⏱️ This will take 5-15 seconds depending on complexity
+            ⏱️ {mode === 'fast' ? 'Fast mode: ~8-10 seconds' : 'Credible mode: ~20-30 seconds'}
           </p>
         </div>
       </HandDrawnCard>

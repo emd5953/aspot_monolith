@@ -94,7 +94,10 @@ export function QuizQuestionCard({ question, currentAnswer, onAnswer }: QuizQues
           ))}
           {question.maxSelections && (
             <p className="text-sm text-foreground/60 font-body mt-2">
-              Select up to {question.maxSelections} options
+              {selectedValues.length} of {question.maxSelections} selected
+              {question.minSelections && selectedValues.length < question.minSelections && 
+                ` (select at least ${question.minSelections})`
+              }
             </p>
           )}
         </div>

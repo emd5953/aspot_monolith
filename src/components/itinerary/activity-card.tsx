@@ -10,6 +10,7 @@ interface Activity {
   locationName?: string;
   startTime?: string;
   endTime?: string;
+  duration?: number;
   category: string;
   estimatedCost?: number;
   sortOrder: number;
@@ -29,21 +30,63 @@ export function ActivityCard({ activity, onEdit, onDelete, isDragging }: Activit
   const categoryEmojis: Record<string, string> = {
     attraction: '🏛️',
     dining: '🍽️',
+    breakfast: '🥐',
+    lunch: '🍱',
+    dinner: '🍷',
     activity: '🎯',
     transport: '🚗',
     accommodation: '🏨',
+    museum: '🖼️',
+    shopping: '🛍️',
+    entertainment: '🎭',
+    nightlife: '🌃',
+    nature: '🌲',
+    beach: '🏖️',
+    sports: '⚽',
   };
 
   const categoryColors: Record<string, string> = {
     attraction: 'bg-secondary-accent/20 text-secondary-accent border-secondary-accent',
     dining: 'bg-accent/20 text-accent border-accent',
+    breakfast: 'bg-yellow-100 text-yellow-800 border-yellow-600',
+    lunch: 'bg-orange-100 text-orange-800 border-orange-600',
+    dinner: 'bg-red-100 text-red-800 border-red-600',
     activity: 'bg-post-it border-foreground',
     transport: 'bg-muted border-foreground',
     accommodation: 'bg-card border-foreground',
+    museum: 'bg-purple-100 text-purple-800 border-purple-600',
+    shopping: 'bg-pink-100 text-pink-800 border-pink-600',
+    entertainment: 'bg-indigo-100 text-indigo-800 border-indigo-600',
+    nightlife: 'bg-violet-100 text-violet-800 border-violet-600',
+    nature: 'bg-green-100 text-green-800 border-green-600',
+    beach: 'bg-cyan-100 text-cyan-800 border-cyan-600',
+    sports: 'bg-blue-100 text-blue-800 border-blue-600',
   };
 
   const categoryColor = categoryColors[activity.category] || 'bg-muted border-foreground';
   const emoji = categoryEmojis[activity.category] || '📍';
+
+  // Calculate duration display
+  const getDurationDisplay = () => {
+    if (!activity.startTime || !activity.endTime) return null;
+    
+    const start = activity.startTime;
+    const end = activity.endTime;
+    
+    // Calculate duration in minutes
+    const [startHour, startMin] = start.split(':').map(Number);
+    const [endHour, endMin] = end.split(':').map(Number);
+    const durationMins = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+    
+    const hours = Math.floor(durationMins / 60);
+    const mins = durationMins % 60;
+    
+    if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
+    if (hours > 0) return `${hours}h`;
+    return `${mins}m`;
+  };
+
+  const durationDisplay = getDurationDisplay();
 
   return (
     <HandDrawnCard
@@ -58,8 +101,9 @@ export function ActivityCard({ activity, onEdit, onDelete, isDragging }: Activit
               {emoji} {activity.category}
             </span>
             {activity.startTime && activity.endTime && (
-              <span className="text-xs text-foreground/60 font-body">
+              <span className="text-xs text-foreground/60 font-body flex items-center gap-1">
                 🕐 {activity.startTime} - {activity.endTime}
+                {durationDisplay && <span className="text-foreground/40">({durationDisplay})</span>}
               </span>
             )}
           </div>

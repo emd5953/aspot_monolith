@@ -28,6 +28,12 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
   const router = useRouter();
   const supabase = createClient();
 
+  // Reset state when initialProgress changes (e.g., when quiz is restarted)
+  useEffect(() => {
+    setCurrentStep(initialProgress?.currentStep ?? 0);
+    setAnswers(initialProgress?.answers ?? {});
+  }, [initialProgress]);
+
   const currentQuestion = quizQuestions[currentStep];
   const isLastQuestion = currentStep === quizQuestions.length - 1;
   const currentAnswer = answers[currentQuestion?.id];

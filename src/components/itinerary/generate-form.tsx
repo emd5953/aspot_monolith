@@ -13,6 +13,7 @@ interface GenerateFormProps {
     endDate: string;
     title?: string;
     useAgenticMode?: boolean;
+    activityDensity?: 'relaxed' | 'moderate' | 'packed';
   }) => Promise<void>;
   isLoading?: boolean;
 }
@@ -23,6 +24,7 @@ export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
   const [endDate, setEndDate] = useState('');
   const [title, setTitle] = useState('');
   const [useAgenticMode, setUseAgenticMode] = useState(false);
+  const [activityDensity, setActivityDensity] = useState<'relaxed' | 'moderate' | 'packed'>('moderate');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,6 +53,7 @@ export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
         endDate,
         title: title.trim() || undefined,
         useAgenticMode,
+        activityDensity,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate itinerary');
@@ -104,6 +107,35 @@ export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
               min={startDate || today}
               disabled={isLoading}
             />
+          </div>
+
+          <div>
+            <label className="block text-foreground font-body text-lg mb-3">
+              Activity Density 🎯
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { value: 'relaxed', emoji: '🌴', label: 'Relaxed', desc: '2-3 activities/day' },
+                { value: 'moderate', emoji: '⚖️', label: 'Moderate', desc: '4-5 activities/day' },
+                { value: 'packed', emoji: '⚡', label: 'Packed', desc: '6-8 activities/day' },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setActivityDensity(option.value as 'relaxed' | 'moderate' | 'packed')}
+                  disabled={isLoading}
+                  className={`p-4 border-2 border-wobbly-sm font-body text-center transition-all ${
+                    activityDensity === option.value
+                      ? 'bg-accent text-white border-accent shadow-hand -rotate-1'
+                      : 'bg-card text-foreground border-foreground hover:bg-muted hover:shadow-hand-sm'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">{option.emoji}</div>
+                  <div className="font-heading text-sm">{option.label}</div>
+                  <div className="text-xs opacity-80 mt-1">{option.desc}</div>
+                </button>
+              ))}
+            </div>
           </div>
 
           <HandDrawnCard variant="post-it" className="p-4">

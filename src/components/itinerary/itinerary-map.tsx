@@ -134,10 +134,23 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
               },
             });
 
+            // Create navigation link
+            const lat = position.lat();
+            const lng = position.lng();
+            const navigationUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+
             const infoWindow = new google.maps.InfoWindow({
-              content: `<div style="padding: 8px;">
-                <h3 style="font-weight: bold; margin-bottom: 4px;">${activity.title}</h3>
-                ${activity.locationName ? `<p style="color: #666; font-size: 12px;">${activity.locationName}</p>` : ''}
+              content: `<div style="padding: 8px; min-width: 200px;">
+                <h3 style="font-weight: bold; margin-bottom: 4px; font-size: 14px;">${activity.title}</h3>
+                ${activity.locationName ? `<p style="color: #666; font-size: 12px; margin-bottom: 8px;">${activity.locationName}</p>` : ''}
+                <a 
+                  href="${navigationUrl}" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style="display: inline-block; background: #3b82f6; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 500;"
+                >
+                  🧭 Navigate Here
+                </a>
               </div>`,
             });
 

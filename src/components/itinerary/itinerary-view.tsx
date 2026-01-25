@@ -13,6 +13,7 @@ interface Activity {
   locationName?: string;
   startTime?: string;
   endTime?: string;
+  duration?: number;
   category: string;
   estimatedCost?: number;
   sortOrder: number;
