@@ -16,11 +16,13 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}));
-    const { excludeActivities, focusAreas } = body;
+    const { excludeActivities, focusAreas, useAgenticMode, useTrulyAgentic } = body;
 
     const itinerary = await regenerateItinerary(supabase, id, {
       excludeActivities,
       focusAreas,
+      useAgenticMode: useAgenticMode || false,
+      useTrulyAgentic: useTrulyAgentic || false,
     });
 
     return NextResponse.json({ itinerary });

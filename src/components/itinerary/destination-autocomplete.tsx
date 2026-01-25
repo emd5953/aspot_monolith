@@ -47,7 +47,7 @@ export function DestinationAutocomplete({
       setIsLoading(true);
       try {
         const response = await fetch(
-          `/api/maps/autocomplete?input=${encodeURIComponent(value)}&types=locality,administrative_area_level_1,country`
+          `/api/maps/autocomplete?input=${encodeURIComponent(value)}`
         );
         
         if (response.ok) {

@@ -18,6 +18,7 @@ import { UserPreferences } from '@/types/quiz';
 import { fetchDestinationData } from './firecrawl-service';
 import { generateRecommendations, buildItinerary, DayPlan } from './sim-service';
 import { runOrchestrator, OrchestratorOutput } from './agents/orchestrator';
+import { runAgenticOrchestrator, AgenticOrchestratorOutput } from './agents/agentic-orchestrator';
 import { ItineraryPlan, ScheduledItem } from './agents/types';
 
 export interface ItineraryInput {
@@ -108,7 +109,8 @@ export async function generateItinerary(
   supabase: SupabaseClient,
   input: ItineraryInput,
   preferences: UserPreferences,
-  useAgenticMode: boolean = false
+  useAgenticMode: boolean = false,
+  useTrulyAgentic: boolean = false // NEW: Use the truly agentic system
 ): Promise<GeneratedItinerary> {
   const { userId, destination, startDate, endDate, title } = input;
   
@@ -122,10 +124,10 @@ export async function generateItinerary(
   }
 
   let dayPlans: DayPlan[];
-  let orchestratorResult: OrchestratorOutput | undefined;
+  let orchestratorResult: OrchestratorOutput | AgenticOrchestratorOutput | undefined;
 
   // Choose mode based on user preference
-  const useFastMode = !useAgenticMode && (process.env.FAST_MODE === 'true' || !process.env.OPENAI_API_KEY);
+  const useFastMode = !useAgenticMode && !useTrulyAgentic && (process.env.FAST_MODE === 'true' || !process.env.OPENAI_API_KEY);
   
   if (useFastMode) {
     console.log('[TIMING] Using ULTRA FAST single-call generation...');
@@ -138,8 +140,52 @@ export async function generateItinerary(
       console.error('Fast generation error:', error);
       dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
     }
+  } else if (useTrulyAgentic) {
+    // TRULY AGENTIC MODE: Full reasoning, adaptive stopping, dynamic tool selection
+    console.log('[TIMING] Starting TRULY AGENTIC System...');
+    console.log('Features: Dynamic tool selection, reasoning chains, adaptive stopping');
+    const startTime = Date.now();
+    
+    try {
+      const agenticResult = await runAgenticOrchestrator({
+        destination,
+        startDate,
+        endDate,
+        preferences,
+        qualityThreshold: 80, // Stop when score reaches 80
+        maxIterations: 5, // Safety limit
+        onProgress: (state) => {
+          console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
+          if (state.reasoning && state.reasoning.length > 0) {
+            const latest = state.reasoning[state.reasoning.length - 1];
+            console.log(`  💭 ${latest.agent}: ${latest.thought}`);
+          }
+        },
+      });
+
+      console.log(`[TIMING] Truly Agentic System completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+
+      if (agenticResult.success && agenticResult.plan) {
+        dayPlans = convertAgentPlanToDayPlans(agenticResult.plan, startDate);
+        
+        console.log('🤖 Truly Agentic orchestration complete!');
+        console.log(`Final score: ${agenticResult.finalScore}/100`);
+        console.log(`Iterations: ${agenticResult.iterations}`);
+        console.log(`Reasoning steps: ${agenticResult.reasoning.length}`);
+        console.log('\nReasoning Chain:');
+        agenticResult.reasoning.forEach((step, i) => {
+          console.log(`${i + 1}. [${step.agent}] ${step.thought} → ${step.action} → ${step.result}`);
+        });
+      } else {
+        console.warn('Truly Agentic system failed, falling back to local pipeline');
+        dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
+      }
+    } catch (error) {
+      console.error('Truly Agentic error:', error);
+      dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
+    }
   } else {
-    // Full Multi-Agent System (Agentic Mode)
+    // Standard Multi-Agent System (Agentic Mode)
     console.log('[TIMING] Starting Multi-Agent System (Agentic Mode)...');
     const startTime = Date.now();
     console.log('Agents: Research → Plan → Review (with autonomous loops)');
@@ -150,6 +196,7 @@ export async function generateItinerary(
         startDate,
         endDate,
         preferences,
+        useFastMode: false, // Agentic mode uses full features
         onProgress: (state) => {
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
         },
@@ -202,20 +249,15 @@ function convertAgentPlanToDayPlans(plan: ItineraryPlan, startDate: Date): DayPl
     return {
       dayNumber: day.dayNumber,
       date: dayDate,
-      activities: allItems.map((item) => ({
-        type: item.type === 'restaurant' ? 'restaurant' : 
-              item.type === 'attraction' ? 'attraction' : 'activity',
-        item: {
-          name: item.name,
-          description: item.description || '',
-          category: item.type,
-        },
-        matchScore: item.matchScore || 80,
-        matchReasons: item.matchReasons || ['AI agent recommended'],
-        suggestedTimeSlot: getTimeSlot(item.time),
-        suggestedDuration: item.duration,
+      activities: allItems.map((item, i) => ({
+        id: `activity-${index}-${i}`,
+        title: item.name,
+        description: item.description || '',
+        locationName: item.name, // Use name as location fallback
+        category: item.type || 'activity',
+        sortOrder: i + 1,
+        notes: item.matchReasons?.join(', ') || '',
       })),
-      totalDuration: allItems.reduce((sum, item) => sum + item.duration, 0),
       notes: day.notes || (day.theme ? `Theme: ${day.theme}` : ''),
     };
   });
@@ -443,6 +485,8 @@ export async function regenerateItinerary(
   options?: {
     excludeActivities?: string[]; // Activity names to avoid
     focusAreas?: string[]; // Areas to emphasize (e.g., 'food', 'culture')
+    useAgenticMode?: boolean; // Use full multi-agent system
+    useTrulyAgentic?: boolean; // Use truly agentic system with reasoning
   }
 ): Promise<GeneratedItinerary> {
   // Get existing itinerary
@@ -497,27 +541,127 @@ export async function regenerateItinerary(
   ) + 1;
 
   let dayPlans: DayPlan[];
+  let orchestratorResult: OrchestratorOutput | AgenticOrchestratorOutput | undefined;
 
-  // Use fast generation for regeneration too
-  console.log('[TIMING] Regenerating with fast mode...');
-  const startTime = Date.now();
-  
-  try {
-    dayPlans = await generateItineraryFast(
-      existing.destination,
-      existing.startDate,
-      existing.endDate,
-      modifiedPreferences
-    );
-    console.log(`[TIMING] Regeneration completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
-  } catch (error) {
-    console.error('Regeneration error:', error);
-    dayPlans = await generateLocalItinerary(
-      existing.destination,
-      tripDuration,
-      modifiedPreferences,
-      existing.startDate
-    );
+  // Use agentic mode if requested, otherwise fast mode
+  const useAgenticMode = options?.useAgenticMode || false;
+  const useTrulyAgentic = options?.useTrulyAgentic || false;
+
+  if (useTrulyAgentic) {
+    // Truly Agentic System for regeneration
+    console.log('[TIMING] Regenerating with Truly Agentic System...');
+    const startTime = Date.now();
+    
+    try {
+      const agenticResult = await runAgenticOrchestrator({
+        destination: existing.destination,
+        startDate: existing.startDate,
+        endDate: existing.endDate,
+        preferences: modifiedPreferences,
+        qualityThreshold: 80,
+        maxIterations: 5,
+        onProgress: (state) => {
+          console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
+        },
+      });
+
+      console.log(`[TIMING] Truly Agentic regeneration completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+
+      if (agenticResult.success && agenticResult.plan) {
+        console.log('DEBUG: Agentic result plan:', JSON.stringify(agenticResult.plan, null, 2));
+        dayPlans = convertAgentPlanToDayPlans(agenticResult.plan, existing.startDate);
+        console.log(`DEBUG: Converted to ${dayPlans.length} day plans`);
+        console.log('DEBUG: First day:', JSON.stringify(dayPlans[0], null, 2));
+        console.log(`Regeneration score: ${agenticResult.finalScore}/100`);
+        console.log(`Iterations: ${agenticResult.iterations}`);
+        console.log(`Generated ${dayPlans.length} days with ${dayPlans.reduce((sum, d) => sum + d.activities.length, 0)} total activities`);
+        console.log('\n🧠 Reasoning Chain:');
+        agenticResult.reasoning.forEach((step, i) => {
+          console.log(`${i + 1}. [${step.agent}] ${step.thought}`);
+          console.log(`   → ${step.action}`);
+          console.log(`   → ${step.result}`);
+        });
+      } else {
+        console.error('DEBUG: Agentic result failed or no plan:', agenticResult);
+        console.warn('Truly Agentic regeneration failed, falling back to fast mode');
+        dayPlans = await generateItineraryFast(
+          existing.destination,
+          existing.startDate,
+          existing.endDate,
+          modifiedPreferences
+        );
+      }
+    } catch (error) {
+      console.error('Truly Agentic regeneration error:', error);
+      dayPlans = await generateItineraryFast(
+        existing.destination,
+        existing.startDate,
+        existing.endDate,
+        modifiedPreferences
+      );
+    }
+  } else if (useAgenticMode) {
+    // Full Multi-Agent System for regeneration
+    console.log('[TIMING] Regenerating with Multi-Agent System (Agentic Mode)...');
+    const startTime = Date.now();
+    
+    try {
+      orchestratorResult = await runOrchestrator({
+        destination: existing.destination,
+        startDate: existing.startDate,
+        endDate: existing.endDate,
+        preferences: modifiedPreferences,
+        useFastMode: false,
+        onProgress: (state) => {
+          console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
+        },
+      });
+
+      console.log(`[TIMING] Multi-Agent regeneration completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+
+      if (orchestratorResult.success && orchestratorResult.plan) {
+        dayPlans = convertAgentPlanToDayPlans(orchestratorResult.plan, existing.startDate);
+        console.log(`Regeneration score: ${orchestratorResult.state.review?.score || 'N/A'}/100`);
+      } else {
+        console.warn('Multi-Agent regeneration failed, falling back to fast mode');
+        dayPlans = await generateItineraryFast(
+          existing.destination,
+          existing.startDate,
+          existing.endDate,
+          modifiedPreferences
+        );
+      }
+    } catch (error) {
+      console.error('Multi-Agent regeneration error:', error);
+      dayPlans = await generateItineraryFast(
+        existing.destination,
+        existing.startDate,
+        existing.endDate,
+        modifiedPreferences
+      );
+    }
+  } else {
+    // Fast mode regeneration
+    console.log('[TIMING] Regenerating with fast mode...');
+    const startTime = Date.now();
+    
+    try {
+      dayPlans = await generateItineraryFast(
+        existing.destination,
+        existing.startDate,
+        existing.endDate,
+        modifiedPreferences
+      );
+      console.log(`[TIMING] Regeneration completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+    } catch (error) {
+      console.error('Regeneration error:', error);
+      dayPlans = await generateLocalItinerary(
+        existing.destination,
+        tripDuration,
+        modifiedPreferences,
+        existing.startDate
+      );
+    }
   }
 
   // Delete existing days and activities

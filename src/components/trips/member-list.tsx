@@ -26,9 +26,9 @@ export function MemberList({
   onRemove 
 }: MemberListProps) {
   const roleColors = {
-    organizer: 'bg-purple-100 text-purple-800',
-    editor: 'bg-blue-100 text-blue-800',
-    viewer: 'bg-gray-100 text-gray-800',
+    organizer: 'bg-accent/20 text-accent border-accent',
+    editor: 'bg-secondary-accent/20 text-secondary-accent border-secondary-accent',
+    viewer: 'bg-muted text-foreground/70 border-foreground',
   };
 
   const handleRoleChange = async (userId: string, newRole: 'editor' | 'viewer') => {
@@ -44,39 +44,39 @@ export function MemberList({
   };
 
   return (
-    <div className="space-y-3">
-      <h4 className="text-sm font-medium text-gray-700">
-        Members ({members.length})
+    <div className="space-y-4">
+      <h4 className="text-xl font-heading text-foreground">
+        👥 Members ({members.length})
       </h4>
       
-      <div className="space-y-2">
+      <div className="space-y-3">
         {members.map((member) => (
           <div
             key={member.id}
-            className="flex items-center justify-between bg-white border rounded-lg p-3"
+            className="flex items-center justify-between bg-card border-2 border-wobbly-sm border-foreground p-4"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+              <div className="w-12 h-12 bg-accent/20 border-2 border-foreground rounded-full flex items-center justify-center">
                 {member.profile?.avatarUrl ? (
                   <img
                     src={member.profile.avatarUrl}
                     alt=""
-                    className="w-10 h-10 rounded-full"
+                    className="w-12 h-12 rounded-full"
                   />
                 ) : (
-                  <span className="text-gray-500 text-sm font-medium">
+                  <span className="text-foreground text-lg font-heading">
                     {member.profile?.displayName?.[0]?.toUpperCase() || '?'}
                   </span>
                 )}
               </div>
               <div>
-                <p className="font-medium text-gray-900">
+                <p className="font-heading text-foreground text-lg">
                   {member.profile?.displayName || 'Unknown'}
                   {member.userId === currentUserId && (
-                    <span className="text-gray-500 text-sm ml-1">(you)</span>
+                    <span className="text-foreground/60 text-sm font-body ml-2">(you)</span>
                   )}
                 </p>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${roleColors[member.role]}`}>
+                <span className={`text-xs font-body px-2 py-1 border-2 border-wobbly-sm ${roleColors[member.role]}`}>
                   {member.role}
                 </span>
               </div>
@@ -87,18 +87,17 @@ export function MemberList({
                 <select
                   value={member.role}
                   onChange={(e) => handleRoleChange(member.userId, e.target.value as 'editor' | 'viewer')}
-                  className="text-sm border rounded px-2 py-1"
+                  className="text-sm font-body border-2 border-foreground px-2 py-1 bg-card"
                 >
                   <option value="editor">Editor</option>
                   <option value="viewer">Viewer</option>
                 </select>
                 <button
                   onClick={() => handleRemove(member.userId)}
-                  className="p-1 text-red-500 hover:text-red-700"
+                  className="p-2 text-red-500 hover:text-red-700 border-2 border-red-500 hover:bg-red-50 transition-colors"
+                  title="Remove member"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
+                  🗑️
                 </button>
               </div>
             )}

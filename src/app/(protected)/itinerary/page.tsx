@@ -63,6 +63,10 @@ export default function ItineraryPage() {
       }
 
       const { itinerary } = await res.json();
+      
+      // Show success message before redirecting
+      alert('✓ Itinerary created and saved! You can now view and edit it.');
+      
       router.push(`/itinerary/${itinerary.id}`);
     } finally {
       setIsGenerating(false);

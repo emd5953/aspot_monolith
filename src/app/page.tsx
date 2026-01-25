@@ -25,7 +25,7 @@ export default async function Home() {
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl md:text-4xl font-heading text-foreground -rotate-1">
-              ✈️ AI Itinerary Planner
+              ✈️ aSpot - AI Itinerary Planner
             </h1>
             <div className="flex gap-3">
               <Link href="/login">

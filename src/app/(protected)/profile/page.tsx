@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getPreferences } from '@/lib/preferences/preferences-service';
+import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -17,20 +19,43 @@ export default async function ProfilePage() {
     redirect('/quiz');
   }
 
+  // Get profile data including username
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name, username, avatar_url')
+    .eq('id', user.id)
+    .single();
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Your Travel Profile</h1>
-          <Link
-            href="/dashboard"
-            className="text-indigo-600 hover:text-indigo-700"
-          >
-            Back to Dashboard
+          <h1 className="text-4xl font-heading text-foreground">Your Travel Profile</h1>
+          <Link href="/dashboard">
+            <HandDrawnButton variant="secondary" size="sm">
+              Back to Dashboard
+            </HandDrawnButton>
           </Link>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-8">
+        {/* User Info Card */}
+        <HandDrawnCard className="mb-6" decoration="tape">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-20 bg-accent/20 border-2 border-foreground rounded-full flex items-center justify-center">
+              <span className="text-3xl font-heading">{profile?.display_name?.[0] || user.email?.[0].toUpperCase()}</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-heading text-foreground">{profile?.display_name || 'Traveler'}</h2>
+              {profile?.username && (
+                <p className="text-foreground/60 font-body">@{profile.username}</p>
+              )}
+              <p className="text-sm text-foreground/60 font-body">{user.email}</p>
+            </div>
+          </div>
+        </HandDrawnCard>
+
+        {/* Preferences Card */}
+        <HandDrawnCard decoration="tack">
           <div className="grid gap-6">
             <ProfileSection title="Budget & Pace">
               <ProfileItem label="Budget" value={preferences.budgetRange} />
@@ -66,21 +91,19 @@ export default async function ProfilePage() {
             )}
           </div>
 
-          <div className="mt-8 pt-6 border-t flex gap-4">
-            <Link
-              href="/profile/edit"
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              Edit Preferences
+          <div className="mt-8 pt-6 border-t-2 border-foreground/20 flex gap-4">
+            <Link href="/profile/edit">
+              <HandDrawnButton variant="accent">
+                Edit Profile
+              </HandDrawnButton>
             </Link>
-            <Link
-              href="/quiz"
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Retake Quiz
+            <Link href="/quiz">
+              <HandDrawnButton variant="secondary">
+                Retake Quiz
+              </HandDrawnButton>
             </Link>
           </div>
-        </div>
+        </HandDrawnCard>
       </div>
     </div>
   );
@@ -89,7 +112,7 @@ export default async function ProfilePage() {
 function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 mb-3">{title}</h2>
+      <h2 className="text-xl font-heading text-foreground mb-3">{title}</h2>
       <div className="space-y-2">{children}</div>
     </div>
   );
@@ -97,23 +120,23 @@ function ProfileSection({ title, children }: { title: string; children: React.Re
 
 function ProfileItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between">
-      <span className="text-gray-600">{label}</span>
-      <span className="font-medium capitalize">{value}</span>
+    <div className="flex justify-between font-body">
+      <span className="text-foreground/70">{label}</span>
+      <span className="font-medium capitalize text-foreground">{value}</span>
     </div>
   );
 }
 
 function ProfileTags({ items }: { items: string[] }) {
   if (items.length === 0) {
-    return <span className="text-gray-400">None selected</span>;
+    return <span className="text-foreground/40 font-body">None selected</span>;
   }
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((item) => (
         <span
           key={item}
-          className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm capitalize"
+          className="px-3 py-1 bg-accent/20 text-foreground border-2 border-foreground border-wobbly-sm font-body text-sm capitalize"
         >
           {item.replace('_', ' ')}
         </span>

@@ -50,6 +50,11 @@ export async function getPlaceAutocomplete(
     ...(types && { types: types.join('|') }),
   });
 
+  // If no types specified, use (regions) to get cities, neighborhoods, and specific areas
+  if (!types || types.length === 0) {
+    params.set('types', '(regions)');
+  }
+
   const response = await fetch(
     `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`
   );

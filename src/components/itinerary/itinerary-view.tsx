@@ -45,6 +45,8 @@ interface ItineraryViewProps {
   onReorderActivities?: (dayId: string, activityIds: string[]) => void;
   onRegenerate?: () => void;
   onDelete?: () => void;
+  onStatusChange?: (status: string) => void;
+  onEditDay?: (dayId: string, dayNumber: number, activities: Activity[]) => void;
 }
 
 export function ItineraryView({
@@ -55,8 +57,11 @@ export function ItineraryView({
   onReorderActivities,
   onRegenerate,
   onDelete,
+  onStatusChange,
+  onEditDay,
 }: ItineraryViewProps) {
   const [activeTab, setActiveTab] = useState(0);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
 
   const formatDateRange = (start: Date, end: Date) => {
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
@@ -87,11 +92,39 @@ export function ItineraryView({
             <p className="text-foreground/70 mt-2 font-body text-lg">
               📍 {itinerary.destination} • 📅 {formatDateRange(itinerary.startDate, itinerary.endDate)}
             </p>
+            <p className="text-xs text-foreground/50 mt-1 font-body">
+              ✓ Auto-saved • Click status to update
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`px-3 py-1 text-sm border-2 border-wobbly-sm font-body ${statusColors[itinerary.status]}`}>
-              {statusEmojis[itinerary.status]} {itinerary.status}
-            </span>
+            <div className="relative">
+              <button
+                onClick={() => setShowStatusMenu(!showStatusMenu)}
+                className={`px-3 py-1 text-sm border-2 border-wobbly-sm font-body ${statusColors[itinerary.status]} hover:opacity-80 transition-opacity cursor-pointer`}
+                title="Click to change status"
+              >
+                {statusEmojis[itinerary.status]} {itinerary.status} ▼
+              </button>
+              {showStatusMenu && (
+                <div className="absolute top-full right-0 mt-2 bg-card border-2 border-foreground shadow-hand z-10 min-w-[150px]">
+                  {(['draft', 'active', 'completed', 'archived'] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => {
+                        onStatusChange?.(status);
+                        setShowStatusMenu(false);
+                      }}
+                      className={`w-full px-4 py-2 text-left font-body hover:bg-muted transition-colors flex items-center gap-2 ${
+                        itinerary.status === status ? 'bg-accent/10' : ''
+                      }`}
+                    >
+                      {statusEmojis[status]} {status}
+                      {itinerary.status === status && <span className="ml-auto">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {onRegenerate && (
               <HandDrawnButton
                 onClick={onRegenerate}
@@ -155,6 +188,11 @@ export function ItineraryView({
               onDeleteActivity={onDeleteActivity}
               onAddActivity={onAddActivity ? () => onAddActivity(itinerary.days[activeTab].id) : undefined}
               onReorder={onReorderActivities ? (ids) => onReorderActivities(itinerary.days[activeTab].id, ids) : undefined}
+              onEditDay={onEditDay ? () => onEditDay(
+                itinerary.days[activeTab].id,
+                itinerary.days[activeTab].dayNumber,
+                itinerary.days[activeTab].activities
+              ) : undefined}
             />
           )}
         </div>

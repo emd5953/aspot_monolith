@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { HandDrawnInput } from '@/components/ui/hand-drawn-input';
 
 interface Trip {
   id: string;
@@ -65,72 +67,92 @@ export default function TripsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">My Trips</h1>
-          <Link
-            href="/itinerary"
-            className="text-blue-600 hover:text-blue-700 text-sm"
+        {/* Navigation */}
+        <div className="flex items-center gap-3 mb-6">
+          <HandDrawnButton
+            onClick={() => router.push('/dashboard')}
+            variant="secondary"
+            size="sm"
           >
-            Create from itinerary
-          </Link>
+            ← Dashboard
+          </HandDrawnButton>
+          <HandDrawnButton
+            onClick={() => router.push('/itinerary')}
+            variant="secondary"
+            size="sm"
+          >
+            ✈️ Itineraries
+          </HandDrawnButton>
         </div>
 
+        <HandDrawnCard decoration="tape" className="p-6 mb-8">
+          <h1 className="text-4xl font-heading text-foreground -rotate-1">
+            👥 My Trips
+          </h1>
+          <p className="text-foreground/70 font-body text-lg mt-1">
+            Collaborate with friends on your adventures
+          </p>
+        </HandDrawnCard>
+
         {/* Join Trip Form */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Join a Trip</h2>
+        <HandDrawnCard decoration="tack" className="p-6 mb-6">
+          <h2 className="text-2xl font-heading text-foreground mb-4">Join a Trip</h2>
           <form onSubmit={handleJoin} className="flex gap-3">
-            <input
+            <HandDrawnInput
               type="text"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               placeholder="Enter invite code"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1"
             />
-            <button
+            <HandDrawnButton
               type="submit"
               disabled={isJoining || !joinCode.trim()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              variant="accent"
             >
               {isJoining ? 'Joining...' : 'Join'}
-            </button>
+            </HandDrawnButton>
           </form>
           {joinError && (
-            <p className="text-sm text-red-600 mt-2">{joinError}</p>
+            <p className="text-sm text-red-500 mt-2 font-body">{joinError}</p>
           )}
-        </div>
+        </HandDrawnCard>
 
         {/* Trips List */}
         {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
-          </div>
+          <HandDrawnCard className="p-12 text-center">
+            <div className="animate-spin h-12 w-12 border-4 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-foreground/60 font-body">Loading your trips...</p>
+          </HandDrawnCard>
         ) : trips.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">No trips yet</h2>
-            <p className="text-gray-500 mb-6">
+          <HandDrawnCard decoration="tape" className="p-12 text-center">
+            <div className="text-6xl mb-4">👥</div>
+            <h2 className="text-3xl font-heading text-foreground mb-2">No trips yet!</h2>
+            <p className="text-foreground/70 font-body text-lg mb-6">
               Create a trip from an itinerary or join one with an invite code
             </p>
-          </div>
+          </HandDrawnCard>
         ) : (
-          <div className="grid gap-4">
-            {trips.map((trip) => (
-              <div
+          <div className="grid gap-6">
+            {trips.map((trip, index) => (
+              <HandDrawnCard
                 key={trip.id}
+                className="p-6 cursor-pointer hover:shadow-hand transition-all hover:-rotate-1"
+                rotation={index % 2 === 0 ? 0.5 : -0.5}
                 onClick={() => router.push(`/trips/${trip.id}`)}
-                className="bg-white rounded-xl shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow"
               >
-                <h3 className="font-semibold text-gray-900">{trip.name}</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Created {new Date(trip.createdAt).toLocaleDateString()}
-                </p>
-              </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-2xl font-heading text-foreground">{trip.name}</h3>
+                    <p className="text-foreground/70 font-body mt-2">
+                      📅 Created {new Date(trip.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className="text-3xl">→</span>
+                </div>
+              </HandDrawnCard>
             ))}
           </div>
         )}

@@ -27,6 +27,7 @@ interface DayScheduleProps {
   onDeleteActivity?: (activityId: string) => void;
   onAddActivity?: () => void;
   onReorder?: (activityIds: string[]) => void;
+  onEditDay?: () => void;
 }
 
 export function DaySchedule({
@@ -38,6 +39,7 @@ export function DaySchedule({
   onDeleteActivity,
   onAddActivity,
   onReorder,
+  onEditDay,
 }: DayScheduleProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
@@ -89,15 +91,26 @@ export function DaySchedule({
           </h3>
           <p className="text-base text-foreground/70 font-body">{formatDate(date)}</p>
         </div>
-        {onAddActivity && (
-          <HandDrawnButton
-            onClick={onAddActivity}
-            variant="secondary"
-            size="sm"
-          >
-            ➕ Add Activity
-          </HandDrawnButton>
-        )}
+        <div className="flex items-center gap-2">
+          {onEditDay && (
+            <HandDrawnButton
+              onClick={onEditDay}
+              variant="accent"
+              size="sm"
+            >
+              ✏️ Edit Day
+            </HandDrawnButton>
+          )}
+          {onAddActivity && (
+            <HandDrawnButton
+              onClick={onAddActivity}
+              variant="secondary"
+              size="sm"
+            >
+              ➕ Add Activity
+            </HandDrawnButton>
+          )}
+        </div>
       </div>
 
       {notes && (

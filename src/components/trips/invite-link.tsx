@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 
 interface InviteLinkProps {
   inviteCode: string;
@@ -36,14 +37,14 @@ export function InviteLink({ inviteCode, onRegenerate }: InviteLinkProps) {
   };
 
   return (
-    <div className="bg-gray-50 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="text-sm font-medium text-gray-700">Invite Link</h4>
+    <div className="bg-post-it/30 border-2 border-wobbly-sm border-foreground p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-lg font-heading text-foreground">🔗 Invite Link</h4>
         {onRegenerate && (
           <button
             onClick={handleRegenerate}
             disabled={isRegenerating}
-            className="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50"
+            className="text-sm font-body text-foreground/70 hover:text-foreground disabled:opacity-50 underline"
           >
             {isRegenerating ? 'Regenerating...' : 'Regenerate'}
           </button>
@@ -51,18 +52,19 @@ export function InviteLink({ inviteCode, onRegenerate }: InviteLinkProps) {
       </div>
       
       <div className="flex items-center gap-2">
-        <div className="flex-1 bg-white border rounded-lg px-3 py-2 text-sm text-gray-600 truncate">
+        <div className="flex-1 bg-card border-2 border-foreground px-3 py-2 text-sm font-body text-foreground/80 truncate">
           {inviteUrl || `Code: ${inviteCode}`}
         </div>
-        <button
+        <HandDrawnButton
           onClick={handleCopy}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+          variant="accent"
+          size="sm"
         >
-          {copied ? 'Copied!' : 'Copy'}
-        </button>
+          {copied ? '✓ Copied!' : 'Copy'}
+        </HandDrawnButton>
       </div>
       
-      <p className="text-xs text-gray-500 mt-2">
+      <p className="text-xs font-body text-foreground/60 mt-2">
         Share this link with friends to invite them to your trip
       </p>
     </div>

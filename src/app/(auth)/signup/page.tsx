@@ -66,7 +66,7 @@ export default function SignUpPage() {
         <div className="text-center">
           <Link href="/" className="inline-block mb-6">
             <h1 className="text-4xl font-heading text-foreground rotate-2">
-              ✈️ AI Itinerary Planner
+              ✈️ aSpot - AI Itinerary Planner
             </h1>
           </Link>
           <h2 className="text-3xl font-heading text-foreground">

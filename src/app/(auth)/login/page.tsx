@@ -66,11 +66,19 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <Link href="/" className="inline-block mb-6">
-            <h1 className="text-4xl font-heading text-foreground -rotate-2">
-              ✈️ AI Itinerary Planner
-            </h1>
-          </Link>
+          <div className="flex items-center justify-between mb-6">
+            <Link href="/">
+              <HandDrawnButton variant="secondary" size="sm">
+                ← Home
+              </HandDrawnButton>
+            </Link>
+            <Link href="/" className="inline-block">
+              <h1 className="text-4xl font-heading text-foreground -rotate-2">
+                ✈️ aSpot - AI Itinerary Planner
+              </h1>
+            </Link>
+            <div className="w-20"></div> {/* Spacer for balance */}
+          </div>
           <h2 className="text-3xl font-heading text-foreground">
             Sign in to your account
           </h2>

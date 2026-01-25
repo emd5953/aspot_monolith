@@ -78,7 +78,7 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
       <div className="max-w-3xl mx-auto mb-8">
         <Link href="/dashboard">
           <h1 className="text-3xl font-heading text-foreground -rotate-1 inline-block mb-6">
-            ✈️ AI Itinerary Planner
+            ✈️ aSpot - AI Itinerary Planner
           </h1>
         </Link>
       </div>

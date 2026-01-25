@@ -28,14 +28,21 @@ interface ScrapedSource {
 }
 
 /**
- * Scrape a URL using Firecrawl
+ * Scrape a URL using Firecrawl with timeout protection
  */
 async function scrapeWithFirecrawl(url: string): Promise<string> {
   if (!FIRECRAWL_API_KEY || FIRECRAWL_API_KEY === 'your-firecrawl-api-key') {
+    console.warn('Firecrawl API key not configured');
     return '';
   }
 
   try {
+    console.log(`[Firecrawl] Scraping: ${url}`);
+    
+    // Add a client-side timeout wrapper (8 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -46,64 +53,99 @@ async function scrapeWithFirecrawl(url: string): Promise<string> {
         url,
         formats: ['markdown'],
         onlyMainContent: true,
-        timeout: 10000, // Reduced from 30s to 10s
+        timeout: 7000, // Server-side timeout
       }),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      console.warn(`Firecrawl failed for ${url}: ${response.status}`);
+      const errorText = await response.text();
+      console.warn(`Firecrawl failed for ${url}: ${response.status} - ${errorText}`);
       return '';
     }
 
     const result: FirecrawlResponse = await response.json();
-    return result.data?.markdown || result.data?.content || '';
+    const content = result.data?.markdown || result.data?.content || '';
+    console.log(`[Firecrawl] Success: ${url} - ${content.length} chars`);
+    return content;
   } catch (error) {
-    console.error('Firecrawl error:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.warn(`Firecrawl timeout for ${url} (8s limit exceeded)`);
+    } else {
+      console.error(`Firecrawl error for ${url}:`, error);
+    }
     return '';
   }
 }
 
 /**
  * Build search URLs for multiple sources
- * Optimized to only scrape 2 most reliable sources for speed
+ * Personalized based on user preferences
  */
-function buildSourceUrls(destination: string): Array<{ name: string; url: string; type: ScrapedSource['type'] }> {
+function buildSourceUrls(
+  destination: string,
+  preferences?: {
+    activityTypes?: string[];
+    cuisinePreferences?: string[];
+    budgetRange?: string;
+  }
+): Array<{ name: string; url: string; type: ScrapedSource['type'] }> {
   const encodedDest = encodeURIComponent(destination);
-  const encodedDestThings = encodeURIComponent(`${destination} things to do`);
+  
+  // Build personalized search queries based on preferences
+  const activityFocus = preferences?.activityTypes?.[0] || 'things to do';
+  const cuisineFocus = preferences?.cuisinePreferences?.[0] || 'restaurants';
+  
+  const encodedActivities = encodeURIComponent(`${destination} ${activityFocus}`);
+  const encodedRestaurants = encodeURIComponent(`${destination} ${cuisineFocus} restaurants`);
+  const encodedBudget = preferences?.budgetRange 
+    ? encodeURIComponent(`${destination} ${preferences.budgetRange} travel tips`)
+    : encodeURIComponent(`${destination} travel tips`);
   
   return [
-    // TripAdvisor - best for attractions
+    // TripAdvisor - personalized to activity preferences
     {
       name: 'TripAdvisor',
-      url: `https://www.tripadvisor.com/Search?q=${encodedDestThings}`,
+      url: `https://www.tripadvisor.com/Search?q=${encodedActivities}`,
       type: 'attractions' as const,
     },
-    // Yelp - best for restaurants and local spots
+    // Google Maps - personalized to activity preferences
     {
-      name: 'Yelp',
-      url: `https://www.yelp.com/search?find_desc=restaurants&find_loc=${encodedDest}`,
+      name: 'Google Maps',
+      url: `https://www.google.com/maps/search/${encodedActivities}`,
+      type: 'attractions' as const,
+    },
+    // Google Search - personalized to cuisine preferences
+    {
+      name: 'Google Reviews',
+      url: `https://www.google.com/search?q=${encodedRestaurants}+reviews`,
       type: 'restaurants' as const,
+    },
+    // Reddit via Google - personalized to budget/travel style
+    {
+      name: 'Reddit via Google',
+      url: `https://www.google.com/search?q=site:reddit.com+${encodedBudget}`,
+      type: 'reviews' as const,
     },
   ];
 }
 
 /**
  * Research Agent - gathers and analyzes destination data from multiple sources
- * Set FAST_MODE=true to skip scraping and use AI knowledge only
+ * Uses Firecrawl for real web scraping when enabled
  */
-export async function runResearchAgent(request: ResearchRequest): Promise<{
+export async function runResearchAgent(request: ResearchRequest, useFastMode: boolean = false): Promise<{
   result: ResearchResult;
   thoughts: string[];
 }> {
   const { destination, preferences } = request;
   let thoughts: string[] = [];
   
-  // FAST MODE: Skip scraping entirely, use AI knowledge
-  const FAST_MODE = true; // Hardcoded for speed - set to false to enable Firecrawl
+  console.log(`[RESEARCH MODE] Fast: ${useFastMode}`);
   
-  console.log(`[FAST_MODE] Enabled: ${FAST_MODE}`);
-  
-  if (FAST_MODE) {
+  if (useFastMode) {
     thoughts.push(`🚀 FAST MODE: Using AI knowledge for ${destination} (no scraping)`);
     thoughts.push(`User interests: ${preferences.activityTypes.join(', ')}`);
     
@@ -116,7 +158,7 @@ export async function runResearchAgent(request: ResearchRequest): Promise<{
     return { result: fastResult, thoughts };
   }
 
-  // NORMAL MODE: Scrape with Firecrawl
+  // AGENTIC MODE: Scrape with Firecrawl
   thoughts.push(`🔍 Starting multi-source research for ${destination}...`);
   thoughts.push(`User interests: ${preferences.activityTypes.join(', ')}`);
   thoughts.push(`Budget: ${preferences.budgetRange}, Adventure: ${preferences.adventureTolerance}/10`);
@@ -126,23 +168,48 @@ export async function runResearchAgent(request: ResearchRequest): Promise<{
   thoughts.push('📡 Scraping data sources...');
   const scrapeStartTime = Date.now();
   
-  const sourceConfigs = buildSourceUrls(destination);
+  const sourceConfigs = buildSourceUrls(destination, {
+    activityTypes: preferences.activityTypes,
+    cuisinePreferences: preferences.cuisinePreferences,
+    budgetRange: preferences.budgetRange,
+  });
+  
+  // Log what we're searching for
+  thoughts.push(`Searching for: ${preferences.activityTypes[0] || 'things to do'}, ${preferences.cuisinePreferences[0] || 'restaurants'}`);
+  
   const scrapedSources: ScrapedSource[] = [];
   
-  // Scrape ALL in parallel for maximum speed (only 2 sources now)
-  const results = await Promise.all(
+  // Scrape ALL in parallel with a maximum timeout of 30 seconds total
+  const scrapePromise = Promise.all(
     sourceConfigs.map(async (config) => {
       const content = await scrapeWithFirecrawl(config.url);
       return { ...config, content };
     })
   );
   
+  // Add a 30-second timeout for all scraping operations
+  const timeoutPromise = new Promise<Array<{ name: string; url: string; type: ScrapedSource['type']; content: string }>>((_, reject) => {
+    setTimeout(() => reject(new Error('Scraping timeout - taking too long')), 30000);
+  });
+  
+  let results: Array<{ name: string; url: string; type: ScrapedSource['type']; content: string }>;
+  try {
+    results = await Promise.race([scrapePromise, timeoutPromise]);
+  } catch (error) {
+    console.warn('Scraping timed out or failed, falling back to AI knowledge');
+    thoughts.push('⚠️ Web scraping timed out, using AI knowledge instead');
+    return {
+      result: await generateResearchFromAI(destination, preferences),
+      thoughts,
+    };
+  }
+  
   for (const result of results) {
     if (result.content && result.content.length > 100) {
       scrapedSources.push(result);
       thoughts.push(`  ✓ ${result.name} - ${Math.round(result.content.length / 1000)}KB`);
     } else {
-      thoughts.push(`  ✗ ${result.name} - no data`);
+      thoughts.push(`  ✗ ${result.name} - ${result.content.length === 0 ? 'scraping failed' : 'insufficient data'}`);
     }
   }
 

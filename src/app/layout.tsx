@@ -15,7 +15,7 @@ const patrickHand = Patrick_Hand({
 });
 
 export const metadata: Metadata = {
-  title: "AI Itinerary Planner - Plan Your Perfect Trip",
+  title: "aSpot - AI Itinerary Planner - Plan Your Perfect Trip",
   description: "Multi-agent AI system that creates personalized travel itineraries",
 };
 

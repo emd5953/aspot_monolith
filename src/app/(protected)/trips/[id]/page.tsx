@@ -4,6 +4,8 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { InviteLink } from '@/components/trips/invite-link';
 import { MemberList } from '@/components/trips/member-list';
+import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 
 interface Member {
   id: string;
@@ -114,55 +116,59 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <HandDrawnCard className="p-12 text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-foreground/60 font-body">Loading trip...</p>
+        </HandDrawnCard>
       </div>
     );
   }
 
   if (error || !trip) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error || 'Trip not found'}</p>
-          <button
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <HandDrawnCard className="p-12 text-center max-w-md">
+          <div className="text-6xl mb-4">😕</div>
+          <p className="text-foreground font-body text-lg mb-6">{error || 'Trip not found'}</p>
+          <HandDrawnButton
             onClick={() => router.push('/trips')}
-            className="text-blue-600 hover:underline"
+            variant="accent"
           >
-            Back to trips
-          </button>
-        </div>
+            ← Back to trips
+          </HandDrawnButton>
+        </HandDrawnCard>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        <button
+        <HandDrawnButton
           onClick={() => router.push('/trips')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+          variant="secondary"
+          size="sm"
+          className="mb-6"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to trips
-        </button>
+          ← Back to trips
+        </HandDrawnButton>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <HandDrawnCard decoration="tape" className="p-6 mb-6">
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{trip.name}</h1>
-              <p className="text-gray-500 text-sm mt-1">
-                {trip.members.length} member{trip.members.length !== 1 ? 's' : ''}
+              <h1 className="text-3xl font-heading text-foreground">{trip.name}</h1>
+              <p className="text-foreground/70 font-body mt-2">
+                👥 {trip.members.length} member{trip.members.length !== 1 ? 's' : ''}
               </p>
             </div>
-            <button
+            <HandDrawnButton
               onClick={() => router.push(`/itinerary/${trip.itineraryId}`)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              variant="accent"
+              size="sm"
             >
               View Itinerary
-            </button>
+            </HandDrawnButton>
           </div>
 
           {isOrganizer && (
@@ -171,9 +177,9 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
               onRegenerate={handleRegenerateCode}
             />
           )}
-        </div>
+        </HandDrawnCard>
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <HandDrawnCard decoration="tack" className="p-6">
           <MemberList
             members={trip.members}
             currentUserId={currentUserId}
@@ -181,7 +187,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
             onUpdateRole={handleUpdateRole}
             onRemove={handleRemoveMember}
           />
-        </div>
+        </HandDrawnCard>
       </div>
     </div>
   );

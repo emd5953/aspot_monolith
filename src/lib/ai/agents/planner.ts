@@ -12,11 +12,11 @@ import { PlanRequest, ItineraryPlan, DayPlan, ScheduledItem } from './types';
 /**
  * Planner Agent - creates structured itineraries
  */
-export async function runPlannerAgent(request: PlanRequest): Promise<{
+export async function runPlannerAgent(request: PlanRequest & { previousPlan?: ItineraryPlan; feedback?: Array<{ issue: string; suggestion: string }> }): Promise<{
   plan: ItineraryPlan;
   thoughts: string[];
 }> {
-  const { research, preferences, startDate, endDate } = request;
+  const { research, preferences, startDate, endDate, previousPlan, feedback } = request;
   const thoughts: string[] = [];
 
   const tripDuration = Math.ceil(
@@ -25,6 +25,10 @@ export async function runPlannerAgent(request: PlanRequest): Promise<{
 
   thoughts.push(`Planning ${tripDuration}-day trip to ${research.destination}`);
   thoughts.push(`Available: ${research.attractions.length} attractions, ${research.restaurants.length} restaurants, ${research.activities.length} activities`);
+  
+  if (previousPlan && feedback) {
+    thoughts.push(`Revising previous plan based on ${feedback.length} issues`);
+  }
 
   // Determine activities per day based on pace
   const activitiesPerDay = {
@@ -36,7 +40,19 @@ export async function runPlannerAgent(request: PlanRequest): Promise<{
   thoughts.push(`Travel pace: ${preferences.travelPace} - planning ${Object.values(activitiesPerDay).reduce((a, b) => a + b, 0)} activities per day`);
 
   // Build the planning prompt
+  const revisionContext = previousPlan && feedback ? `
+PREVIOUS PLAN (needs revision):
+${JSON.stringify(previousPlan, null, 2)}
+
+ISSUES TO FIX:
+${feedback.map(f => `- ${f.issue}: ${f.suggestion}`).join('\n')}
+
+Please create an IMPROVED version that addresses all the issues above.
+` : '';
+
   const planningPrompt = `You are an expert travel planner creating a ${tripDuration}-day itinerary for ${research.destination}.
+
+${revisionContext}
 
 AVAILABLE OPTIONS:
 ATTRACTIONS:
@@ -60,12 +76,13 @@ ${research.localInsights.map(i => `- ${i}`).join('\n')}
 
 RULES:
 1. Day 1 should be lighter (arrival day)
-2. Don't repeat attractions/activities
-3. Include lunch and dinner restaurants each day
-4. Match adventure level to user preference
-5. Group nearby attractions together
-6. Leave free time for spontaneous exploration
-7. Consider opening hours (museums morning, nightlife evening)
+2. Don't repeat attractions/activities across different days
+3. DO NOT repeat the same location within a single day (e.g., don't visit the same park twice in one day)
+4. Include lunch and dinner restaurants each day
+5. Match adventure level to user preference
+6. Group nearby attractions together
+7. Leave free time for spontaneous exploration
+8. Consider opening hours (museums morning, nightlife evening)
 
 Create a detailed ${tripDuration}-day itinerary. For each day, provide:
 - A theme for the day
@@ -114,6 +131,38 @@ RESPOND WITH VALID JSON:
       const days: DayPlan[] = (parsed.days || []).map((day: Partial<DayPlan>, index: number) => {
         const dayDate = new Date(startDate);
         dayDate.setDate(dayDate.getDate() + index);
+
+        // Check for duplicates within the day
+        const allItems = [...(day.morning || []), ...(day.afternoon || []), ...(day.evening || [])];
+        const itemNames = new Set<string>();
+        const duplicates: string[] = [];
+        
+        allItems.forEach((item: { name?: string }) => {
+          if (item.name) {
+            if (itemNames.has(item.name)) {
+              duplicates.push(item.name);
+            }
+            itemNames.add(item.name);
+          }
+        });
+        
+        if (duplicates.length > 0) {
+          console.warn(`⚠️ Duplicates detected in Day ${index + 1}:`, duplicates);
+          // Remove duplicates - keep first occurrence only
+          const seen = new Set<string>();
+          const filterDuplicates = (items: Partial<ScheduledItem>[]) => 
+            items.filter(item => {
+              if (!item.name || seen.has(item.name)) return false;
+              seen.add(item.name);
+              return true;
+            });
+          
+          day.morning = filterDuplicates(day.morning || []);
+          day.afternoon = filterDuplicates(day.afternoon || []);
+          day.evening = filterDuplicates(day.evening || []);
+          
+          console.log(`✓ Duplicates removed from Day ${index + 1}`);
+        }
 
         return {
           dayNumber: day.dayNumber || index + 1,

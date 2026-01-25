@@ -38,7 +38,7 @@ export default async function DashboardPage() {
             <div className="flex items-center gap-8">
               <Link href="/dashboard">
                 <h1 className="text-2xl md:text-3xl font-heading text-foreground -rotate-1">
-                  ✈️ AI Itinerary Planner
+                  ✈️ aSpot - AI Itinerary Planner
                 </h1>
               </Link>
               <div className="hidden md:flex items-center gap-4">
@@ -74,6 +74,11 @@ export default async function DashboardPage() {
           <p className="text-xl text-foreground/80">
             Ready to plan your next adventure?
           </p>
+        </div>
+
+        {/* Itinerary Search/Generate */}
+        <div className="mb-8">
+          <ItinerarySearch />
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
@@ -147,11 +152,6 @@ export default async function DashboardPage() {
             </div>
           </HandDrawnCard>
         )}
-
-        {/* Itinerary Search */}
-        <div className="mt-8">
-          <ItinerarySearch />
-        </div>
       </main>
     </div>
   );
