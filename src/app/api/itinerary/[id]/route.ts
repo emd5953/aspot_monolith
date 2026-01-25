@@ -48,18 +48,41 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { status } = body;
-
-    if (status) {
-      await updateItineraryStatus(supabase, id, status);
+    // Verify ownership
+    const itinerary = await getItinerary(supabase, id);
+    if (!itinerary || itinerary.userId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    return NextResponse.json({ success: true });
+    const body = await request.json();
+    const { status, title, destination, startDate, endDate } = body;
+
+    const updates: Record<string, unknown> = {};
+    if (status !== undefined) updates.status = status;
+    if (title !== undefined) updates.title = title;
+    if (destination !== undefined) updates.destination = destination;
+    if (startDate !== undefined) updates.start_date = new Date(startDate).toISOString().split('T')[0];
+    if (endDate !== undefined) updates.end_date = new Date(endDate).toISOString().split('T')[0];
+
+    if (Object.keys(updates).length > 0) {
+      updates.updated_at = new Date().toISOString();
+      
+      const { error } = await supabase
+        .from('itineraries')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) {
+        throw new Error(`Failed to update itinerary: ${error.message}`);
+      }
+    }
+
+    const updatedItinerary = await getItinerary(supabase, id);
+    return NextResponse.json({ itinerary: updatedItinerary });
   } catch (error) {
     console.error('Update itinerary error:', error);
     return NextResponse.json(
-      { error: 'Failed to update itinerary' },
+      { error: error instanceof Error ? error.message : 'Failed to update itinerary' },
       { status: 500 }
     );
   }

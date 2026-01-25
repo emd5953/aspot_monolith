@@ -103,93 +103,42 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
     log(state, 'researcher', 'Research complete', `Found ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants`);
     notify();
 
-    // ========== PHASE 2: PLANNING LOOP ==========
+    // ========== PHASE 2: PLANNING (NO REVIEW LOOP FOR SPEED) ==========
     let currentPlan: ItineraryPlan | undefined;
     let approved = false;
 
-    while (!approved && state.iteration < MAX_ITERATIONS) {
-      state.iteration++;
-      state.status = 'planning';
-      state.agents.orchestrator.thoughts.push(`Planning iteration ${state.iteration}/${MAX_ITERATIONS}`);
-      log(state, 'orchestrator', `Starting planning iteration ${state.iteration}`);
-      notify();
+    state.iteration = 1;
+    state.status = 'planning';
+    state.agents.orchestrator.thoughts.push(`Planning itinerary (fast mode - no review loop)`);
+    log(state, 'orchestrator', 'Starting planning phase');
+    notify();
 
-      // Run Planner Agent
-      state.agents.planner.status = 'executing';
-      state.agents.planner.currentTask = 'Creating day-by-day itinerary';
-      state.agents.planner.progress = 20;
-      notify();
+    // Run Planner Agent
+    state.agents.planner.status = 'executing';
+    state.agents.planner.currentTask = 'Creating day-by-day itinerary';
+    state.agents.planner.progress = 20;
+    notify();
 
-      const planResult = await runPlannerAgent({
-        research: state.research,
-        preferences,
-        startDate,
-        endDate,
-      });
+    const planResult = await runPlannerAgent({
+      research: state.research,
+      preferences,
+      startDate,
+      endDate,
+    });
 
-      currentPlan = planResult.plan;
-      state.plan = currentPlan;
-      state.agents.planner.thoughts = planResult.thoughts;
-      state.agents.planner.status = 'complete';
-      state.agents.planner.progress = 100;
-      log(state, 'planner', 'Plan created', `${currentPlan.days.length} days planned`);
-      notify();
+    currentPlan = planResult.plan;
+    state.plan = currentPlan;
+    state.agents.planner.thoughts = planResult.thoughts;
+    state.agents.planner.status = 'complete';
+    state.agents.planner.progress = 100;
+    log(state, 'planner', 'Plan created', `${currentPlan.days.length} days planned`);
+    notify();
 
-      // ========== PHASE 3: REVIEW ==========
-      state.status = 'reviewing';
-      state.agents.reviewer.status = 'executing';
-      state.agents.reviewer.currentTask = 'Validating itinerary quality';
-      state.agents.reviewer.progress = 50;
-      log(state, 'orchestrator', 'Starting review phase');
-      notify();
-
-      const reviewResult = await runReviewerAgent({
-        plan: currentPlan,
-        preferences,
-        research: state.research,
-      });
-
-      state.review = reviewResult.review;
-      state.agents.reviewer.thoughts = reviewResult.thoughts;
-      state.agents.reviewer.status = 'complete';
-      state.agents.reviewer.progress = 100;
-      log(state, 'reviewer', 'Review complete', `Score: ${reviewResult.review.score}/100, Issues: ${reviewResult.review.issues.length}`);
-      notify();
-
-      if (reviewResult.review.approved) {
-        approved = true;
-        state.agents.orchestrator.thoughts.push(`✓ Itinerary approved with score ${reviewResult.review.score}/100`);
-        log(state, 'orchestrator', 'Itinerary approved');
-      } else if (reviewResult.review.revisedPlan) {
-        // Use the revised plan from reviewer
-        currentPlan = reviewResult.review.revisedPlan;
-        state.plan = currentPlan;
-        state.agents.orchestrator.thoughts.push(`Reviewer provided revised plan, re-evaluating...`);
-        log(state, 'orchestrator', 'Using revised plan from reviewer');
-        
-        // Quick re-review of revised plan
-        const reReview = await runReviewerAgent({
-          plan: currentPlan,
-          preferences,
-          research: state.research,
-        });
-        
-        if (reReview.review.approved || reReview.review.score >= 70) {
-          approved = true;
-          state.review = reReview.review;
-          state.agents.orchestrator.thoughts.push(`✓ Revised plan approved with score ${reReview.review.score}/100`);
-        }
-      } else {
-        state.agents.orchestrator.thoughts.push(`✗ Issues found: ${reviewResult.review.issues.map(i => i.issue).join(', ')}`);
-        state.agents.orchestrator.thoughts.push(`Attempting revision (iteration ${state.iteration + 1})...`);
-        log(state, 'orchestrator', 'Revision needed', reviewResult.review.issues.map(i => i.issue).join('; '));
-        
-        // Reset planner for next iteration
-        state.agents.planner.status = 'idle';
-        state.agents.planner.progress = 0;
-      }
-      notify();
-    }
+    // Skip review for speed - accept the plan as-is
+    approved = true;
+    state.agents.orchestrator.thoughts.push(`✓ Plan created (review skipped for speed)`);
+    log(state, 'orchestrator', 'Plan accepted without review for speed');
+    notify();
 
     // ========== FINALIZE ==========
     state.status = 'complete';

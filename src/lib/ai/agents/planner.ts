@@ -99,7 +99,7 @@ RESPOND WITH VALID JSON:
     const planStartTime = Date.now();
 
     const result = await generateText({
-      model: openai('gpt-4o'),
+      model: openai(process.env.FAST_MODE === 'true' ? 'gpt-4o-mini' : 'gpt-4o'),
       prompt: planningPrompt,
       temperature: 0.8,
     });

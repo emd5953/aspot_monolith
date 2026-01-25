@@ -46,7 +46,7 @@ async function scrapeWithFirecrawl(url: string): Promise<string> {
         url,
         formats: ['markdown'],
         onlyMainContent: true,
-        timeout: 30000,
+        timeout: 10000, // Reduced from 30s to 10s
       }),
     });
 
@@ -65,55 +65,58 @@ async function scrapeWithFirecrawl(url: string): Promise<string> {
 
 /**
  * Build search URLs for multiple sources
- * Optimized to only scrape the 3 most reliable sources
+ * Optimized to only scrape 2 most reliable sources for speed
  */
 function buildSourceUrls(destination: string): Array<{ name: string; url: string; type: ScrapedSource['type'] }> {
   const encodedDest = encodeURIComponent(destination);
   const encodedDestThings = encodeURIComponent(`${destination} things to do`);
-  const encodedDestFood = encodeURIComponent(`${destination} best restaurants`);
   
   return [
-    // TripAdvisor - attractions & activities
+    // TripAdvisor - best for attractions
     {
-      name: 'TripAdvisor Attractions',
+      name: 'TripAdvisor',
       url: `https://www.tripadvisor.com/Search?q=${encodedDestThings}`,
       type: 'attractions' as const,
     },
+    // Yelp - best for restaurants and local spots
     {
-      name: 'TripAdvisor Restaurants',
-      url: `https://www.tripadvisor.com/Search?q=${encodedDestFood}`,
-      type: 'restaurants' as const,
-    },
-    // Yelp - restaurants & local businesses
-    {
-      name: 'Yelp Restaurants',
+      name: 'Yelp',
       url: `https://www.yelp.com/search?find_desc=restaurants&find_loc=${encodedDest}`,
       type: 'restaurants' as const,
-    },
-    {
-      name: 'Yelp Things to Do',
-      url: `https://www.yelp.com/search?find_desc=things+to+do&find_loc=${encodedDest}`,
-      type: 'activities' as const,
-    },
-    // Google Travel (if accessible)
-    {
-      name: 'Google Travel',
-      url: `https://www.google.com/travel/things-to-do/see-all?dest_mid=&dest_state_type=sattd&dest_src=ts&q=${encodedDest}`,
-      type: 'attractions' as const,
     },
   ];
 }
 
 /**
  * Research Agent - gathers and analyzes destination data from multiple sources
+ * Set FAST_MODE=true to skip scraping and use AI knowledge only
  */
 export async function runResearchAgent(request: ResearchRequest): Promise<{
   result: ResearchResult;
   thoughts: string[];
 }> {
   const { destination, preferences } = request;
-  const thoughts: string[] = [];
+  let thoughts: string[] = [];
+  
+  // FAST MODE: Skip scraping entirely, use AI knowledge
+  const FAST_MODE = true; // Hardcoded for speed - set to false to enable Firecrawl
+  
+  console.log(`[FAST_MODE] Enabled: ${FAST_MODE}`);
+  
+  if (FAST_MODE) {
+    thoughts.push(`🚀 FAST MODE: Using AI knowledge for ${destination} (no scraping)`);
+    thoughts.push(`User interests: ${preferences.activityTypes.join(', ')}`);
+    
+    const fastStartTime = Date.now();
+    const fastResult = await generateResearchFromAI(destination, preferences);
+    console.log(`[TIMING] Fast research AI completed in ${((Date.now() - fastStartTime) / 1000).toFixed(1)}s`);
+    
+    thoughts.push(`✅ Generated ${fastResult.attractions.length} attractions, ${fastResult.restaurants.length} restaurants`);
+    
+    return { result: fastResult, thoughts };
+  }
 
+  // NORMAL MODE: Scrape with Firecrawl
   thoughts.push(`🔍 Starting multi-source research for ${destination}...`);
   thoughts.push(`User interests: ${preferences.activityTypes.join(', ')}`);
   thoughts.push(`Budget: ${preferences.budgetRange}, Adventure: ${preferences.adventureTolerance}/10`);
@@ -126,24 +129,20 @@ export async function runResearchAgent(request: ResearchRequest): Promise<{
   const sourceConfigs = buildSourceUrls(destination);
   const scrapedSources: ScrapedSource[] = [];
   
-  // Scrape in parallel batches to avoid rate limits
-  const batchSize = 3;
-  for (let i = 0; i < sourceConfigs.length; i += batchSize) {
-    const batch = sourceConfigs.slice(i, i + batchSize);
-    const results = await Promise.all(
-      batch.map(async (config) => {
-        const content = await scrapeWithFirecrawl(config.url);
-        return { ...config, content };
-      })
-    );
-    
-    for (const result of results) {
-      if (result.content && result.content.length > 100) {
-        scrapedSources.push(result);
-        thoughts.push(`  ✓ ${result.name} - ${Math.round(result.content.length / 1000)}KB`);
-      } else {
-        thoughts.push(`  ✗ ${result.name} - no data`);
-      }
+  // Scrape ALL in parallel for maximum speed (only 2 sources now)
+  const results = await Promise.all(
+    sourceConfigs.map(async (config) => {
+      const content = await scrapeWithFirecrawl(config.url);
+      return { ...config, content };
+    })
+  );
+  
+  for (const result of results) {
+    if (result.content && result.content.length > 100) {
+      scrapedSources.push(result);
+      thoughts.push(`  ✓ ${result.name} - ${Math.round(result.content.length / 1000)}KB`);
+    } else {
+      thoughts.push(`  ✗ ${result.name} - no data`);
     }
   }
 
@@ -323,4 +322,64 @@ function createFallbackResearch(destination: string, preferences: { activityType
     ],
     sources: ['AI knowledge base'],
   };
+}
+
+/**
+ * Fast mode: Generate research using AI knowledge only (no scraping)
+ */
+async function generateResearchFromAI(destination: string, preferences: { activityTypes: string[]; cuisinePreferences: string[]; budgetRange: string; adventureTolerance: number }): Promise<ResearchResult> {
+  const prompt = `Generate travel recommendations for ${destination}.
+
+Preferences: ${preferences.activityTypes.slice(0, 3).join(', ')}, ${preferences.cuisinePreferences.slice(0, 3).join(', ')}, ${preferences.budgetRange} budget, adventure ${preferences.adventureTolerance}/10.
+
+Return JSON with 10 attractions, 8 restaurants, 6 activities, 3 tips:
+{"attractions":[{"name":"","description":"","category":"museums","estimatedDuration":90,"priceRange":"moderate","rating":4.5}],"restaurants":[{"name":"","cuisine":[""],"priceRange":"moderate","rating":4.5}],"activities":[{"name":"","description":"","category":"tours","duration":120,"adventureLevel":5,"priceRange":"moderate"}],"localInsights":[""]}`;
+
+  try {
+    const analysis = await generateText({
+      model: openai('gpt-4o-mini'), // Use mini for speed
+      prompt,
+      temperature: 0.7,
+    });
+
+    const jsonMatch = analysis.text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      return {
+        destination,
+        attractions: (parsed.attractions || []).map((a: Partial<AttractionData>) => ({
+          name: a.name || 'Unknown',
+          description: a.description || '',
+          category: a.category || 'sightseeing',
+          estimatedDuration: a.estimatedDuration || 90,
+          priceRange: a.priceRange || 'moderate',
+          rating: a.rating,
+        })),
+        restaurants: (parsed.restaurants || []).map((r: Partial<RestaurantData>) => ({
+          name: r.name || 'Unknown',
+          cuisine: Array.isArray(r.cuisine) ? r.cuisine : [r.cuisine || 'local'],
+          priceRange: r.priceRange || 'moderate',
+          rating: r.rating,
+          mustTry: r.mustTry,
+        })),
+        activities: (parsed.activities || []).map((a: Partial<ActivityData>) => ({
+          name: a.name || 'Unknown',
+          description: a.description || '',
+          category: a.category || 'activity',
+          duration: a.duration || 120,
+          adventureLevel: a.adventureLevel || 5,
+          priceRange: a.priceRange || 'moderate',
+          bestTime: a.bestTime,
+        })),
+        localInsights: parsed.localInsights || [],
+        bestTimeToVisit: parsed.bestTimeToVisit,
+        sources: ['AI knowledge base'],
+      };
+    }
+  } catch (error) {
+    console.error('Fast mode AI error:', error);
+  }
+
+  return createFallbackResearch(destination, preferences);
 }

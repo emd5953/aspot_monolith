@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 
 interface Activity {
   id: string;
@@ -25,82 +26,90 @@ interface ActivityCardProps {
 export function ActivityCard({ activity, onEdit, onDelete, isDragging }: ActivityCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const categoryColors: Record<string, string> = {
-    attraction: 'bg-blue-100 text-blue-800',
-    dining: 'bg-orange-100 text-orange-800',
-    activity: 'bg-green-100 text-green-800',
-    transport: 'bg-purple-100 text-purple-800',
-    accommodation: 'bg-pink-100 text-pink-800',
+  const categoryEmojis: Record<string, string> = {
+    attraction: '🏛️',
+    dining: '🍽️',
+    activity: '🎯',
+    transport: '🚗',
+    accommodation: '🏨',
   };
 
-  const categoryColor = categoryColors[activity.category] || 'bg-gray-100 text-gray-800';
+  const categoryColors: Record<string, string> = {
+    attraction: 'bg-secondary-accent/20 text-secondary-accent border-secondary-accent',
+    dining: 'bg-accent/20 text-accent border-accent',
+    activity: 'bg-post-it border-foreground',
+    transport: 'bg-muted border-foreground',
+    accommodation: 'bg-card border-foreground',
+  };
+
+  const categoryColor = categoryColors[activity.category] || 'bg-muted border-foreground';
+  const emoji = categoryEmojis[activity.category] || '📍';
 
   return (
-    <div
-      className={`bg-white rounded-lg border p-4 transition-shadow ${
-        isDragging ? 'shadow-lg ring-2 ring-blue-500' : 'shadow-sm hover:shadow-md'
+    <HandDrawnCard
+      className={`p-4 transition-all ${
+        isDragging ? 'shadow-hand-lg rotate-2 scale-105' : 'shadow-hand-sm hover:shadow-hand hover:-rotate-1'
       }`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className={`text-xs px-2 py-0.5 rounded-full ${categoryColor}`}>
-              {activity.category}
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`text-xs px-3 py-1 border-2 border-wobbly-sm font-body ${categoryColor}`}>
+              {emoji} {activity.category}
             </span>
             {activity.startTime && activity.endTime && (
-              <span className="text-xs text-gray-500">
-                {activity.startTime} - {activity.endTime}
+              <span className="text-xs text-foreground/60 font-body">
+                🕐 {activity.startTime} - {activity.endTime}
               </span>
             )}
           </div>
-          <h4 className="font-medium text-gray-900">{activity.title}</h4>
+          <h4 className="font-heading text-lg text-foreground">{activity.title}</h4>
           {activity.locationName && (
-            <p className="text-sm text-gray-500 mt-1">{activity.locationName}</p>
+            <p className="text-sm text-foreground/70 mt-1 font-body">📍 {activity.locationName}</p>
           )}
         </div>
         <div className="flex items-center gap-1">
           {onEdit && (
             <button
               onClick={() => onEdit(activity)}
-              className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+              className="p-2 text-foreground/60 hover:text-secondary-accent hover:bg-secondary-accent/10 border-wobbly-sm transition-colors"
+              title="Edit"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
+              ✏️
             </button>
           )}
           {onDelete && (
             <button
               onClick={() => onDelete(activity.id)}
-              className="p-1.5 text-gray-400 hover:text-red-600 rounded"
+              className="p-2 text-foreground/60 hover:text-accent hover:bg-accent/10 border-wobbly-sm transition-colors"
+              title="Delete"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
+              🗑️
             </button>
           )}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+            className="p-2 text-foreground/60 hover:text-foreground hover:bg-muted border-wobbly-sm transition-colors"
+            title={isExpanded ? 'Collapse' : 'Expand'}
           >
-            <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            {isExpanded ? '⬆️' : '⬇️'}
           </button>
         </div>
       </div>
 
       {isExpanded && (
-        <div className="mt-3 pt-3 border-t text-sm text-gray-600 space-y-2">
-          {activity.description && <p>{activity.description}</p>}
+        <div className="mt-4 pt-4 border-t-2 border-dashed border-foreground/20 space-y-2">
+          {activity.description && (
+            <p className="text-sm text-foreground/80 font-body">{activity.description}</p>
+          )}
           {activity.estimatedCost && (
-            <p>Estimated cost: ${activity.estimatedCost}</p>
+            <p className="text-sm text-foreground/70 font-body">💰 Estimated cost: ${activity.estimatedCost}</p>
           )}
           {activity.notes && (
-            <p className="italic text-gray-500">{activity.notes}</p>
+            <p className="text-sm text-foreground/60 font-body italic">💭 {activity.notes}</p>
           )}
         </div>
       )}
-    </div>
+    </HandDrawnCard>
   );
 }

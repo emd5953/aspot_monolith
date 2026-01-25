@@ -5,6 +5,7 @@ import { LogoutButton } from '@/components/auth/logout-button';
 import { ClipboardList, Map, CheckCircle, AlertCircle } from 'lucide-react';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { ItinerarySearch } from '@/components/itinerary/itinerary-search';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -146,6 +147,11 @@ export default async function DashboardPage() {
             </div>
           </HandDrawnCard>
         )}
+
+        {/* Itinerary Search */}
+        <div className="mt-8">
+          <ItinerarySearch />
+        </div>
       </main>
     </div>
   );

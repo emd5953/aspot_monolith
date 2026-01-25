@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { destination, startDate, endDate, title } = body;
+    const { destination, startDate, endDate, title, useAgenticMode } = body;
 
     if (!destination || !startDate || !endDate) {
       return NextResponse.json(
@@ -31,14 +31,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate itinerary
-    const itinerary = await generateItinerary(supabase, {
-      userId: user.id,
-      destination,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      title,
-    }, preferences);
+    // Generate itinerary with selected mode
+    const itinerary = await generateItinerary(
+      supabase,
+      {
+        userId: user.id,
+        destination,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        title,
+      },
+      preferences,
+      useAgenticMode // Pass the mode to generator
+    );
 
     return NextResponse.json({ itinerary });
   } catch (error) {

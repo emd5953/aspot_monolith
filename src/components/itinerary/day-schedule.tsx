@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { ActivityCard } from './activity-card';
+import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 
 interface Activity {
   id: string;
@@ -79,36 +81,38 @@ export function DaySchedule({
   const sortedActivities = [...activities].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
-    <div className="bg-gray-50 rounded-xl p-4">
-      <div className="flex items-center justify-between mb-4">
+    <HandDrawnCard decoration="tack" className="p-6 bg-muted/30">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            Day {dayNumber}
+          <h3 className="text-2xl font-heading text-foreground -rotate-1">
+            📅 Day {dayNumber}
           </h3>
-          <p className="text-sm text-gray-500">{formatDate(date)}</p>
+          <p className="text-base text-foreground/70 font-body">{formatDate(date)}</p>
         </div>
         {onAddActivity && (
-          <button
+          <HandDrawnButton
             onClick={onAddActivity}
-            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+            variant="secondary"
+            size="sm"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Activity
-          </button>
+            ➕ Add Activity
+          </HandDrawnButton>
         )}
       </div>
 
       {notes && (
-        <p className="text-sm text-gray-600 mb-4 italic">{notes}</p>
+        <HandDrawnCard variant="post-it" className="p-3 mb-4">
+          <p className="text-sm text-foreground/80 font-body italic">💭 {notes}</p>
+        </HandDrawnCard>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {sortedActivities.length === 0 ? (
-          <p className="text-center text-gray-400 py-8">
-            No activities planned for this day
-          </p>
+          <HandDrawnCard className="p-8 text-center bg-card">
+            <p className="text-foreground/60 font-body">
+              📭 No activities planned for this day yet
+            </p>
+          </HandDrawnCard>
         ) : (
           sortedActivities.map((activity) => (
             <div
@@ -130,6 +134,6 @@ export function DaySchedule({
           ))
         )}
       </div>
-    </div>
+    </HandDrawnCard>
   );
 }

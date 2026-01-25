@@ -41,13 +41,74 @@ export interface GeneratedItinerary {
 }
 
 /**
+ * Ultra-fast single AI call to generate complete itinerary
+ * Skips research and planning agents, does everything in one shot
+ */
+async function generateItineraryFast(
+  destination: string,
+  startDate: Date,
+  endDate: Date,
+  preferences: UserPreferences
+): Promise<DayPlan[]> {
+  const { generateText } = await import('ai');
+  const { openai } = await import('@ai-sdk/openai');
+  
+  const tripDuration = Math.ceil(
+    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+  ) + 1;
+
+  const prompt = `Create a ${tripDuration}-day itinerary for ${destination}.
+
+Traveler: ${preferences.activityTypes.slice(0, 3).join(', ')}, ${preferences.cuisinePreferences.slice(0, 2).join(', ')}, ${preferences.budgetRange} budget, ${preferences.travelPace} pace.
+
+IMPORTANT: Include specific location names/addresses for each activity so they can be shown on a map.
+
+Return JSON with ${tripDuration} days, each with 3-5 activities:
+{"days":[{"dayNumber":1,"activities":[{"name":"Eiffel Tower","description":"Iconic landmark","category":"attraction","duration":90,"locationName":"Champ de Mars, 5 Avenue Anatole France, 75007 Paris"}]}]}`;
+
+  const result = await generateText({
+    model: openai('gpt-4o-mini'),
+    prompt,
+    temperature: 0.8,
+  });
+
+  const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse AI response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  
+  return (parsed.days || []).map((day: { dayNumber: number; activities: Array<{ name: string; description: string; category: string; duration: number; locationName?: string }> }, index: number) => {
+    const dayDate = new Date(startDate);
+    dayDate.setDate(dayDate.getDate() + index);
+
+    return {
+      dayNumber: day.dayNumber || index + 1,
+      date: dayDate,
+      activities: (day.activities || []).map((act: { name: string; description: string; category: string; duration: number; locationName?: string }, i: number) => ({
+        id: `temp-${index}-${i}`,
+        title: act.name || 'Activity',
+        description: act.description || '',
+        locationName: act.locationName || act.name, // Use location if provided, fallback to name
+        category: act.category || 'activity',
+        sortOrder: i + 1,
+        notes: '',
+      })),
+      notes: '',
+    };
+  });
+}
+
+/**
  * Generate a complete personalized itinerary
  * Uses Sim Studio workflow if configured, otherwise falls back to local pipeline
  */
 export async function generateItinerary(
   supabase: SupabaseClient,
   input: ItineraryInput,
-  preferences: UserPreferences
+  preferences: UserPreferences,
+  useAgenticMode: boolean = false
 ): Promise<GeneratedItinerary> {
   const { userId, destination, startDate, endDate, title } = input;
   
@@ -63,9 +124,23 @@ export async function generateItinerary(
   let dayPlans: DayPlan[];
   let orchestratorResult: OrchestratorOutput | undefined;
 
-  // Try Multi-Agent System first
-  if (process.env.OPENAI_API_KEY) {
-    console.log('[TIMING] Starting Multi-Agent System...');
+  // Choose mode based on user preference
+  const useFastMode = !useAgenticMode && (process.env.FAST_MODE === 'true' || !process.env.OPENAI_API_KEY);
+  
+  if (useFastMode) {
+    console.log('[TIMING] Using ULTRA FAST single-call generation...');
+    const startTime = Date.now();
+    
+    try {
+      dayPlans = await generateItineraryFast(destination, startDate, endDate, preferences);
+      console.log(`[TIMING] Single-call generation completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+    } catch (error) {
+      console.error('Fast generation error:', error);
+      dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
+    }
+  } else {
+    // Full Multi-Agent System (Agentic Mode)
+    console.log('[TIMING] Starting Multi-Agent System (Agentic Mode)...');
     const startTime = Date.now();
     console.log('Agents: Research → Plan → Review (with autonomous loops)');
     
@@ -83,7 +158,6 @@ export async function generateItinerary(
       console.log(`[TIMING] Multi-Agent System completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
 
       if (orchestratorResult.success && orchestratorResult.plan) {
-        // Convert multi-agent plan to our DayPlan format
         dayPlans = convertAgentPlanToDayPlans(orchestratorResult.plan, startDate);
         
         console.log('Multi-Agent orchestration complete!');
@@ -97,10 +171,6 @@ export async function generateItinerary(
       console.error('Multi-Agent error:', error);
       dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
     }
-  } else {
-    // Fallback: Local pipeline without AI
-    console.log('OpenAI not configured, using local pipeline...');
-    dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
   }
 
   // Save to database
@@ -239,19 +309,17 @@ async function saveItineraryToDatabase(
 
     // Create activity records for this day
     for (let i = 0; i < dayPlan.activities.length; i++) {
-      const rec = dayPlan.activities[i];
-      const item = rec.item;
+      const activity = dayPlan.activities[i];
 
       const activityData = {
         day_id: day.id,
-        title: 'name' in item ? item.name : '',
-        description: 'description' in item ? item.description : '',
-        location_name: 'address' in item ? item.address : '',
-        category: rec.type === 'restaurant' ? 'dining' : 
-                  'category' in item ? item.category : 'activity',
-        estimated_cost: null,
-        sort_order: i + 1,
-        notes: rec.matchReasons.join('. '),
+        title: activity.title || '',
+        description: activity.description || '',
+        location_name: activity.locationName || '',
+        category: activity.category || 'activity',
+        estimated_cost: activity.estimatedCost || null,
+        sort_order: activity.sortOrder || i + 1,
+        notes: activity.notes || '',
       };
 
       const { error: activityError } = await supabase
@@ -367,7 +435,7 @@ export async function listItineraries(
 
 /**
  * Regenerate an itinerary with variation
- * Creates a new version with different activities while respecting preferences
+ * Updates the existing itinerary with new activities while respecting preferences
  */
 export async function regenerateItinerary(
   supabase: SupabaseClient,
@@ -395,16 +463,21 @@ export async function regenerateItinerary(
   }
 
   const preferences: UserPreferences = {
+    id: prefsData.id,
+    userId: prefsData.user_id,
     cuisinePreferences: prefsData.cuisine_preferences || [],
     activityTypes: prefsData.activity_types || [],
     budgetRange: prefsData.budget_range || 'moderate',
     travelPace: prefsData.travel_pace || 'moderate',
-    accommodationType: prefsData.accommodation_type || 'hotel',
-    transportPreferences: prefsData.transport_preferences || [],
-    dietaryRestrictions: prefsData.dietary_restrictions || [],
+    accommodationStyle: prefsData.accommodation_style || 'hotel',
+    socialPreferences: prefsData.social_preferences || 'solo',
     accessibilityNeeds: prefsData.accessibility_needs || [],
+    climatePreferences: prefsData.climate_preferences || [],
+    culturalInterests: prefsData.cultural_interests || [],
     adventureTolerance: prefsData.adventure_tolerance || 5,
-    socialPreference: prefsData.social_preference || 'mixed',
+    rawAnswers: prefsData.raw_answers || {},
+    createdAt: new Date(prefsData.created_at),
+    updatedAt: new Date(prefsData.updated_at),
   };
 
   // Modify preferences based on options to get variation
@@ -425,78 +498,104 @@ export async function regenerateItinerary(
 
   let dayPlans: DayPlan[];
 
-  // Use AI Agent with variation prompt
-  if (isAgentConfigured()) {
-    console.log('Regenerating with AI Agent (with variation)...');
-    
-    // Build exclusion list from existing activities
-    const existingActivityNames = existing.days.flatMap(d => 
-      d.activities.map(a => a.item.name)
+  // Use fast generation for regeneration too
+  console.log('[TIMING] Regenerating with fast mode...');
+  const startTime = Date.now();
+  
+  try {
+    dayPlans = await generateItineraryFast(
+      existing.destination,
+      existing.startDate,
+      existing.endDate,
+      modifiedPreferences
     );
-    const excludeList = [
-      ...(options?.excludeActivities || []),
-      ...existingActivityNames,
-    ];
-
-    const agentResult = await runItineraryAgent({
-      destination: existing.destination,
-      startDate: existing.startDate,
-      endDate: existing.endDate,
-      preferences: modifiedPreferences,
-    });
-
-    if (agentResult.success && agentResult.itinerary) {
-      dayPlans = agentResult.itinerary.days.map((day, index) => ({
-        dayNumber: day.dayNumber,
-        date: new Date(existing.startDate.getTime() + index * 24 * 60 * 60 * 1000),
-        activities: day.activities
-          .filter(act => !excludeList.some(ex => 
-            act.name.toLowerCase().includes(ex.toLowerCase())
-          ))
-          .map((act) => ({
-            type: act.type as 'attraction' | 'restaurant' | 'activity',
-            item: { name: act.name, description: '', category: act.type },
-            matchScore: 80,
-            matchReasons: ['AI regenerated with variation'],
-            suggestedTimeSlot: act.timeSlot as 'morning' | 'afternoon' | 'evening',
-            suggestedDuration: act.duration,
-          })),
-        totalDuration: day.activities.reduce((sum, a) => sum + a.duration, 0),
-        notes: day.notes,
-      }));
-    } else {
-      dayPlans = await generateLocalItinerary(
-        existing.destination, 
-        tripDuration, 
-        modifiedPreferences, 
-        existing.startDate
-      );
-    }
-  } else {
+    console.log(`[TIMING] Regeneration completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+  } catch (error) {
+    console.error('Regeneration error:', error);
     dayPlans = await generateLocalItinerary(
-      existing.destination, 
-      tripDuration, 
-      modifiedPreferences, 
+      existing.destination,
+      tripDuration,
+      modifiedPreferences,
       existing.startDate
     );
   }
 
-  // Archive old itinerary
+  // Delete existing days and activities
+  const { data: existingDays } = await supabase
+    .from('itinerary_days')
+    .select('id')
+    .eq('itinerary_id', itineraryId);
+
+  if (existingDays) {
+    for (const day of existingDays) {
+      await supabase.from('activities').delete().eq('day_id', day.id);
+    }
+    await supabase.from('itinerary_days').delete().eq('itinerary_id', itineraryId);
+  }
+
+  // Update itinerary metadata
   await supabase
     .from('itineraries')
-    .update({ status: 'archived' })
+    .update({
+      preferences_snapshot: modifiedPreferences,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', itineraryId);
 
-  // Save new version
-  return await saveItineraryToDatabase(supabase, {
+  // Create new day records with activities
+  for (const dayPlan of dayPlans) {
+    const { data: day, error: dayError } = await supabase
+      .from('itinerary_days')
+      .insert({
+        itinerary_id: itineraryId,
+        day_number: dayPlan.dayNumber,
+        date: dayPlan.date.toISOString().split('T')[0],
+        notes: dayPlan.notes,
+      })
+      .select()
+      .single();
+
+    if (dayError) {
+      throw new Error(`Failed to create day: ${dayError.message}`);
+    }
+
+    // Create activity records for this day
+    for (let i = 0; i < dayPlan.activities.length; i++) {
+      const activity = dayPlan.activities[i];
+
+      const activityData = {
+        day_id: day.id,
+        title: activity.title || '',
+        description: activity.description || '',
+        location_name: activity.locationName || '',
+        category: activity.category || 'activity',
+        estimated_cost: activity.estimatedCost || null,
+        sort_order: activity.sortOrder || i + 1,
+        notes: activity.notes || '',
+      };
+
+      const { error: activityError } = await supabase
+        .from('activities')
+        .insert(activityData);
+
+      if (activityError) {
+        console.error('Failed to create activity:', activityError);
+      }
+    }
+  }
+
+  // Return the updated itinerary
+  return {
+    id: existing.id,
     userId: existing.userId,
-    title: `${existing.title} (Regenerated)`,
+    title: existing.title,
     destination: existing.destination,
     startDate: existing.startDate,
     endDate: existing.endDate,
-    dayPlans,
-    preferences: modifiedPreferences,
-  });
+    days: dayPlans,
+    status: existing.status,
+    createdAt: existing.createdAt,
+  };
 }
 
 /**

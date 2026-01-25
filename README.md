@@ -63,6 +63,7 @@ Run the migrations in your Supabase project (found in `supabase/migrations/`):
 - `006_fix_trip_members_policy.sql` - Trip member access fixes
 - `007_fix_trips_recursion.sql` - Recursion fixes
 - `008_fix_recursion_with_functions.sql` - Function-based fixes
+- `009_add_itinerary_delete_policy.sql` - Enable itinerary deletion
 
 5. Run the development server:
 ```bash

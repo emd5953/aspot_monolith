@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import { DaySchedule } from './day-schedule';
+import { ItineraryMap } from './itinerary-map';
+import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 
 interface Activity {
   id: string;
@@ -41,6 +44,7 @@ interface ItineraryViewProps {
   onAddActivity?: (dayId: string) => void;
   onReorderActivities?: (dayId: string, activityIds: string[]) => void;
   onRegenerate?: () => void;
+  onDelete?: () => void;
 }
 
 export function ItineraryView({
@@ -50,6 +54,7 @@ export function ItineraryView({
   onAddActivity,
   onReorderActivities,
   onRegenerate,
+  onDelete,
 }: ItineraryViewProps) {
   const [activeTab, setActiveTab] = useState(0);
 
@@ -58,55 +63,78 @@ export function ItineraryView({
     return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
   };
 
+  const statusEmojis: Record<string, string> = {
+    draft: '📝',
+    active: '✈️',
+    completed: '✅',
+    archived: '📦',
+  };
+
   const statusColors: Record<string, string> = {
-    draft: 'bg-yellow-100 text-yellow-800',
-    active: 'bg-green-100 text-green-800',
-    completed: 'bg-blue-100 text-blue-800',
-    archived: 'bg-gray-100 text-gray-800',
+    draft: 'bg-post-it border-foreground',
+    active: 'bg-secondary-accent/20 text-secondary-accent border-secondary-accent',
+    completed: 'bg-accent/20 text-accent border-accent',
+    archived: 'bg-muted border-foreground',
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+      <HandDrawnCard decoration="tape" className="p-6">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{itinerary.title}</h1>
-            <p className="text-gray-500 mt-1">
-              {itinerary.destination} • {formatDateRange(itinerary.startDate, itinerary.endDate)}
+            <h1 className="text-3xl font-heading text-foreground -rotate-1">{itinerary.title}</h1>
+            <p className="text-foreground/70 mt-2 font-body text-lg">
+              📍 {itinerary.destination} • 📅 {formatDateRange(itinerary.startDate, itinerary.endDate)}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`px-3 py-1 rounded-full text-sm ${statusColors[itinerary.status]}`}>
-              {itinerary.status}
+            <span className={`px-3 py-1 text-sm border-2 border-wobbly-sm font-body ${statusColors[itinerary.status]}`}>
+              {statusEmojis[itinerary.status]} {itinerary.status}
             </span>
             {onRegenerate && (
-              <button
+              <HandDrawnButton
                 onClick={onRegenerate}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                variant="accent"
+                size="sm"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Regenerate
-              </button>
+                🔄 Regenerate
+              </HandDrawnButton>
+            )}
+            {onDelete && (
+              <HandDrawnButton
+                onClick={onDelete}
+                variant="secondary"
+                size="sm"
+              >
+                🗑️ Delete
+              </HandDrawnButton>
             )}
           </div>
         </div>
-      </div>
+      </HandDrawnCard>
+
+      {/* Map View */}
+      <HandDrawnCard decoration="tack" className="p-6">
+        <h2 className="text-2xl font-heading text-foreground mb-4 -rotate-1">🗺️ Route Map</h2>
+        <ItineraryMap
+          destination={itinerary.destination}
+          activities={itinerary.days.flatMap(day => day.activities)}
+        />
+      </HandDrawnCard>
 
       {/* Day Tabs */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="border-b">
+      <HandDrawnCard className="overflow-hidden">
+        <div className="border-b-2 border-foreground border-dashed">
           <div className="flex overflow-x-auto">
             {itinerary.days.map((day, index) => (
               <button
                 key={day.id}
                 onClick={() => setActiveTab(index)}
-                className={`px-6 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                className={`px-6 py-3 font-body text-base whitespace-nowrap border-b-4 transition-all ${
                   activeTab === index
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-accent text-accent bg-accent/10 -rotate-1'
+                    : 'border-transparent text-foreground/60 hover:text-foreground hover:bg-muted/50'
                 }`}
               >
                 Day {day.dayNumber}
@@ -130,7 +158,7 @@ export function ItineraryView({
             />
           )}
         </div>
-      </div>
+      </HandDrawnCard>
     </div>
   );
 }

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { GenerateForm } from '@/components/itinerary/generate-form';
+import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 
 interface Itinerary {
   id: string;
@@ -45,6 +47,7 @@ export default function ItineraryPage() {
     startDate: string;
     endDate: string;
     title?: string;
+    useAgenticMode?: boolean;
   }) => {
     setIsGenerating(true);
     try {
@@ -66,34 +69,60 @@ export default function ItineraryPage() {
     }
   };
 
+  const handleDelete = async (e: React.MouseEvent, itineraryId: string) => {
+    e.stopPropagation(); // Prevent navigation when clicking delete
+    
+    if (!confirm('Are you sure you want to delete this itinerary? This action cannot be undone.')) return;
+
+    try {
+      const res = await fetch(`/api/itinerary/${itineraryId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to delete itinerary');
+      }
+
+      // Refresh the list
+      fetchItineraries();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete itinerary');
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric',
     });
   };
 
+  const statusEmojis: Record<string, string> = {
+    draft: '📝',
+    active: '✈️',
+    completed: '✅',
+    archived: '📦',
+  };
+
   const statusColors: Record<string, string> = {
-    draft: 'bg-yellow-100 text-yellow-800',
-    active: 'bg-green-100 text-green-800',
-    completed: 'bg-blue-100 text-blue-800',
-    archived: 'bg-gray-100 text-gray-800',
+    draft: 'bg-post-it border-foreground',
+    active: 'bg-secondary-accent/20 text-secondary-accent border-secondary-accent',
+    completed: 'bg-accent/20 text-accent border-accent',
+    archived: 'bg-muted border-foreground',
   };
 
   if (showForm) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4">
+      <div className="min-h-screen bg-background py-12 px-4">
         <div className="max-w-xl mx-auto">
-          <button
+          <HandDrawnButton
             onClick={() => setShowForm(false)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+            variant="secondary"
+            size="sm"
+            className="mb-6"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to itineraries
-          </button>
+            ← Back to itineraries
+          </HandDrawnButton>
           <GenerateForm onSubmit={handleGenerate} isLoading={isGenerating} />
         </div>
       </div>
@@ -101,62 +130,102 @@ export default function ItineraryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">My Itineraries</h1>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        {/* Navigation */}
+        <div className="flex items-center gap-3 mb-6">
+          <HandDrawnButton
+            onClick={() => router.push('/dashboard')}
+            variant="secondary"
+            size="sm"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New Itinerary
-          </button>
+            ← Dashboard
+          </HandDrawnButton>
+          <HandDrawnButton
+            onClick={() => router.push('/trips')}
+            variant="secondary"
+            size="sm"
+          >
+            👥 Trips
+          </HandDrawnButton>
         </div>
 
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
-            <p className="text-gray-500 mt-4">Loading your itineraries...</p>
-          </div>
-        ) : itineraries.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
+        <HandDrawnCard decoration="tape" className="p-6 mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-heading text-foreground -rotate-1">
+                ✈️ My Itineraries
+              </h1>
+              <p className="text-foreground/70 font-body text-lg mt-1">
+                Your personalized travel plans
+              </p>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">No itineraries yet</h2>
-            <p className="text-gray-500 mb-6">Create your first AI-powered travel itinerary</p>
-            <button
+            <HandDrawnButton
               onClick={() => setShowForm(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              variant="accent"
+              size="md"
             >
-              Generate Your First Itinerary
-            </button>
+              ➕ New Trip
+            </HandDrawnButton>
           </div>
+        </HandDrawnCard>
+
+        {isLoading ? (
+          <HandDrawnCard className="p-12 text-center">
+            <div className="animate-spin h-12 w-12 border-4 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-foreground/60 font-body">Loading your adventures...</p>
+          </HandDrawnCard>
+        ) : itineraries.length === 0 ? (
+          <HandDrawnCard decoration="tack" className="p-12 text-center">
+            <div className="text-6xl mb-4">🗺️</div>
+            <h2 className="text-3xl font-heading text-foreground mb-2">No itineraries yet!</h2>
+            <p className="text-foreground/70 font-body text-lg mb-6">
+              Create your first AI-powered travel itinerary
+            </p>
+            <HandDrawnButton
+              onClick={() => setShowForm(true)}
+              variant="accent"
+              size="lg"
+            >
+              ✨ Generate Itinerary
+            </HandDrawnButton>
+          </HandDrawnCard>
         ) : (
-          <div className="grid gap-4">
-            {itineraries.map((itinerary) => (
-              <div
+          <div className="grid gap-6">
+            {itineraries.map((itinerary, index) => (
+              <HandDrawnCard
                 key={itinerary.id}
+                className="p-6 cursor-pointer hover:shadow-hand transition-all hover:-rotate-1"
+                rotation={index % 2 === 0 ? 0.5 : -0.5}
                 onClick={() => router.push(`/itinerary/${itinerary.id}`)}
-                className="bg-white rounded-xl shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{itinerary.title}</h3>
-                    <p className="text-gray-500 text-sm mt-1">
-                      {itinerary.destination} • {formatDate(itinerary.startDate)} - {formatDate(itinerary.endDate)}
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-heading text-foreground">{itinerary.title}</h3>
+                    <p className="text-foreground/70 font-body mt-2">
+                      📍 {itinerary.destination}
+                    </p>
+                    <p className="text-sm text-foreground/60 font-body mt-1">
+                      📅 {formatDate(itinerary.startDate)} - {formatDate(itinerary.endDate)}
                     </p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs ${statusColors[itinerary.status]}`}>
-                    {itinerary.status}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`px-3 py-1 text-xs border-2 border-wobbly-sm font-body ${statusColors[itinerary.status]}`}>
+                      {statusEmojis[itinerary.status]} {itinerary.status}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => handleDelete(e, itinerary.id)}
+                        className="text-red-500 hover:text-red-700 text-sm font-body px-2 py-1 border-2 border-red-500 hover:bg-red-50 transition-colors"
+                        title="Delete itinerary"
+                      >
+                        🗑️
+                      </button>
+                      <span className="text-3xl">→</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </HandDrawnCard>
             ))}
           </div>
         )}
