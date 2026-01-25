@@ -39,9 +39,7 @@ export function QuizQuestionCard({ question, currentAnswer, onAnswer }: QuizQues
       newValues = [...selectedValues, value];
     }
     setSelectedValues(newValues);
-    if (newValues.length > 0) {
-      onAnswer({ questionId: question.id, value: newValues });
-    }
+    onAnswer({ questionId: question.id, value: newValues });
   };
 
   const handleScaleChange = (value: number) => {

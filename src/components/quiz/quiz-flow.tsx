@@ -9,6 +9,7 @@ import { QuizQuestionCard } from './quiz-question';
 import { createClient } from '@/lib/supabase/client';
 import { saveAnswer } from '@/lib/quiz/progress-service';
 import { saveUserPreferences } from '@/lib/quiz/profile-generator';
+import { validateAnswer } from '@/lib/quiz/validation';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import Link from 'next/link';
@@ -29,7 +30,8 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
 
   const currentQuestion = quizQuestions[currentStep];
   const isLastQuestion = currentStep === quizQuestions.length - 1;
-  const hasAnswer = answers[currentQuestion?.id];
+  const currentAnswer = answers[currentQuestion?.id];
+  const hasAnswer = currentAnswer && validateAnswer(currentQuestion, currentAnswer);
 
   const handleAnswer = (answer: QuizAnswer) => {
     setAnswers((prev) => ({

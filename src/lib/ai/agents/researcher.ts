@@ -65,6 +65,7 @@ async function scrapeWithFirecrawl(url: string): Promise<string> {
 
 /**
  * Build search URLs for multiple sources
+ * Optimized to only scrape the 3 most reliable sources
  */
 function buildSourceUrls(destination: string): Array<{ name: string; url: string; type: ScrapedSource['type'] }> {
   const encodedDest = encodeURIComponent(destination);
@@ -100,23 +101,6 @@ function buildSourceUrls(destination: string): Array<{ name: string; url: string
       url: `https://www.google.com/travel/things-to-do/see-all?dest_mid=&dest_state_type=sattd&dest_src=ts&q=${encodedDest}`,
       type: 'attractions' as const,
     },
-    // Reddit - authentic local recommendations
-    {
-      name: 'Reddit Travel',
-      url: `https://www.reddit.com/r/travel/search/?q=${encodedDest}&restrict_sr=1&sort=relevance`,
-      type: 'reviews' as const,
-    },
-    {
-      name: 'Reddit SoloTravel',
-      url: `https://www.reddit.com/r/solotravel/search/?q=${encodedDest}&restrict_sr=1&sort=top`,
-      type: 'reviews' as const,
-    },
-    // Lonely Planet - travel guides
-    {
-      name: 'Lonely Planet',
-      url: `https://www.lonelyplanet.com/search?q=${encodedDest}`,
-      type: 'general' as const,
-    },
   ];
 }
 
@@ -137,6 +121,7 @@ export async function runResearchAgent(request: ResearchRequest): Promise<{
   // Step 1: Scrape multiple sources in parallel
   thoughts.push('');
   thoughts.push('📡 Scraping data sources...');
+  const scrapeStartTime = Date.now();
   
   const sourceConfigs = buildSourceUrls(destination);
   const scrapedSources: ScrapedSource[] = [];
@@ -162,6 +147,7 @@ export async function runResearchAgent(request: ResearchRequest): Promise<{
     }
   }
 
+  console.log(`[TIMING] Scraping completed in ${((Date.now() - scrapeStartTime) / 1000).toFixed(1)}s`);
   thoughts.push('');
   thoughts.push(`📊 Collected data from ${scrapedSources.length}/${sourceConfigs.length} sources`);
 

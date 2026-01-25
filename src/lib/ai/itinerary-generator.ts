@@ -65,7 +65,8 @@ export async function generateItinerary(
 
   // Try Multi-Agent System first
   if (process.env.OPENAI_API_KEY) {
-    console.log('Using Multi-Agent System for itinerary generation...');
+    console.log('[TIMING] Starting Multi-Agent System...');
+    const startTime = Date.now();
     console.log('Agents: Research → Plan → Review (with autonomous loops)');
     
     try {
@@ -78,6 +79,8 @@ export async function generateItinerary(
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
         },
       });
+
+      console.log(`[TIMING] Multi-Agent System completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
 
       if (orchestratorResult.success && orchestratorResult.plan) {
         // Convert multi-agent plan to our DayPlan format
@@ -299,25 +302,23 @@ export async function getItinerary(
 
   const days: DayPlan[] = itinerary.itinerary_days
     .sort((a: { day_number: number }, b: { day_number: number }) => a.day_number - b.day_number)
-    .map((day: { day_number: number; date: string; activities: Array<{ title: string; description: string; category: string; sort_order: number; notes: string }>; notes: string }) => ({
+    .map((day: { id: string; day_number: number; date: string; activities: Array<{ id: string; title: string; description: string; category: string; sort_order: number; notes: string; location_name?: string; estimated_cost?: number }>; notes: string }) => ({
+      id: day.id,
       dayNumber: day.day_number,
       date: new Date(day.date),
+      notes: day.notes || '',
       activities: day.activities
         .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
-        .map((act: { title: string; description: string; category: string; sort_order: number; notes: string }) => ({
-          type: act.category === 'dining' ? 'restaurant' : 'activity',
-          item: {
-            name: act.title,
-            description: act.description,
-            category: act.category,
-          },
-          matchScore: 0,
-          matchReasons: act.notes ? act.notes.split('. ') : [],
-          suggestedTimeSlot: 'morning' as const,
-          suggestedDuration: 60,
+        .map((act: { id: string; title: string; description: string; category: string; sort_order: number; notes: string; location_name?: string; estimated_cost?: number }) => ({
+          id: act.id,
+          title: act.title,
+          description: act.description,
+          locationName: act.location_name,
+          category: act.category,
+          estimatedCost: act.estimated_cost,
+          sortOrder: act.sort_order,
+          notes: act.notes,
         })),
-      totalDuration: day.activities.length * 60,
-      notes: day.notes || '',
     }));
 
   return {

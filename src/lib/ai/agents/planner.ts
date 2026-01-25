@@ -96,12 +96,15 @@ RESPOND WITH VALID JSON:
 
   try {
     thoughts.push('Generating optimized itinerary...');
+    const planStartTime = Date.now();
 
     const result = await generateText({
       model: openai('gpt-4o'),
       prompt: planningPrompt,
       temperature: 0.8,
     });
+
+    console.log(`[TIMING] Planning AI call completed in ${((Date.now() - planStartTime) / 1000).toFixed(1)}s`);
 
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {

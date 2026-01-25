@@ -18,7 +18,7 @@ import { runResearchAgent } from './researcher';
 import { runPlannerAgent } from './planner';
 import { runReviewerAgent } from './reviewer';
 
-const MAX_ITERATIONS = 3;
+const MAX_ITERATIONS = 1;
 
 export interface OrchestratorInput {
   destination: string;
