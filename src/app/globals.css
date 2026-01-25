@@ -1,26 +1,82 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Hand-Drawn Design System Colors */
+  --background: #fdfbf7;
+  --foreground: #2d2d2d;
+  --muted: #e5e0d8;
+  --accent: #ff4d4d;
+  --border: #2d2d2d;
+  --secondary-accent: #2d5da1;
+  --card: #ffffff;
+  --post-it: #fff9c4;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-secondary-accent: var(--secondary-accent);
+  --color-card: var(--card);
+  --color-post-it: var(--post-it);
+  
+  --font-heading: var(--font-kalam);
+  --font-body: var(--font-patrick-hand);
+  
+  /* Wobbly border radius values */
+  --radius-wobbly: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --radius-wobbly-md: 125px 15px 115px 20px / 20px 115px 15px 125px;
+  --radius-wobbly-sm: 85px 10px 75px 12px / 12px 75px 10px 85px;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-patrick-hand), cursive;
+  
+  /* Paper texture background */
+  background-image: radial-gradient(#e5e0d8 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Hard offset shadow utilities */
+.shadow-hand {
+  box-shadow: 4px 4px 0px 0px #2d2d2d;
+}
+
+.shadow-hand-lg {
+  box-shadow: 8px 8px 0px 0px #2d2d2d;
+}
+
+.shadow-hand-sm {
+  box-shadow: 2px 2px 0px 0px #2d2d2d;
+}
+
+.shadow-hand-subtle {
+  box-shadow: 3px 3px 0px 0px rgba(45, 45, 45, 0.1);
+}
+
+/* Wobbly border utilities */
+.border-wobbly {
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+}
+
+.border-wobbly-md {
+  border-radius: 125px 15px 115px 20px / 20px 115px 15px 125px;
+}
+
+.border-wobbly-sm {
+  border-radius: 85px 10px 75px 12px / 12px 75px 10px 85px;
+}
+
+/* Animations */
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-gentle-bounce {
+  animation: gentle-bounce 3s ease-in-out infinite;
 }

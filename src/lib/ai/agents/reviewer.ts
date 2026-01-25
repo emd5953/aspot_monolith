@@ -33,7 +33,6 @@ USER PREFERENCES:
 - Interests: ${preferences.activityTypes.join(', ')}
 - Cuisines: ${preferences.cuisinePreferences.join(', ')}
 - Adventure tolerance: ${preferences.adventureTolerance}/10
-- Dietary restrictions: ${preferences.dietaryRestrictions.join(', ') || 'None'}
 - Accessibility needs: ${preferences.accessibilityNeeds.join(', ') || 'None'}
 
 AVAILABLE OPTIONS NOT USED:

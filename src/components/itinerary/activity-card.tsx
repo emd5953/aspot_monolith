@@ -11,6 +11,7 @@ interface Activity {
   endTime?: string;
   category: string;
   estimatedCost?: number;
+  sortOrder: number;
   notes?: string;
 }
 

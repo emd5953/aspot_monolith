@@ -9,6 +9,9 @@ import { QuizQuestionCard } from './quiz-question';
 import { createClient } from '@/lib/supabase/client';
 import { saveAnswer } from '@/lib/quiz/progress-service';
 import { saveUserPreferences } from '@/lib/quiz/profile-generator';
+import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import Link from 'next/link';
 
 interface QuizFlowProps {
   initialProgress?: QuizProgress | null;
@@ -68,34 +71,43 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen py-12 px-6">
+      {/* Header */}
+      <div className="max-w-3xl mx-auto mb-8">
+        <Link href="/dashboard">
+          <h1 className="text-3xl font-heading text-foreground -rotate-1 inline-block mb-6">
+            ✈️ AI Itinerary Planner
+          </h1>
+        </Link>
+      </div>
+
+      <div className="max-w-3xl mx-auto">
         <QuizProgressBar currentStep={currentStep} totalSteps={quizQuestions.length} />
 
-        <div className="bg-white rounded-xl shadow-sm p-8">
+        <HandDrawnCard decoration="tape" className="p-8">
           <QuizQuestionCard
             question={currentQuestion}
             currentAnswer={answers[currentQuestion.id]}
             onAnswer={handleAnswer}
           />
 
-          <div className="flex justify-between mt-8 pt-6 border-t">
-            <button
+          <div className="flex justify-between mt-8 pt-6 border-t-2 border-dashed border-foreground/20">
+            <HandDrawnButton
               onClick={handleBack}
               disabled={currentStep === 0}
-              className="px-6 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="secondary"
             >
               Back
-            </button>
-            <button
+            </HandDrawnButton>
+            <HandDrawnButton
               onClick={handleNext}
               disabled={!hasAnswer || isSubmitting}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="accent"
             >
               {isSubmitting ? 'Saving...' : isLastQuestion ? 'Complete' : 'Next'}
-            </button>
+            </HandDrawnButton>
           </div>
-        </div>
+        </HandDrawnCard>
       </div>
     </div>
   );

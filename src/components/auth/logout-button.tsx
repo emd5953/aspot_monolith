@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 
 export function LogoutButton() {
   const router = useRouter();
@@ -14,11 +15,12 @@ export function LogoutButton() {
   };
 
   return (
-    <button
+    <HandDrawnButton
       onClick={handleLogout}
-      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+      variant="secondary"
+      size="sm"
     >
       Sign out
-    </button>
+    </HandDrawnButton>
   );
 }

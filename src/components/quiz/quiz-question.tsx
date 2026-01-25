@@ -50,32 +50,32 @@ export function QuizQuestionCard({ question, currentAnswer, onAnswer }: QuizQues
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">{question.question}</h2>
+    <div className="w-full max-w-3xl mx-auto">
+      <h2 className="text-3xl md:text-4xl font-heading text-foreground mb-3">{question.question}</h2>
       {question.subtext && (
-        <p className="text-gray-600 mb-6">{question.subtext}</p>
+        <p className="text-lg text-foreground/70 mb-8 font-body">{question.subtext}</p>
       )}
 
       {question.type === 'single' && question.options && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {question.options.map((option) => (
             <button
               key={option.id}
               onClick={() => handleSingleSelect(option.value)}
-              className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
+              className={`w-full p-5 text-left border-wobbly-sm border-[3px] transition-all font-body text-lg ${
                 selectedValues.includes(option.value)
-                  ? 'border-indigo-600 bg-indigo-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-accent bg-accent/10 shadow-hand-sm'
+                  : 'border-foreground bg-card hover:shadow-hand-sm hover:-rotate-1'
               }`}
             >
-              <span className="font-medium">{option.label}</span>
+              <span>{option.label}</span>
             </button>
           ))}
         </div>
       )}
 
       {question.type === 'multiple' && question.options && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {question.options.map((option) => (
             <button
               key={option.id}
@@ -85,15 +85,20 @@ export function QuizQuestionCard({ question, currentAnswer, onAnswer }: QuizQues
                 question.maxSelections !== undefined &&
                 selectedValues.length >= question.maxSelections
               }
-              className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
+              className={`w-full p-5 text-left border-wobbly-sm border-[3px] transition-all font-body text-lg ${
                 selectedValues.includes(option.value)
-                  ? 'border-indigo-600 bg-indigo-50'
-                  : 'border-gray-200 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed'
+                  ? 'border-accent bg-accent/10 shadow-hand-sm'
+                  : 'border-foreground bg-card hover:shadow-hand-sm hover:rotate-1 disabled:opacity-50 disabled:cursor-not-allowed'
               }`}
             >
-              <span className="font-medium">{option.label}</span>
+              <span>{option.label}</span>
             </button>
           ))}
+          {question.maxSelections && (
+            <p className="text-sm text-foreground/60 font-body mt-2">
+              Select up to {question.maxSelections} options
+            </p>
+          )}
         </div>
       )}
 
@@ -105,11 +110,12 @@ export function QuizQuestionCard({ question, currentAnswer, onAnswer }: QuizQues
             max={question.scaleMax ?? 10}
             value={scaleValue}
             onChange={(e) => handleScaleChange(parseInt(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+            className="w-full h-3 bg-muted border-2 border-foreground appearance-none cursor-pointer accent-accent"
+            style={{ borderRadius: '15px' }}
           />
-          <div className="flex justify-between mt-2 text-sm text-gray-600">
+          <div className="flex justify-between mt-4 text-base text-foreground/70 font-body">
             <span>{question.scaleLabels?.min}</span>
-            <span className="text-2xl font-bold text-indigo-600">{scaleValue}</span>
+            <span className="text-4xl font-heading text-accent">{scaleValue}</span>
             <span>{question.scaleLabels?.max}</span>
           </div>
         </div>

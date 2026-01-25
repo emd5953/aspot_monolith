@@ -155,7 +155,8 @@ const fetchDestinationTool = tool({
     destination: z.string().describe('The destination city/country to fetch data for'),
     category: z.enum(['attractions', 'restaurants', 'activities', 'all']).describe('What type of data to fetch'),
   }),
-  execute: async ({ destination, category }) => {
+  execute: async (args) => {
+    const { destination, category } = args;
     console.log(`Agent fetching ${category} data for ${destination}...`);
     const data = await fetchRealDestinationData(destination);
 
@@ -175,7 +176,8 @@ const scoreActivityTool = tool({
     userActivityTypes: z.array(z.string()),
     userAdventureLevel: z.number(),
   }),
-  execute: async ({ activityCategory, activityPriceRange, userBudget, userActivityTypes, userAdventureLevel }) => {
+  execute: async (args) => {
+    const { activityCategory, activityPriceRange, userBudget, userActivityTypes, userAdventureLevel } = args;
     let score = 50;
     
     // Category match
@@ -209,7 +211,8 @@ const buildDayScheduleTool = tool({
     })),
     travelPace: z.enum(['relaxed', 'moderate', 'packed']),
   }),
-  execute: async ({ dayNumber, date, activities, travelPace }) => {
+  execute: async (args) => {
+    const { dayNumber, date, activities, travelPace } = args;
     const maxActivities = { relaxed: 3, moderate: 4, packed: 6 }[travelPace];
     const scheduledActivities = activities.slice(0, maxActivities);
     
@@ -313,7 +316,8 @@ Be thoughtful about:
         })),
         travelPace: z.enum(['relaxed', 'moderate', 'packed']),
       }),
-      execute: async ({ dayNumber, date, activities, travelPace }) => {
+      execute: async (args) => {
+        const { dayNumber, date, activities, travelPace } = args;
         const maxActivities = { relaxed: 3, moderate: 4, packed: 6 }[travelPace];
         const scheduledActivities = activities.slice(0, maxActivities);
         

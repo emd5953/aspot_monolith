@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateItinerary } from '@/lib/ai/itinerary-generator';
-import { getUserPreferences } from '@/lib/preferences/preferences-service';
+import { getPreferences } from '@/lib/preferences/preferences-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user preferences
-    const preferences = await getUserPreferences(supabase, user.id);
+    const preferences = await getPreferences(supabase, user.id);
     if (!preferences) {
       return NextResponse.json(
         { error: 'Please complete the quiz first to set your preferences' },

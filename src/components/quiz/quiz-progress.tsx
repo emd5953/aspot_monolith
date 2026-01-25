@@ -10,13 +10,13 @@ export function QuizProgressBar({ currentStep, totalSteps }: QuizProgressProps) 
 
   return (
     <div className="w-full mb-8">
-      <div className="flex justify-between text-sm text-gray-600 mb-2">
+      <div className="flex justify-between text-lg text-foreground mb-3 font-body">
         <span>Question {currentStep + 1} of {totalSteps}</span>
         <span>{percentage}% complete</span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      <div className="w-full bg-muted border-2 border-foreground border-wobbly-sm h-6 relative overflow-hidden">
         <div
-          className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+          className="bg-accent h-full transition-all duration-300 border-r-2 border-foreground"
           style={{ width: `${percentage}%` }}
         />
       </div>
