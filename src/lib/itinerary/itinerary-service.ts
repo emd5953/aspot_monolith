@@ -20,6 +20,7 @@ export interface Activity {
   endTime?: string;
   category: string;
   estimatedCost?: number;
+  bookingUrl?: string;
   sortOrder: number;
   notes?: string;
   createdAt: Date;
@@ -44,6 +45,7 @@ export interface ActivityInput {
   endTime?: string;
   category?: string;
   estimatedCost?: number;
+  bookingUrl?: string;
   notes?: string;
 }
 
@@ -79,6 +81,7 @@ export async function addActivity(
       end_time: activity.endTime,
       category: activity.category || 'activity',
       estimated_cost: activity.estimatedCost,
+      booking_url: activity.bookingUrl,
       sort_order: nextSortOrder,
       notes: activity.notes,
     })
@@ -111,6 +114,7 @@ export async function updateActivity(
   if (updates.endTime !== undefined) updateData.end_time = updates.endTime;
   if (updates.category !== undefined) updateData.category = updates.category;
   if (updates.estimatedCost !== undefined) updateData.estimated_cost = updates.estimatedCost;
+  if (updates.bookingUrl !== undefined) updateData.booking_url = updates.bookingUrl;
   if (updates.notes !== undefined) updateData.notes = updates.notes;
 
   const { data, error } = await supabase
@@ -382,6 +386,7 @@ function mapActivityFromDb(data: Record<string, unknown>): Activity {
     endTime: data.end_time as string | undefined,
     category: data.category as string,
     estimatedCost: data.estimated_cost as number | undefined,
+    bookingUrl: data.booking_url as string | undefined,
     sortOrder: data.sort_order as number,
     notes: data.notes as string | undefined,
     createdAt: new Date(data.created_at as string),

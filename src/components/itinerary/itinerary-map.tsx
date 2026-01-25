@@ -90,6 +90,30 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
         // Add markers for activities with locations
         const bounds = new google.maps.LatLngBounds();
         const markers: google.maps.Marker[] = [];
+        const markerPositions: { lat: number; lng: number }[] = [];
+
+        // Helper function to check if position is too close to existing markers
+        const adjustPositionIfOverlapping = (position: google.maps.LatLng): google.maps.LatLng => {
+          const lat = position.lat();
+          const lng = position.lng();
+          const minDistance = 0.0001; // Approximately 11 meters
+          
+          for (const existingPos of markerPositions) {
+            const distance = Math.sqrt(
+              Math.pow(lat - existingPos.lat, 2) + Math.pow(lng - existingPos.lng, 2)
+            );
+            
+            if (distance < minDistance) {
+              // Offset the marker in a circular pattern
+              const angle = markerPositions.length * (Math.PI / 4); // 45 degrees per marker
+              const offsetLat = lat + (minDistance * Math.cos(angle));
+              const offsetLng = lng + (minDistance * Math.sin(angle));
+              return new google.maps.LatLng(offsetLat, offsetLng);
+            }
+          }
+          
+          return position;
+        };
 
         for (let i = 0; i < activities.length; i++) {
           const activity = activities[i];
@@ -115,8 +139,12 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
           }
 
           if (position) {
+            // Adjust position if it overlaps with existing markers
+            const adjustedPosition = adjustPositionIfOverlapping(position);
+            markerPositions.push({ lat: adjustedPosition.lat(), lng: adjustedPosition.lng() });
+
             const marker = new google.maps.Marker({
-              position,
+              position: adjustedPosition,
               map: newMap,
               title: activity.title,
               label: {
@@ -135,8 +163,8 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
             });
 
             // Create navigation link
-            const lat = position.lat();
-            const lng = position.lng();
+            const lat = adjustedPosition.lat();
+            const lng = adjustedPosition.lng();
             const navigationUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
             const infoWindow = new google.maps.InfoWindow({
@@ -159,7 +187,7 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
             });
 
             markers.push(marker);
-            bounds.extend(position);
+            bounds.extend(adjustedPosition);
           }
         }
 

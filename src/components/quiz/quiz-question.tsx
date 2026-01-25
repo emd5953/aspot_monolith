@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { QuizQuestion, QuizAnswer } from '@/types/quiz';
 
 interface QuizQuestionProps {
@@ -22,6 +22,26 @@ export function QuizQuestionCard({ question, currentAnswer, onAnswer }: QuizQues
       ? currentAnswer.value
       : question.scaleMin ?? 5
   );
+
+  // Debug: Log when component receives new props
+  useEffect(() => {
+    console.log('📝 QuizQuestionCard mounted/updated:', {
+      questionId: question.id,
+      currentAnswer: currentAnswer,
+      selectedValues: selectedValues,
+    });
+  }, [question.id, currentAnswer]);
+
+  // Reset selectedValues when currentAnswer changes
+  useEffect(() => {
+    const newValues = currentAnswer
+      ? Array.isArray(currentAnswer.value)
+        ? currentAnswer.value
+        : [currentAnswer.value as string]
+      : [];
+    console.log('🔄 Resetting selectedValues:', { questionId: question.id, newValues });
+    setSelectedValues(newValues);
+  }, [currentAnswer, question.id]);
 
   const handleSingleSelect = (value: string) => {
     setSelectedValues([value]);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -8,7 +8,7 @@ import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { HandDrawnInput } from '@/components/ui/hand-drawn-input';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -178,5 +178,14 @@ export default function LoginPage() {
         </HandDrawnCard>
       </div>
     </div>
+  );
+}
+
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="text-2xl">Loading...</div></div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

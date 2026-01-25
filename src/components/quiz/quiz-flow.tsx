@@ -30,6 +30,10 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
 
   // Reset state when initialProgress changes (e.g., when quiz is restarted)
   useEffect(() => {
+    console.log('🔄 QuizFlow useEffect triggered:', {
+      initialStep: initialProgress?.currentStep,
+      initialAnswersCount: Object.keys(initialProgress?.answers ?? {}).length,
+    });
     setCurrentStep(initialProgress?.currentStep ?? 0);
     setAnswers(initialProgress?.answers ?? {});
   }, [initialProgress]);

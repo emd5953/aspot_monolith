@@ -13,6 +13,7 @@ interface Activity {
   duration?: number;
   category: string;
   estimatedCost?: number;
+  bookingUrl?: string;
   sortOrder: number;
   notes?: string;
 }
@@ -109,7 +110,24 @@ export function ActivityCard({ activity, onEdit, onDelete, isDragging }: Activit
           </div>
           <h4 className="font-heading text-lg text-foreground">{activity.title}</h4>
           {activity.locationName && (
-            <p className="text-sm text-foreground/70 mt-1 font-body">📍 {activity.locationName}</p>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.locationName)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-foreground/70 hover:text-secondary-accent mt-1 font-body inline-flex items-center gap-1 transition-colors cursor-pointer underline decoration-dotted underline-offset-2"
+            >
+              📍 {activity.locationName}
+            </a>
+          )}
+          {activity.bookingUrl && (
+            <a
+              href={activity.bookingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-accent hover:text-accent/80 mt-1 font-body inline-flex items-center gap-1 transition-colors cursor-pointer underline decoration-solid underline-offset-2 ml-3"
+            >
+              🎟️ Event Link
+            </a>
           )}
         </div>
         <div className="flex items-center gap-1">

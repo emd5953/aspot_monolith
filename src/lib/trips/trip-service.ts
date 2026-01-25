@@ -311,7 +311,7 @@ export async function listUserTrips(
 
   return data
     .filter(d => d.trips)
-    .map(d => mapTripFromDb(d.trips as Record<string, unknown>));
+    .map(d => mapTripFromDb(d.trips as unknown as Record<string, unknown>));
 }
 
 /**
