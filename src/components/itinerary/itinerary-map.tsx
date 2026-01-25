@@ -254,7 +254,15 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
                 strokeColor: '#94a3b8', // Gray color to indicate it's not a real route
                 strokeOpacity: 0.5,
                 strokeWeight: 2,
-                strokeStyle: 'dashed',
+                icons: [{
+                  icon: {
+                    path: 'M 0,-1 0,1',
+                    strokeOpacity: 1,
+                    scale: 2
+                  },
+                  offset: '0',
+                  repeat: '10px'
+                }],
                 map: newMap,
               });
             }
