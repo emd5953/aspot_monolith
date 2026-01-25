@@ -27,8 +27,9 @@ export interface AgenticOrchestratorInput {
   startDate: Date;
   endDate: Date;
   preferences: UserPreferences;
-  qualityThreshold?: number; // Stop when score reaches this (default 80)
-  maxIterations?: number; // Safety limit (default 5)
+  qualityThreshold?: number; // Stop when score reaches this (default 60)
+  maxIterations?: number; // Safety limit (default 1 for speed)
+  useAdvancedCuration?: boolean; // Enable extensive scraping + iterations
   onProgress?: (state: OrchestrationState & { reasoning: ReasoningStep[] }) => void;
 }
 
@@ -72,6 +73,30 @@ async function decideNextAction(
     };
   }
 
+  // Very aggressive stopping - accept any score above 60 after 1 iteration
+  if (currentScore >= 60 && iteration >= 1) {
+    return {
+      action: 'stop',
+      reasoning: `Acceptable score (${currentScore}) after ${iteration} iteration - stopping for speed`,
+    };
+  }
+
+  // More aggressive stopping - accept scores above 65
+  if (currentScore >= 65 && iteration >= 1) {
+    return {
+      action: 'stop',
+      reasoning: `Good enough score (${currentScore}) after ${iteration} iteration(s)`,
+    };
+  }
+
+  // More aggressive stopping - accept scores above 70
+  if (currentScore >= 70 && iteration >= 2) {
+    return {
+      action: 'stop',
+      reasoning: `Good enough score (${currentScore}) after ${iteration} iterations`,
+    };
+  }
+
   const highSeverityIssues = issues.filter(i => i.severity === 'high').length;
   
   if (highSeverityIssues > 3) {
@@ -105,8 +130,9 @@ export async function runAgenticOrchestrator(
     startDate,
     endDate,
     preferences,
-    qualityThreshold = 80,
-    maxIterations = 5,
+    qualityThreshold = 75,
+    maxIterations = 1,
+    useAdvancedCuration = false,
     onProgress,
   } = input;
 
@@ -116,28 +142,38 @@ export async function runAgenticOrchestrator(
   let iteration = 0;
 
   allThoughts.push('🤖 AGENTIC ORCHESTRATOR ACTIVATED');
-  allThoughts.push(`Goal: Create itinerary scoring ${qualityThreshold}+ within ${maxIterations} iterations`);
+  allThoughts.push(useAdvancedCuration 
+    ? `Goal: Premium quality with extensive research (${maxIterations} iterations, score ${qualityThreshold}+)`
+    : `Goal: Fast quality (1 iteration for speed)`);
   allThoughts.push('');
 
-  // PHASE 1: RESEARCH
-  allThoughts.push('═══ PHASE 1: AGENTIC RESEARCH ═══');
+  // PHASE 1: RESEARCH (Lightweight or Extensive based on mode)
+  allThoughts.push(useAdvancedCuration 
+    ? '═══ PHASE 1: EXTENSIVE RESEARCH (Advanced Mode) ═══'
+    : '═══ PHASE 1: LIGHTWEIGHT RESEARCH ═══');
   
   const researchStep: ReasoningStep = {
     agent: 'orchestrator',
-    thought: 'I need comprehensive data about the destination to create a quality itinerary',
-    action: 'Delegating to Agentic Researcher',
+    thought: useAdvancedCuration
+      ? 'Running extensive web scraping for premium quality (Google, Reddit, TripAdvisor)'
+      : 'Getting real location data for accuracy (lightweight mode)',
+    action: useAdvancedCuration ? 'Extensive web scraping' : 'Quick web scraping',
     result: '',
     timestamp: new Date(),
   };
   allReasoning.push(researchStep);
 
+  // Use extensive or lightweight research based on mode
   const researchResult = await runAgenticResearcher({
     destination,
     preferences,
+    useAdvancedMode: useAdvancedCuration, // Pass flag to researcher
   });
 
-  researchStep.result = `Research complete: ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants`;
-  allThoughts.push(...researchResult.thoughts);
+  researchStep.result = `Found ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants`;
+  allThoughts.push(useAdvancedCuration
+    ? `✓ Extensive research: ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants from multiple sources`
+    : `✓ Quick research: ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants`);
   allReasoning.push(...researchResult.reasoningSteps.map(s => ({
     agent: 'researcher',
     thought: s.thought,

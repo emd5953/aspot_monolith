@@ -65,11 +65,11 @@ ACTIVITIES:
 ${research.activities.map(a => `- ${a.name} (${a.category}, ${a.duration}min, adventure: ${a.adventureLevel}/10, best: ${a.bestTime || 'anytime'})`).join('\n')}
 
 USER PREFERENCES:
-- Budget: ${preferences.budgetRange}
-- Pace: ${preferences.travelPace} (${activitiesPerDay.morning} morning, ${activitiesPerDay.afternoon} afternoon, ${activitiesPerDay.evening} evening activities)
-- Interests: ${preferences.activityTypes.join(', ')}
-- Cuisines: ${preferences.cuisinePreferences.join(', ')}
-- Adventure level: ${preferences.adventureTolerance}/10
+- Budget: ${preferences.budgetRange || 'moderate'}
+- Pace: ${preferences.travelPace || 'moderate'} (${activitiesPerDay.morning} morning, ${activitiesPerDay.afternoon} afternoon, ${activitiesPerDay.evening} evening activities)
+- Interests: ${preferences.activityTypes?.join(', ') || 'general activities'}
+- Cuisines: ${preferences.cuisinePreferences?.join(', ') || 'local cuisine'}
+- Comfort zone: ${preferences.comfortZone || 5}/10
 
 LOCAL INSIGHTS:
 ${research.localInsights.map(i => `- ${i}`).join('\n')}

@@ -77,9 +77,11 @@ async function generateItineraryFast(
   ) + 1;
 
   const densityGuide = {
-    relaxed: '2-3 activities (excluding meals)',
-    moderate: '4-5 activities (excluding meals)',
-    packed: '6-8 activities (excluding meals)',
+    very_relaxed: '2-3 activities (excluding meals)',
+    relaxed: '3-4 activities (excluding meals)',
+    moderate: '5-6 activities (excluding meals)',
+    packed: '8-10 activities (excluding meals)',
+    intense: '10+ activities (excluding meals)',
   };
 
   const prompt = `Create a ${tripDuration}-day itinerary for ${destination}.
@@ -148,7 +150,8 @@ export async function generateItinerary(
   input: ItineraryInput,
   preferences: UserPreferences,
   useAgenticMode: boolean = false,
-  useTrulyAgentic: boolean = false // NEW: Use the truly agentic system
+  useTrulyAgentic: boolean = false, // NEW: Use the truly agentic system
+  useAdvancedCuration: boolean = false // NEW: Use advanced curation (extensive scraping + iterations)
 ): Promise<GeneratedItinerary> {
   const { userId, destination, startDate, endDate, title, activityDensity = 'moderate' } = input;
   
@@ -190,8 +193,9 @@ export async function generateItinerary(
         startDate,
         endDate,
         preferences,
-        qualityThreshold: 80, // Stop when score reaches 80
-        maxIterations: 5, // Safety limit
+        qualityThreshold: useAdvancedCuration ? 85 : 60, // Higher threshold for advanced mode
+        maxIterations: useAdvancedCuration ? 5 : 1, // More iterations for advanced mode
+        useAdvancedCuration, // Pass flag to enable extensive scraping
         onProgress: (state) => {
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
           if (state.reasoning && state.reasoning.length > 0) {
@@ -581,16 +585,16 @@ export async function regenerateItinerary(
   const preferences: UserPreferences = {
     id: prefsData.id,
     userId: prefsData.user_id,
-    cuisinePreferences: prefsData.cuisine_preferences || [],
+    travelMotivations: prefsData.travel_motivations || [],
+    planningStyle: prefsData.planning_style || 'structured_flexible',
+    authenticityPreference: prefsData.authenticity_preference || 'balanced',
+    timeRhythm: prefsData.time_rhythm || 'steady_daytime',
+    comfortZone: prefsData.comfort_zone || 5,
     activityTypes: prefsData.activity_types || [],
+    cuisinePreferences: prefsData.cuisine_preferences || [],
     budgetRange: prefsData.budget_range || 'moderate',
     travelPace: prefsData.travel_pace || 'moderate',
-    accommodationStyle: prefsData.accommodation_style || 'hotel',
     socialPreferences: prefsData.social_preferences || 'solo',
-    accessibilityNeeds: prefsData.accessibility_needs || [],
-    climatePreferences: prefsData.climate_preferences || [],
-    culturalInterests: prefsData.cultural_interests || [],
-    adventureTolerance: prefsData.adventure_tolerance || 5,
     rawAnswers: prefsData.raw_answers || {},
     createdAt: new Date(prefsData.created_at),
     updatedAt: new Date(prefsData.updated_at),
@@ -630,8 +634,8 @@ export async function regenerateItinerary(
         startDate: existing.startDate,
         endDate: existing.endDate,
         preferences: modifiedPreferences,
-        qualityThreshold: 80,
-        maxIterations: 5,
+        qualityThreshold: 60, // Accept anything above 60 for speed
+        maxIterations: 1, // Just 1 iteration for speed
         onProgress: (state) => {
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
         },

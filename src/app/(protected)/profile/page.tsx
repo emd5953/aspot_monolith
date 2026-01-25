@@ -57,15 +57,21 @@ export default async function ProfilePage() {
         {/* Preferences Card */}
         <HandDrawnCard decoration="tack">
           <div className="grid gap-6">
+            <ProfileSection title="Travel Personality">
+              <ProfileItem label="Planning Style" value={preferences.planningStyle?.replace('_', ' ') || 'balanced'} />
+              <ProfileItem label="Authenticity Preference" value={preferences.authenticityPreference?.replace('_', ' ') || 'balanced'} />
+              <ProfileItem label="Time Rhythm" value={preferences.timeRhythm?.replace('_', ' ') || 'daytime'} />
+              <ProfileItem label="Comfort Zone" value={`${preferences.comfortZone || 5}/10`} />
+            </ProfileSection>
+
+            <ProfileSection title="Travel Motivations">
+              <ProfileTags items={preferences.travelMotivations || []} />
+            </ProfileSection>
+
             <ProfileSection title="Budget & Pace">
               <ProfileItem label="Budget" value={preferences.budgetRange} />
               <ProfileItem label="Travel Pace" value={preferences.travelPace} />
-              <ProfileItem label="Adventure Level" value={`${preferences.adventureTolerance}/10`} />
-            </ProfileSection>
-
-            <ProfileSection title="Accommodation & Social">
-              <ProfileItem label="Accommodation Style" value={preferences.accommodationStyle} />
-              <ProfileItem label="Travel Style" value={preferences.socialPreferences.replace('_', ' ')} />
+              <ProfileItem label="Social Style" value={preferences.socialPreferences?.replace('_', ' ') || 'couple'} />
             </ProfileSection>
 
             <ProfileSection title="Food Preferences">
@@ -75,20 +81,6 @@ export default async function ProfilePage() {
             <ProfileSection title="Activities">
               <ProfileTags items={preferences.activityTypes} />
             </ProfileSection>
-
-            <ProfileSection title="Cultural Interests">
-              <ProfileTags items={preferences.culturalInterests} />
-            </ProfileSection>
-
-            <ProfileSection title="Climate Preferences">
-              <ProfileTags items={preferences.climatePreferences} />
-            </ProfileSection>
-
-            {preferences.accessibilityNeeds.length > 0 && (
-              <ProfileSection title="Accessibility Needs">
-                <ProfileTags items={preferences.accessibilityNeeds} />
-              </ProfileSection>
-            )}
           </div>
 
           <div className="mt-8 pt-6 border-t-2 border-foreground/20 flex gap-4">

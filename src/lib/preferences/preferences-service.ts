@@ -2,31 +2,31 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { UserPreferences, QuizAnswer } from '@/types/quiz';
 
 export interface UpdatePreferencesInput {
+  travelMotivations?: string[];
+  planningStyle?: string;
+  authenticityPreference?: string;
+  timeRhythm?: string;
+  comfortZone?: number;
   cuisinePreferences?: string[];
   activityTypes?: string[];
-  budgetRange?: 'budget' | 'moderate' | 'luxury';
-  travelPace?: 'relaxed' | 'moderate' | 'packed';
-  accommodationStyle?: 'hostel' | 'hotel' | 'boutique' | 'luxury' | 'airbnb';
-  socialPreferences?: 'solo' | 'small_group' | 'large_group';
-  accessibilityNeeds?: string[];
-  climatePreferences?: string[];
-  culturalInterests?: string[];
-  adventureTolerance?: number;
+  budgetRange?: string;
+  travelPace?: string;
+  socialPreferences?: string;
 }
 
 interface PreferencesRow {
   id: string;
   user_id: string;
+  travel_motivations: string[];
+  planning_style: string;
+  authenticity_preference: string;
+  time_rhythm: string;
+  comfort_zone: number;
   cuisine_preferences: string[];
   activity_types: string[];
-  budget_range: 'budget' | 'moderate' | 'luxury';
-  travel_pace: 'relaxed' | 'moderate' | 'packed';
-  accommodation_style: 'hostel' | 'hotel' | 'boutique' | 'luxury' | 'airbnb';
-  social_preferences: 'solo' | 'small_group' | 'large_group';
-  accessibility_needs: string[];
-  climate_preferences: string[];
-  cultural_interests: string[];
-  adventure_tolerance: number;
+  budget_range: string;
+  travel_pace: string;
+  social_preferences: string;
   raw_answers: Record<string, QuizAnswer>;
   created_at: string;
   updated_at: string;
@@ -36,17 +36,17 @@ function mapRowToPreferences(row: PreferencesRow): UserPreferences {
   return {
     id: row.id,
     userId: row.user_id,
-    cuisinePreferences: row.cuisine_preferences,
-    activityTypes: row.activity_types,
-    budgetRange: row.budget_range,
-    travelPace: row.travel_pace,
-    accommodationStyle: row.accommodation_style,
-    socialPreferences: row.social_preferences,
-    accessibilityNeeds: row.accessibility_needs,
-    climatePreferences: row.climate_preferences,
-    culturalInterests: row.cultural_interests,
-    adventureTolerance: row.adventure_tolerance,
-    rawAnswers: row.raw_answers,
+    travelMotivations: row.travel_motivations || [],
+    planningStyle: row.planning_style || 'structured_flexible',
+    authenticityPreference: row.authenticity_preference || 'balanced',
+    timeRhythm: row.time_rhythm || 'steady_daytime',
+    comfortZone: row.comfort_zone || 5,
+    cuisinePreferences: row.cuisine_preferences || [],
+    activityTypes: row.activity_types || [],
+    budgetRange: row.budget_range || 'moderate',
+    travelPace: row.travel_pace || 'moderate',
+    socialPreferences: row.social_preferences || 'couple',
+    rawAnswers: row.raw_answers || {},
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -81,6 +81,21 @@ export async function updatePreferences(
     updated_at: new Date().toISOString(),
   };
 
+  if (updates.travelMotivations !== undefined) {
+    updateData.travel_motivations = updates.travelMotivations;
+  }
+  if (updates.planningStyle !== undefined) {
+    updateData.planning_style = updates.planningStyle;
+  }
+  if (updates.authenticityPreference !== undefined) {
+    updateData.authenticity_preference = updates.authenticityPreference;
+  }
+  if (updates.timeRhythm !== undefined) {
+    updateData.time_rhythm = updates.timeRhythm;
+  }
+  if (updates.comfortZone !== undefined) {
+    updateData.comfort_zone = updates.comfortZone;
+  }
   if (updates.cuisinePreferences !== undefined) {
     updateData.cuisine_preferences = updates.cuisinePreferences;
   }
@@ -93,23 +108,8 @@ export async function updatePreferences(
   if (updates.travelPace !== undefined) {
     updateData.travel_pace = updates.travelPace;
   }
-  if (updates.accommodationStyle !== undefined) {
-    updateData.accommodation_style = updates.accommodationStyle;
-  }
   if (updates.socialPreferences !== undefined) {
     updateData.social_preferences = updates.socialPreferences;
-  }
-  if (updates.accessibilityNeeds !== undefined) {
-    updateData.accessibility_needs = updates.accessibilityNeeds;
-  }
-  if (updates.climatePreferences !== undefined) {
-    updateData.climate_preferences = updates.climatePreferences;
-  }
-  if (updates.culturalInterests !== undefined) {
-    updateData.cultural_interests = updates.culturalInterests;
-  }
-  if (updates.adventureTolerance !== undefined) {
-    updateData.adventure_tolerance = updates.adventureTolerance;
   }
 
   const { data, error } = await supabase

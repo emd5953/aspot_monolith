@@ -37,7 +37,7 @@ export function RegenerateModal({ isOpen, onClose, onRegenerate }: RegenerateMod
     try {
       await onRegenerate({
         useAgenticMode: mode !== 'fast',
-        useTrulyAgentic: mode === 'truly-agentic',
+        useTrulyAgentic: mode === 'truly-agentic', // Always use truly agentic when not fast
         focusAreas: selectedFocus.length > 0 ? selectedFocus : undefined,
       });
       onClose();
@@ -86,23 +86,7 @@ export function RegenerateModal({ isOpen, onClose, onRegenerate }: RegenerateMod
                     🤖 Truly Agentic (Best Quality)
                   </div>
                   <div className="text-sm text-foreground/60 font-body">
-                    Full reasoning chains, adaptive stopping, dynamic tool selection (~90s)
-                  </div>
-                </div>
-              </label>
-              <label className="flex items-start gap-3 p-3 border-2 border-foreground/20 rounded-lg cursor-pointer hover:border-foreground/40 transition-colors">
-                <input
-                  type="radio"
-                  checked={mode === 'agentic'}
-                  onChange={() => setMode('agentic')}
-                  className="mt-1"
-                />
-                <div>
-                  <div className="font-heading text-foreground">
-                    🔄 Standard Agentic
-                  </div>
-                  <div className="text-sm text-foreground/60 font-body">
-                    Multi-agent with web research and review loops (~70s)
+                    Full reasoning chains, adaptive stopping, web research (~15-30s)
                   </div>
                 </div>
               </label>

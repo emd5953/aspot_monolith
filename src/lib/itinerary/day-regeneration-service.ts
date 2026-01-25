@@ -54,7 +54,7 @@ async function analyzeUserIntent(
   const analysisPrompt = `Analyze this travel request and extract structured intent:
 
 User Request: "${userPrompt}"
-User Preferences: ${preferences.activityTypes.join(', ')}
+User Preferences: ${preferences.activityTypes?.join(', ') || 'general activities'}
 
 Extract:
 1. Action type:
@@ -156,7 +156,8 @@ async function scrapeTargetedData(
   console.log('[Scraping] Targeted queries:', queries);
 
   // Scrape each query
-  for (const query of queries.slice(0, 3)) { // Limit to 3 queries for speed
+  // Parallelize scraping for speed
+  const scrapePromises = queries.slice(0, 2).map(async (query) => { // Reduced to 2 queries
     try {
       const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
       
@@ -170,7 +171,7 @@ async function scrapeTargetedData(
           url: searchUrl,
           formats: ['markdown'],
           onlyMainContent: true,
-          timeout: 8000,
+          timeout: 5000, // Reduced from 8000ms to 5000ms
         }),
       });
 
@@ -180,14 +181,22 @@ async function scrapeTargetedData(
         
         // Extract place names and info from scraped content
         const places = extractPlacesFromContent(content, intent.categories, date);
-        scrapedPlaces.push(...places);
-        
-        console.log(`[Scraping] Found ${places.length} places for query: ${query}`);
+        return places;
       }
     } catch (error) {
       console.error(`[Scraping] Failed for query: ${query}`, error);
+      return [];
     }
-  }
+  });
+
+  // Wait for all scraping to complete in parallel
+  const results = await Promise.all(scrapePromises);
+  results.forEach(places => {
+    if (places) {
+      scrapedPlaces.push(...places);
+      console.log(`[Scraping] Found ${places.length} places`);
+    }
+  });
 
   // For sports/events, also try event-specific sites
   if (intent.categories.includes('sports') || intent.categories.includes('events')) {
@@ -196,17 +205,14 @@ async function scrapeTargetedData(
     scrapedPlaces.push(...eventPlaces);
   }
 
-  // Always scrape Reddit for local insider tips (gold mine!)
-  console.log('[Scraping] Checking Reddit for local insights...');
-  const redditPlaces = await scrapeRedditInsights(destination, intent.keywords, dayOfWeek);
-  scrapedPlaces.push(...redditPlaces);
-
-  // If we got very few results, try TripAdvisor as fallback
-  if (scrapedPlaces.length < 3) {
-    console.log('[Scraping] Low results, trying TripAdvisor fallback...');
-    const tripAdvisorPlaces = await scrapeTripAdvisor(destination, intent.keywords);
-    scrapedPlaces.push(...tripAdvisorPlaces);
+  // Only scrape Reddit if we have very few results (saves time)
+  if (scrapedPlaces.length < 5) {
+    console.log('[Scraping] Checking Reddit for local insights...');
+    const redditPlaces = await scrapeRedditInsights(destination, intent.keywords, dayOfWeek);
+    scrapedPlaces.push(...redditPlaces);
   }
+
+  // Skip TripAdvisor fallback to save time (AI can fill gaps)
 
   return scrapedPlaces;
 }
@@ -342,7 +348,7 @@ async function scrapeRedditInsights(
 
   console.log('[Reddit] Scraping for local insights...');
 
-  for (const query of redditQueries.slice(0, 2)) { // Limit to 2 Reddit queries
+  for (const query of redditQueries.slice(0, 1)) { // Limit to 1 Reddit query for speed
     try {
       const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
       
@@ -1013,7 +1019,7 @@ User Preferences:
 - Cuisine: ${preferences.cuisinePreferences.slice(0, 3).join(', ')}
 - Budget: ${preferences.budgetRange}
 - Pace: ${preferences.travelPace}
-- Interests: ${preferences.culturalInterests.slice(0, 3).join(', ')}
+- Planning Style: ${preferences.planningStyle}
 
 Current Activities:
 ${currentActivitiesText}

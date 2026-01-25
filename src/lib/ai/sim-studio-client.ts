@@ -96,9 +96,8 @@ export async function executeSimWorkflow(
           travel_pace: input.preferences.travelPace,
           activity_types: input.preferences.activityTypes,
           cuisine_preferences: input.preferences.cuisinePreferences,
-          accommodation_style: input.preferences.accommodationStyle,
-          adventure_tolerance: input.preferences.adventureTolerance,
-          accessibility_needs: input.preferences.accessibilityNeeds,
+          planning_style: input.preferences.planningStyle,
+          comfort_zone: input.preferences.comfortZone,
         },
       }),
     });

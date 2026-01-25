@@ -48,6 +48,7 @@ interface ItineraryViewProps {
   onDelete?: () => void;
   onStatusChange?: (status: string) => void;
   onEditDay?: (dayId: string, dayNumber: number, activities: Activity[]) => void;
+  onTitleChange?: (title: string) => void;
 }
 
 export function ItineraryView({
@@ -60,9 +61,12 @@ export function ItineraryView({
   onDelete,
   onStatusChange,
   onEditDay,
+  onTitleChange,
 }: ItineraryViewProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(itinerary.title);
 
   const formatDateRange = (start: Date, end: Date) => {
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
@@ -83,13 +87,54 @@ export function ItineraryView({
     archived: 'bg-muted border-foreground',
   };
 
+  const handleTitleSave = () => {
+    if (editedTitle.trim() && editedTitle !== itinerary.title) {
+      onTitleChange?.(editedTitle.trim());
+    } else {
+      setEditedTitle(itinerary.title);
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleTitleSave();
+    } else if (e.key === 'Escape') {
+      setEditedTitle(itinerary.title);
+      setIsEditingTitle(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <HandDrawnCard decoration="tape" className="p-6">
         <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-heading text-foreground -rotate-1">{itinerary.title}</h1>
+          <div className="flex-1">
+            {isEditingTitle ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  onBlur={handleTitleSave}
+                  onKeyDown={handleTitleKeyDown}
+                  className="text-3xl font-heading text-foreground bg-transparent border-2 border-accent border-dashed px-2 py-1 -rotate-1 focus:outline-none focus:border-solid w-full max-w-2xl"
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 group">
+                <h1 className="text-3xl font-heading text-foreground -rotate-1">{itinerary.title}</h1>
+                <button
+                  onClick={() => setIsEditingTitle(true)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-foreground/50 hover:text-foreground p-1"
+                  title="Edit title"
+                >
+                  ✏️
+                </button>
+              </div>
+            )}
             <p className="text-foreground/70 mt-2 font-body text-lg">
               📍 {itinerary.destination} • 📅 {formatDateRange(itinerary.startDate, itinerary.endDate)}
             </p>
@@ -150,10 +195,12 @@ export function ItineraryView({
 
       {/* Map View */}
       <HandDrawnCard decoration="tack" className="p-6">
-        <h2 className="text-2xl font-heading text-foreground mb-4 -rotate-1">🗺️ Route Map</h2>
+        <h2 className="text-2xl font-heading text-foreground mb-4 -rotate-1">
+          🗺️ Day {itinerary.days[activeTab]?.dayNumber} Route
+        </h2>
         <ItineraryMap
           destination={itinerary.destination}
-          activities={itinerary.days.flatMap(day => day.activities)}
+          activities={itinerary.days[activeTab]?.activities || []}
         />
       </HandDrawnCard>
 

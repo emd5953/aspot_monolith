@@ -46,6 +46,10 @@ export default async function QuizCompletePage() {
             <h2 className="text-2xl font-heading text-foreground mb-4">Your preferences:</h2>
             <div className="space-y-3 text-lg font-body">
               <div>
+                <span className="text-foreground/70">Planning Style:</span>{' '}
+                <span className="font-heading capitalize">{preferences.planningStyle?.replace(/_/g, ' ')}</span>
+              </div>
+              <div>
                 <span className="text-foreground/70">Budget:</span>{' '}
                 <span className="font-heading capitalize">{preferences.budgetRange}</span>
               </div>
@@ -54,12 +58,8 @@ export default async function QuizCompletePage() {
                 <span className="font-heading capitalize">{preferences.travelPace}</span>
               </div>
               <div>
-                <span className="text-foreground/70">Accommodation:</span>{' '}
-                <span className="font-heading capitalize">{preferences.accommodationStyle}</span>
-              </div>
-              <div>
-                <span className="text-foreground/70">Adventure level:</span>{' '}
-                <span className="font-heading">{preferences.adventureTolerance}/10</span>
+                <span className="text-foreground/70">Comfort Zone:</span>{' '}
+                <span className="font-heading">{preferences.comfortZone}/10</span>
               </div>
               {preferences.cuisinePreferences.length > 0 && (
                 <div>
@@ -73,7 +73,7 @@ export default async function QuizCompletePage() {
                 <div>
                   <span className="text-foreground/70">Activities:</span>{' '}
                   <span className="font-heading capitalize">
-                    {preferences.activityTypes.join(', ')}
+                    {preferences.activityTypes?.join(', ') || 'Not specified'}
                   </span>
                 </div>
               )}

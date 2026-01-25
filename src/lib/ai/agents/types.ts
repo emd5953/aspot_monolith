@@ -31,6 +31,7 @@ export interface ResearchRequest {
   destination: string;
   preferences: UserPreferences;
   focusAreas?: string[];
+  useAdvancedMode?: boolean; // Enable extensive scraping
 }
 
 export interface ResearchResult {

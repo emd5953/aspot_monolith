@@ -28,12 +28,11 @@ ITINERARY TO REVIEW:
 ${JSON.stringify(plan, null, 2)}
 
 USER PREFERENCES:
-- Budget: ${preferences.budgetRange}
-- Travel pace: ${preferences.travelPace}
-- Interests: ${preferences.activityTypes.join(', ')}
-- Cuisines: ${preferences.cuisinePreferences.join(', ')}
-- Adventure tolerance: ${preferences.adventureTolerance}/10
-- Accessibility needs: ${preferences.accessibilityNeeds.join(', ') || 'None'}
+- Budget: ${preferences.budgetRange || 'moderate'}
+- Travel pace: ${preferences.travelPace || 'moderate'}
+- Interests: ${preferences.activityTypes?.join(', ') || 'general activities'}
+- Cuisines: ${preferences.cuisinePreferences?.join(', ') || 'local cuisine'}
+- Comfort zone: ${preferences.comfortZone || 5}/10
 
 AVAILABLE OPTIONS NOT USED:
 Attractions: ${research.attractions.filter(a => !plan.days.some(d => [...d.morning, ...d.afternoon, ...d.evening].some(i => i.name.includes(a.name)))).map(a => a.name).join(', ')}
@@ -147,9 +146,9 @@ ISSUES TO FIX:
 ${issues.map(i => `- [${i.severity}] Day ${i.dayNumber || 'General'}: ${i.issue} → ${i.suggestion}`).join('\n')}
 
 USER PREFERENCES:
-- Budget: ${preferences.budgetRange}
-- Pace: ${preferences.travelPace}
-- Interests: ${preferences.activityTypes.join(', ')}
+- Budget: ${preferences.budgetRange || 'moderate'}
+- Pace: ${preferences.travelPace || 'moderate'}
+- Interests: ${preferences.activityTypes?.join(', ') || 'general activities'}
 
 Create a revised version that addresses all high and medium severity issues.
 Keep the same JSON structure as the original.

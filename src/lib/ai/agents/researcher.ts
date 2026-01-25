@@ -147,7 +147,7 @@ export async function runResearchAgent(request: ResearchRequest, useFastMode: bo
   
   if (useFastMode) {
     thoughts.push(`🚀 FAST MODE: Using AI knowledge for ${destination} (no scraping)`);
-    thoughts.push(`User interests: ${preferences.activityTypes.join(', ')}`);
+    thoughts.push(`User interests: ${preferences.activityTypes?.join(', ') || 'general activities'}`);
     
     const fastStartTime = Date.now();
     const fastResult = await generateResearchFromAI(destination, preferences);
@@ -160,8 +160,8 @@ export async function runResearchAgent(request: ResearchRequest, useFastMode: bo
 
   // AGENTIC MODE: Scrape with Firecrawl
   thoughts.push(`🔍 Starting multi-source research for ${destination}...`);
-  thoughts.push(`User interests: ${preferences.activityTypes.join(', ')}`);
-  thoughts.push(`Budget: ${preferences.budgetRange}, Adventure: ${preferences.adventureTolerance}/10`);
+  thoughts.push(`User interests: ${preferences.activityTypes?.join(', ') || 'general activities'}`);
+  thoughts.push(`Budget: ${preferences.budgetRange}, Comfort Zone: ${preferences.comfortZone}/10`);
 
   // Step 1: Scrape multiple sources in parallel
   thoughts.push('');
@@ -261,10 +261,10 @@ REDDIT DISCUSSIONS & LOCAL INSIGHTS:
 ${reviewContent || 'No Reddit data scraped.'}
 
 USER PREFERENCES:
-- Activities they enjoy: ${preferences.activityTypes.join(', ')}
-- Budget: ${preferences.budgetRange}
-- Cuisine preferences: ${preferences.cuisinePreferences.join(', ')}
-- Adventure tolerance: ${preferences.adventureTolerance}/10
+- Activities they enjoy: ${preferences.activityTypes?.join(', ') || 'general activities'}
+- Budget: ${preferences.budgetRange || 'moderate'}
+- Cuisine preferences: ${preferences.cuisinePreferences?.join(', ') || 'local cuisine'}
+- Comfort zone: ${preferences.comfortZone}/10
 - Travel pace: ${preferences.travelPace}
 
 INSTRUCTIONS:
@@ -394,10 +394,10 @@ function createFallbackResearch(destination: string, preferences: { activityType
 /**
  * Fast mode: Generate research using AI knowledge only (no scraping)
  */
-async function generateResearchFromAI(destination: string, preferences: { activityTypes: string[]; cuisinePreferences: string[]; budgetRange: string; adventureTolerance: number }): Promise<ResearchResult> {
+async function generateResearchFromAI(destination: string, preferences: { activityTypes: string[]; cuisinePreferences: string[]; budgetRange: string; comfortZone: number }): Promise<ResearchResult> {
   const prompt = `Generate travel recommendations for ${destination}.
 
-Preferences: ${preferences.activityTypes.slice(0, 3).join(', ')}, ${preferences.cuisinePreferences.slice(0, 3).join(', ')}, ${preferences.budgetRange} budget, adventure ${preferences.adventureTolerance}/10.
+Preferences: ${preferences.activityTypes.slice(0, 3).join(', ')}, ${preferences.cuisinePreferences.slice(0, 3).join(', ')}, ${preferences.budgetRange} budget, comfort zone ${preferences.comfortZone}/10.
 
 Return JSON with 10 attractions, 8 restaurants, 6 activities, 3 tips:
 {"attractions":[{"name":"","description":"","category":"museums","estimatedDuration":90,"priceRange":"moderate","rating":4.5}],"restaurants":[{"name":"","cuisine":[""],"priceRange":"moderate","rating":4.5}],"activities":[{"name":"","description":"","category":"tours","duration":120,"adventureLevel":5,"priceRange":"moderate"}],"localInsights":[""]}`;

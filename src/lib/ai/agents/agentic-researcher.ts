@@ -53,7 +53,7 @@ async function scrapeWithFirecrawl(url: string): Promise<string> {
         url,
         formats: ['markdown'],
         onlyMainContent: true,
-        timeout: 10000,
+        timeout: 3000, // Reduced to 3s for speed
       }),
     });
 
@@ -85,12 +85,12 @@ async function createResearchPlan(
 USER PREFERENCES:
 - Travel Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
 - Authenticity Preference: ${preferences.authenticityPreference || 'balanced'}
-- Interests: ${preferences.activityTypes.join(', ')}
-- Cuisines: ${preferences.cuisinePreferences.join(', ')}
-- Budget: ${preferences.budgetRange}
+- Interests: ${preferences.activityTypes?.join(', ') || 'general activities'}
+- Cuisines: ${preferences.cuisinePreferences?.join(', ') || 'local cuisine'}
+- Budget: ${preferences.budgetRange || 'moderate'}
 - Comfort Zone: ${preferences.comfortZone || 5}/10
 - Social Style: ${preferences.socialPreferences || 'couple'}
-- Travel pace: ${preferences.travelPace}
+- Travel pace: ${preferences.travelPace || 'moderate'}
 
 TASK: Decide which sources to scrape and in what order. Consider:
 1. What data is most critical for these preferences?
@@ -171,7 +171,7 @@ async function evaluateDataQuality(
   const evaluationPrompt = `You are a data quality evaluator. Assess if we have enough data to create a great itinerary.
 
 DESTINATION: ${destination}
-USER PREFERENCES: ${preferences.activityTypes.join(', ')}, ${preferences.cuisinePreferences.join(', ')}, ${preferences.budgetRange} budget
+USER PREFERENCES: ${preferences.activityTypes?.join(', ') || 'general activities'}, ${preferences.cuisinePreferences?.join(', ') || 'local cuisine'}, ${preferences.budgetRange || 'moderate'} budget
 
 SCRAPED DATA SUMMARY:
 ${scrapedData.map(d => `- ${d.name} (${d.type}): ${d.content.length} chars`).join('\n')}
@@ -216,11 +216,13 @@ export async function runAgenticResearcher(request: ResearchRequest): Promise<{
   thoughts: string[];
   reasoningSteps: ReasoningStep[];
 }> {
-  const { destination, preferences } = request;
+  const { destination, preferences, useAdvancedMode = false } = request;
   const thoughts: string[] = [];
   const reasoningSteps: ReasoningStep[] = [];
 
-  thoughts.push(`🤖 AGENTIC RESEARCHER activated for ${destination}`);
+  thoughts.push(useAdvancedMode 
+    ? `🔬 ADVANCED RESEARCHER activated for ${destination}`
+    : `🤖 AGENTIC RESEARCHER activated for ${destination}`);
   
   // STEP 1: Create research plan
   thoughts.push('');
@@ -241,15 +243,19 @@ export async function runAgenticResearcher(request: ResearchRequest): Promise<{
     thoughts.push(`  ${s.priority === 'high' ? '🔴' : s.priority === 'medium' ? '🟡' : '🟢'} ${s.name} - ${s.rationale}`);
   });
 
-  // STEP 2: Execute scraping (prioritized)
+  // STEP 2: Execute scraping (prioritized and PARALLELIZED for speed)
   thoughts.push('');
-  thoughts.push('📡 EXECUTING: Scraping sources...');
+  thoughts.push('📡 EXECUTING: Scraping sources in parallel...');
   
   const scrapedData: Array<{ name: string; content: string; type: string; url: string }> = [];
   
-  // Scrape high priority first
-  const highPriority = plan.sources.filter(s => s.priority === 'high');
-  for (const source of highPriority) {
+  // Scrape high priority sources in parallel (much faster!)
+  const sourcesToScrape = useAdvancedMode ? 3 : 1; // 3 sources for advanced, 1 for fast
+  const highPriority = plan.sources.filter(s => s.priority === 'high').slice(0, sourcesToScrape);
+  
+  thoughts.push(`📡 Scraping ${sourcesToScrape} source(s) in ${useAdvancedMode ? 'ADVANCED' : 'FAST'} mode...`);
+  
+  const scrapePromises = highPriority.map(async (source) => {
     const step: ReasoningStep = {
       thought: `High priority: ${source.rationale}`,
       action: `Scraping ${source.name}`,
@@ -257,66 +263,46 @@ export async function runAgenticResearcher(request: ResearchRequest): Promise<{
     
     const content = await scrapeWithFirecrawl(source.url);
     if (content && content.length > 100) {
-      scrapedData.push({ name: source.name, content, type: source.type, url: source.url });
       step.result = `✓ Got ${Math.round(content.length / 1000)}KB`;
       thoughts.push(`  ✓ ${source.name} - ${Math.round(content.length / 1000)}KB`);
+      return { step, data: { name: source.name, content, type: source.type, url: source.url } };
     } else if (content && content.length > 0) {
-      // Got some data but very little
-      scrapedData.push({ name: source.name, content, type: source.type, url: source.url });
       step.result = `⚠️ Got only ${content.length} chars (low quality)`;
       thoughts.push(`  ⚠️ ${source.name} - ${content.length} chars (minimal data)`);
+      return { step, data: { name: source.name, content, type: source.type, url: source.url } };
     } else {
       step.result = `✗ Failed or insufficient data`;
       thoughts.push(`  ✗ ${source.name} - failed`);
+      return { step, data: null };
     }
-    reasoningSteps.push(step);
-  }
+  });
 
-  // STEP 3: Evaluate if we need more data
+  const results = await Promise.all(scrapePromises);
+  results.forEach(({ step, data }) => {
+    reasoningSteps.push(step);
+    if (data) scrapedData.push(data);
+  });
+
+  // STEP 3: Skip evaluation for speed - trust the data we got
   thoughts.push('');
-  thoughts.push('🔍 EVALUATING: Is data sufficient?');
-  
-  const evaluation = await evaluateDataQuality(scrapedData, preferences, destination);
+  thoughts.push('✅ Proceeding with collected data (evaluation skipped for speed)');
+
+  const evaluation = {
+    sufficient: true,
+    reasoning: 'Using available data to proceed quickly',
+  };
   
   const step3: ReasoningStep = {
     thought: 'Checking if collected data meets quality threshold',
     action: 'Evaluating data completeness',
-    result: evaluation.reasoning,
+    result: 'Skipped for speed - using available data',
   };
   reasoningSteps.push(step3);
   
   thoughts.push(`💭 ${evaluation.reasoning}`);
 
-  // STEP 4: Adaptive scraping if needed
-  if (!evaluation.sufficient && evaluation.additionalSourcesNeeded) {
-    thoughts.push('');
-    thoughts.push('🔄 ADAPTING: Need more data, scraping additional sources...');
-    
-    for (const additional of evaluation.additionalSourcesNeeded.slice(0, 2)) {
-      const step: ReasoningStep = {
-        thought: additional.rationale,
-        action: `Additional scraping: ${additional.url}`,
-      };
-      
-      const content = await scrapeWithFirecrawl(additional.url);
-      if (content && content.length > 100) {
-        scrapedData.push({ 
-          name: 'Additional source', 
-          content, 
-          type: 'general',
-          url: additional.url 
-        });
-        step.result = `✓ Got ${Math.round(content.length / 1000)}KB`;
-        thoughts.push(`  ✓ Additional data - ${Math.round(content.length / 1000)}KB`);
-      } else {
-        step.result = `✗ Failed`;
-        thoughts.push(`  ✗ Additional scraping failed`);
-      }
-      reasoningSteps.push(step);
-    }
-  } else {
-    thoughts.push('✅ Data quality sufficient, proceeding to analysis');
-  }
+  // STEP 4: Adaptive scraping removed - AI can fill gaps from available data
+  thoughts.push('✅ Proceeding with available data (AI will supplement if needed)');
 
   // STEP 5: Synthesize with AI
   thoughts.push('');
@@ -330,9 +316,9 @@ ${scrapedData.map(d => `[${d.name}]\n${d.content.slice(0, 3000)}`).join('\n\n---
 USER PREFERENCES:
 - Travel Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
 - Authenticity: ${preferences.authenticityPreference || 'balanced'}
-- Interests: ${preferences.activityTypes.join(', ')}
-- Cuisines: ${preferences.cuisinePreferences.join(', ')}
-- Budget: ${preferences.budgetRange}
+- Interests: ${preferences.activityTypes?.join(', ') || 'general activities'}
+- Cuisines: ${preferences.cuisinePreferences?.join(', ') || 'local cuisine'}
+- Budget: ${preferences.budgetRange || 'moderate'}
 - Comfort Zone: ${preferences.comfortZone || 5}/10
 
 Extract the BEST options that match preferences. CRITICAL CURATION RULES:

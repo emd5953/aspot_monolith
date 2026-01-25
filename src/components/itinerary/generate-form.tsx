@@ -5,6 +5,7 @@ import { DestinationAutocomplete } from './destination-autocomplete';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnInput } from '@/components/ui/hand-drawn-input';
+import { KanyeQuotes } from './kanye-quotes'; // TODO: Rename to LoadingProgress
 
 interface GenerateFormProps {
   onSubmit: (data: {
@@ -12,7 +13,7 @@ interface GenerateFormProps {
     startDate: string;
     endDate: string;
     title?: string;
-    useAgenticMode?: boolean;
+    generationMode?: 'fast' | 'standard' | 'advanced';
     activityDensity?: 'relaxed' | 'moderate' | 'packed';
   }) => Promise<void>;
   isLoading?: boolean;
@@ -23,7 +24,7 @@ export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [title, setTitle] = useState('');
-  const [useAgenticMode, setUseAgenticMode] = useState(false);
+  const [generationMode, setGenerationMode] = useState<'fast' | 'standard' | 'advanced'>('standard'); // New: mode selection
   const [activityDensity, setActivityDensity] = useState<'relaxed' | 'moderate' | 'packed'>('moderate');
   const [error, setError] = useState('');
 
@@ -52,7 +53,7 @@ export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
         startDate,
         endDate,
         title: title.trim() || undefined,
-        useAgenticMode,
+        generationMode,
         activityDensity,
       });
     } catch (err) {
@@ -61,6 +62,19 @@ export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
   };
 
   const today = new Date().toISOString().split('T')[0];
+  
+  // Calculate trip duration
+  const tripDays = startDate && endDate 
+    ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
+    : 0;
+
+  if (isLoading) {
+    return (
+      <div className="max-w-xl mx-auto">
+        <KanyeQuotes destination={destination} />
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="max-w-xl mx-auto">
@@ -138,41 +152,93 @@ export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
             </div>
           </div>
 
-          <HandDrawnCard variant="post-it" className="p-4">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useAgenticMode}
-                onChange={(e) => setUseAgenticMode(e.target.checked)}
-                disabled={isLoading}
-                className="mt-1 w-5 h-5 text-accent border-2 border-foreground rounded focus:ring-accent"
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-heading text-lg text-foreground">🤖 Agentic AI Mode</span>
-                  <span className="text-xs bg-accent text-white px-2 py-0.5 border border-foreground border-wobbly-sm">
-                    Premium
-                  </span>
-                </div>
-                <p className="text-sm text-foreground/80 mt-1 font-body">
-                  {useAgenticMode ? (
-                    <>
-                      <strong>Enabled:</strong> Multi-agent system with web research. 
-                      Takes ~45-60s but higher quality! 🎯
-                    </>
-                  ) : (
-                    <>
-                      <strong>Disabled:</strong> Fast mode. Takes ~12s ⚡
-                    </>
-                  )}
-                </p>
-              </div>
+          <div>
+            <label className="block text-foreground font-body text-lg mb-3">
+              🎯 Generation Mode
             </label>
-          </HandDrawnCard>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setGenerationMode('fast')}
+                disabled={isLoading}
+                className={`p-4 border-2 border-foreground transition-all ${
+                  generationMode === 'fast'
+                    ? 'bg-accent/20 border-accent shadow-hand-drawn'
+                    : 'bg-card hover:bg-muted'
+                }`}
+              >
+                <div className="text-left">
+                  <div className="font-heading text-lg mb-1">⚡ Fast</div>
+                  <div className="text-sm text-foreground/70 font-body">
+                    AI knowledge only
+                    <br />
+                    <span className="text-xs">~5-10 seconds</span>
+                  </div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setGenerationMode('standard')}
+                disabled={isLoading}
+                className={`p-4 border-2 border-foreground transition-all ${
+                  generationMode === 'standard'
+                    ? 'bg-accent/20 border-accent shadow-hand-drawn'
+                    : 'bg-card hover:bg-muted'
+                }`}
+              >
+                <div className="text-left">
+                  <div className="font-heading text-lg mb-1">🤖 Standard</div>
+                  <div className="text-sm text-foreground/70 font-body">
+                    Web research + AI
+                    <br />
+                    <span className="text-xs">~15-30 seconds</span>
+                  </div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setGenerationMode('advanced')}
+                disabled={isLoading}
+                className={`p-4 border-2 border-foreground transition-all ${
+                  generationMode === 'advanced'
+                    ? 'bg-secondary-accent/20 border-secondary-accent shadow-hand-drawn'
+                    : 'bg-card hover:bg-muted'
+                }`}
+              >
+                <div className="text-left">
+                  <div className="font-heading text-lg mb-1">🔬 Advanced</div>
+                  <div className="text-sm text-foreground/70 font-body">
+                    Extensive research
+                    <br />
+                    <span className="text-xs">~10-15 minutes</span>
+                  </div>
+                </div>
+              </button>
+            </div>
+            <p className="text-xs text-foreground/60 mt-2 font-body">
+              {generationMode === 'fast' 
+                ? '💡 Fast mode uses AI knowledge - quick but may suggest generic places'
+                : generationMode === 'standard'
+                ? '💡 Standard mode scrapes 1 web source for real locations - best balance of speed & quality'
+                : '💡 Advanced mode scrapes multiple sources (Google, Reddit, TripAdvisor) with quality iterations - takes 10-15 min but highest quality'}
+            </p>
+          </div>
 
           {error && (
             <HandDrawnCard className="p-4 bg-accent/10 border-accent">
               <p className="text-sm text-accent font-body">⚠️ {error}</p>
+            </HandDrawnCard>
+          )}
+
+          {tripDays > 5 && (
+            <HandDrawnCard variant="post-it" className="p-4 bg-secondary-accent/10 border-secondary-accent">
+              <p className="text-sm text-foreground font-body">
+                ⏱️ <strong>Heads up!</strong> Your {tripDays}-day trip will take a bit longer to generate 
+                {tripDays > 10 
+                  ? (generationMode === 'advanced' ? ' (15-20 minutes)' : generationMode === 'standard' ? ' (30-45s)' : ' (15-25s)')
+                  : (generationMode === 'advanced' ? ' (10-15 minutes)' : generationMode === 'standard' ? ' (20-35s)' : ' (10-15s)')
+                } due to the extra planning needed. Worth the wait! ✨
+              </p>
             </HandDrawnCard>
           )}
 

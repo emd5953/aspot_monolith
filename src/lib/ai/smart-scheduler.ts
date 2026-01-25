@@ -70,9 +70,11 @@ export function scheduleActivities(
   
   // Determine target number of activities based on density
   const targetCounts = {
-    relaxed: { min: 2, max: 3 },
-    moderate: { min: 4, max: 5 },
-    packed: { min: 6, max: 8 },
+    very_relaxed: { min: 2, max: 3 },
+    relaxed: { min: 3, max: 4 },
+    moderate: { min: 5, max: 6 },
+    packed: { min: 8, max: 10 },
+    intense: { min: 10, max: 12 },
   };
   
   const target = targetCounts[activityDensity];

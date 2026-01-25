@@ -44,9 +44,9 @@ USER PROFILE:
 - Travel Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
 - Planning Style: ${preferences.planningStyle || 'balanced'}
 - Authenticity Preference: ${preferences.authenticityPreference || 'balanced'}
-- Interests: ${preferences.activityTypes.join(', ')}
-- Budget: ${preferences.budgetRange}
-- Pace: ${preferences.travelPace}
+- Interests: ${preferences.activityTypes?.join(', ') || 'general activities'}
+- Budget: ${preferences.budgetRange || 'moderate'}
+- Pace: ${preferences.travelPace || 'moderate'}
 - Time Rhythm: ${preferences.timeRhythm || 'daytime'}
 - Comfort Zone: ${preferences.comfortZone || 5}/10
 - Social Style: ${preferences.socialPreferences || 'couple'}
@@ -74,7 +74,7 @@ Return JSON with your strategy:
 }`;
 
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4o-mini'), // Changed to mini for speed
     prompt: strategyPrompt,
     temperature: 0.8,
   });
@@ -125,19 +125,39 @@ USER PERSONALITY:
 - Pace: ${preferences.travelPace}
 
 AVAILABLE OPTIONS (not yet used):
-Attractions: ${availableOptions.attractions.filter(a => !usedItems.has(a.name)).slice(0, 10).map(a => `${a.name} (${a.category}, ${a.estimatedDuration}min, ${a.priceRange})`).join(', ') || 'None available - create generic activities'}
+${availableOptions.attractions.length > 0 
+  ? `Attractions: ${availableOptions.attractions.filter(a => !usedItems.has(a.name)).slice(0, 10).map(a => `${a.name} (${a.category}, ${a.estimatedDuration}min, ${a.priceRange})`).join(', ')}`
+  : `Use your knowledge of ${preferences.activityTypes.slice(0, 3).join(', ')} activities in the destination`}
 
-Restaurants: ${availableOptions.restaurants.filter(r => !usedItems.has(r.name)).slice(0, 8).map(r => `${r.name} (${r.cuisine.join('/')}, ${r.priceRange})`).join(', ') || 'None available - create generic restaurants'}
+${availableOptions.restaurants.length > 0
+  ? `Restaurants: ${availableOptions.restaurants.filter(r => !usedItems.has(r.name)).slice(0, 8).map(r => `${r.name} (${r.cuisine.join('/')}, ${r.priceRange})`).join(', ')}`
+  : `Use your knowledge of ${preferences.cuisinePreferences.slice(0, 2).join(', ')} restaurants in the destination`}
 
-Activities: ${availableOptions.activities.filter(a => !usedItems.has(a.name)).slice(0, 6).map(a => `${a.name} (${a.category}, ${a.duration}min)`).join(', ') || 'None available - create generic activities'}
+${availableOptions.activities.length > 0
+  ? `Activities: ${availableOptions.activities.filter(a => !usedItems.has(a.name)).slice(0, 6).map(a => `${a.name} (${a.category}, ${a.duration}min)`).join(', ')}`
+  : `Use your knowledge of popular activities in the destination`}
 
-${availableOptions.attractions.length === 0 && availableOptions.restaurants.length === 0 && availableOptions.activities.length === 0 ? 
-'NOTE: No specific data available. Create realistic activities based on your knowledge of the destination.' : ''}
+NOTE: Create realistic, specific activities based on your knowledge of the destination. Include real place names and addresses.
 
-BUILD THIS DAY:
+BUILD THIS DAY (Day ${dayNumber} of the trip):
+IMPORTANT: This is Day ${dayNumber}, so activities should be DIFFERENT from other days!
+${dayNumber === 1 ? '- First day: Focus on arrival, orientation, iconic experiences' :
+  dayNumber === 2 ? '- Second day: Explore different neighborhoods, new experiences' :
+  dayNumber === 3 ? '- Third day: Deeper exploration, off-beaten-path' :
+  `- Day ${dayNumber}: Continue discovering new areas and experiences`}
+
 ${preferences.timeRhythm === 'early_bird' ? '- Early Morning (7am-9am): 1 sunrise/early activity\n- Morning (9am-12pm): 1-2 activities' : 
   preferences.timeRhythm === 'night_owl' ? '- Late Morning (10am-1pm): 1-2 activities (they sleep in)\n- Afternoon (1pm-6pm): Lunch + 2 activities\n- Evening/Night (6pm-11pm): 2 activities + dinner (their peak time)' :
   '- Morning (9am-12pm): 1-2 activities\n- Afternoon (12pm-5pm): Lunch + 1-2 activities\n- Evening (5pm-9pm): 1 activity + dinner'}
+
+GEOGRAPHIC PROXIMITY RULES (CRITICAL):
+1. **Group activities by neighborhood/area** - All activities in a day should be in the SAME AREA or nearby neighborhoods
+2. **Minimize travel time** - Activities should be within 10-15 minutes of each other
+3. **Logical geographic flow** - If moving between areas, do it once (e.g., morning in downtown, afternoon in waterfront)
+4. **Lunch near morning activities** - Restaurant should be in the same area as morning activities
+5. **Dinner near evening activities** - Restaurant should be in the same area as evening activities
+6. **Example good day**: All activities in "SoHo/Greenwich Village" area
+7. **Example bad day**: Morning in Upper East Side, lunch in Brooklyn, afternoon in Midtown, dinner in Queens (too spread out!)
 
 PERSONALITY-DRIVEN CURATION:
 - Authenticity: ${preferences.authenticityPreference === 'pure_authentic' ? 'ONLY local spots, hidden gems, avoid anything touristy' : 
@@ -154,35 +174,41 @@ PERSONALITY-DRIVEN CURATION:
 - Motivations: Prioritize activities matching: ${preferences.travelMotivations?.join(', ') || 'general exploration'}
 
 CRITICAL RULES:
-1. You MUST include activities for morning, afternoon, and evening. Do not return empty arrays.
-2. DO NOT repeat the same location/activity within the same day (e.g., don't visit Golden Gate Park twice)
-3. Each activity must have a unique name within the day
-4. If you need similar activities, use different locations or variations
+1. **PROXIMITY FIRST**: All activities in a day MUST be geographically close (same neighborhood/district)
+2. **NO DUPLICATES ACROSS TRIP**: Do NOT suggest activities that might have been used in other days
+3. You MUST include activities for morning, afternoon, and evening. Do not return empty arrays.
+4. DO NOT repeat the same location/activity within the same day (e.g., don't visit Golden Gate Park twice)
+5. Each activity must have a UNIQUE name - be specific (e.g., "Ramen at Ichiran Shibuya" not just "Ramen")
+6. If you need similar activities, use different locations or variations
+7. **Include specific addresses/locations** in descriptions so they can be mapped
+8. **Variety is key**: Each day should feel different with unique experiences
 
 REASONING REQUIRED:
 - Why each activity fits the theme
 - Why the order makes sense
 - How it matches user preferences
+- **Why these activities are geographically close** (mention neighborhood/area)
 
 Return VALID JSON (no markdown, no extra text):
 {
+  "areaFocus": "Specific neighborhood/district for this day (e.g., 'SoHo & Greenwich Village', 'Shibuya & Harajuku')",
   "morning": [
-    {"name": "Activity Name", "type": "attraction", "time": "09:00", "duration": 120, "description": "What you do", "matchScore": 85, "matchReasons": ["why this fits"]}
+    {"name": "Activity Name", "type": "attraction", "time": "09:00", "duration": 120, "description": "What you do", "location": "Specific address or area", "matchScore": 85, "matchReasons": ["why this fits"]}
   ],
   "afternoon": [
-    {"name": "Restaurant Name", "type": "restaurant", "time": "12:00", "duration": 90, "description": "Lunch spot", "matchScore": 80, "matchReasons": ["why"]},
-    {"name": "Activity Name", "type": "attraction", "time": "14:00", "duration": 120, "description": "Afternoon activity", "matchScore": 85, "matchReasons": ["why"]}
+    {"name": "Restaurant Name", "type": "restaurant", "time": "12:00", "duration": 90, "description": "Lunch spot", "location": "Specific address or area", "matchScore": 80, "matchReasons": ["why"]},
+    {"name": "Activity Name", "type": "attraction", "time": "14:00", "duration": 120, "description": "Afternoon activity", "location": "Specific address or area", "matchScore": 85, "matchReasons": ["why"]}
   ],
   "evening": [
-    {"name": "Activity Name", "type": "activity", "time": "17:00", "duration": 90, "description": "Evening activity", "matchScore": 80, "matchReasons": ["why"]},
-    {"name": "Restaurant Name", "type": "restaurant", "time": "19:00", "duration": 90, "description": "Dinner", "matchScore": 85, "matchReasons": ["why"]}
+    {"name": "Activity Name", "type": "activity", "time": "17:00", "duration": 90, "description": "Evening activity", "location": "Specific address or area", "matchScore": 80, "matchReasons": ["why"]},
+    {"name": "Restaurant Name", "type": "restaurant", "time": "19:00", "duration": 90, "description": "Dinner", "location": "Specific address or area", "matchScore": 85, "matchReasons": ["why"]}
   ],
-  "reasoning": ["Why this day works", "How activities flow together"],
+  "reasoning": ["Why this day works", "How activities flow together", "Why all activities are in the same area"],
   "theme": "${theme}"
 }`;
 
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4o-mini'), // Changed from gpt-4o to gpt-4o-mini for speed
     prompt: dayPrompt,
     temperature: 0.8,
   });
@@ -292,25 +318,21 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
   thoughts.push(`🎯 PACING: ${strategy.pacingStrategy}`);
   thoughts.push(`🍽️ MEALS: ${strategy.mealStrategy}`);
 
-  // STEP 2: Build each day with reasoning
+  // STEP 2: Build each day with reasoning (PARALLELIZED but with duplicate prevention)
   thoughts.push('');
-  thoughts.push('🏗️ BUILDING: Creating day-by-day itinerary...');
+  thoughts.push('🏗️ BUILDING: Creating day-by-day itinerary in parallel...');
   
-  const days: DayPlan[] = [];
-  const usedItems = new Set<string>();
-
-  for (let i = 0; i < tripDays; i++) {
+  // Build all days in parallel, but pass list of items to avoid
+  const dayPromises = Array.from({ length: tripDays }, (_, i) => {
     const dayNumber = i + 1;
     const theme = strategy.dayThemes[i] || `Day ${dayNumber}`;
     
-    const step: ReasoningStep = {
-      thought: `Planning Day ${dayNumber} with theme: ${theme}`,
-      action: `Building activities for ${theme}`,
-    };
-    
     thoughts.push(`  Day ${dayNumber}: ${theme}`);
     
-    const { day, reasoning } = await buildDayWithReasoning(
+    // Create a shared set for tracking (won't prevent duplicates across parallel days, but better than nothing)
+    const usedItems = new Set<string>();
+    
+    return buildDayWithReasoning(
       dayNumber,
       theme,
       {
@@ -320,14 +342,82 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
       },
       preferences,
       usedItems
-    );
+    ).then(({ day, reasoning }) => {
+      const step: ReasoningStep = {
+        thought: `Planning Day ${dayNumber} with theme: ${theme}`,
+        action: `Building activities for ${theme}`,
+        result: `${day.morning.length + day.afternoon.length + day.evening.length} activities planned`,
+      };
+      reasoningSteps.push(step);
+      reasoning.forEach(r => thoughts.push(`    💭 ${r}`));
+      return day;
+    });
+  });
+
+  let days = await Promise.all(dayPromises);
+  
+  // STEP 2.5: Post-process to remove duplicates across days
+  thoughts.push('');
+  thoughts.push('🔍 DEDUPLICATING: Removing duplicate activities across days...');
+  
+  const globalUsedItems = new Set<string>();
+  let duplicatesRemoved = 0;
+  
+  days = days.map((day, dayIndex) => {
+    const dedupedMorning = day.morning.filter(item => {
+      const itemKey = item.name.toLowerCase().trim();
+      if (globalUsedItems.has(itemKey)) {
+        thoughts.push(`  ⚠️ Removed duplicate "${item.name}" from Day ${dayIndex + 1}`);
+        duplicatesRemoved++;
+        return false;
+      }
+      globalUsedItems.add(itemKey);
+      return true;
+    });
     
-    days.push(day);
-    step.result = `${day.morning.length + day.afternoon.length + day.evening.length} activities planned`;
-    reasoningSteps.push(step);
+    const dedupedAfternoon = day.afternoon.filter(item => {
+      const itemKey = item.name.toLowerCase().trim();
+      if (globalUsedItems.has(itemKey)) {
+        thoughts.push(`  ⚠️ Removed duplicate "${item.name}" from Day ${dayIndex + 1}`);
+        duplicatesRemoved++;
+        return false;
+      }
+      globalUsedItems.add(itemKey);
+      return true;
+    });
     
-    reasoning.forEach(r => thoughts.push(`    💭 ${r}`));
+    const dedupedEvening = day.evening.filter(item => {
+      const itemKey = item.name.toLowerCase().trim();
+      if (globalUsedItems.has(itemKey)) {
+        thoughts.push(`  ⚠️ Removed duplicate "${item.name}" from Day ${dayIndex + 1}`);
+        duplicatesRemoved++;
+        return false;
+      }
+      globalUsedItems.add(itemKey);
+      return true;
+    });
+    
+    return {
+      ...day,
+      morning: dedupedMorning,
+      afternoon: dedupedAfternoon,
+      evening: dedupedEvening,
+    };
+  });
+  
+  if (duplicatesRemoved === 0) {
+    thoughts.push('  ✓ No duplicates found - all activities are unique!');
+  } else {
+    thoughts.push(`  ✓ Removed ${duplicatesRemoved} duplicate activities`);
   }
+  
+  // Validate that days still have activities
+  days.forEach((day, idx) => {
+    const totalActivities = day.morning.length + day.afternoon.length + day.evening.length;
+    if (totalActivities === 0) {
+      thoughts.push(`  ⚠️ WARNING: Day ${idx + 1} has no activities after deduplication!`);
+    }
+  });
 
   // STEP 3: Validate flow
   thoughts.push('');

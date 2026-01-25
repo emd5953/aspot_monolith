@@ -135,11 +135,11 @@ function scoreActivity(activity: ActivityOption, preferences: UserPreferences): 
     reasons.push(`Matches your interest in ${activity.category}`);
   }
 
-  // Adventure level alignment
-  const adventureDiff = Math.abs(activity.adventureLevel - preferences.adventureTolerance);
+  // Adventure level alignment (using comfortZone)
+  const adventureDiff = Math.abs(activity.adventureLevel - preferences.comfortZone);
   if (adventureDiff <= 2) {
     score += 15;
-    reasons.push('Matches your adventure level');
+    reasons.push('Matches your comfort zone');
   } else if (adventureDiff > 4) {
     score -= 10;
   }

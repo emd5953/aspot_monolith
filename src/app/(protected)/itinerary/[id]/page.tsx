@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ItineraryView } from '@/components/itinerary/itinerary-view';
 import { RegenerateModal } from '@/components/itinerary/regenerate-modal';
 import { EditDayModal } from '@/components/itinerary/edit-day-modal';
+import { KanyeQuotes } from '@/components/itinerary/kanye-quotes';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 
 interface Activity {
@@ -177,6 +178,27 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
+  const handleTitleChange = async (title: string) => {
+    try {
+      const res = await fetch(`/api/itinerary/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update title');
+      }
+
+      // Update local state
+      if (itinerary) {
+        setItinerary({ ...itinerary, title });
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update title');
+    }
+  };
+
   const handleEditDay = (dayId: string, dayNumber: number, activities: Activity[]) => {
     setEditingDay({ dayId, dayNumber, activities });
     setShowEditDayModal(true);
@@ -271,6 +293,7 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
           onDelete={handleDelete}
           onStatusChange={handleStatusChange}
           onEditDay={handleEditDay}
+          onTitleChange={handleTitleChange}
         />
 
         <RegenerateModal
@@ -291,18 +314,10 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
         />
 
         {isRegenerating && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <HandDrawnCard decoration="tape" className="p-8 max-w-md mx-4 text-center">
-              <div className="animate-spin h-12 w-12 border-4 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
-              <h3 className="text-2xl font-heading text-foreground mb-2">🔄 Regenerating Itinerary</h3>
-              <p className="text-foreground/70 font-body">Creating fresh recommendations...</p>
-              <p className="text-sm text-foreground/60 font-body mt-2">
-                This may take 10-70 seconds depending on mode ⏱️
-              </p>
-              <p className="text-xs text-foreground/50 font-body mt-3">
-                💡 Tip: Use Fast Mode for quicker results (~5s)
-              </p>
-            </HandDrawnCard>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="max-w-md w-full">
+              <KanyeQuotes />
+            </div>
           </div>
         )}
       </div>

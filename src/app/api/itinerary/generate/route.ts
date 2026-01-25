@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { destination, startDate, endDate, title, useAgenticMode, activityDensity } = body;
+    const { destination, startDate, endDate, title, generationMode, activityDensity } = body;
 
     if (!destination || !startDate || !endDate) {
       return NextResponse.json(
@@ -31,7 +31,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate itinerary with selected mode
+    // Map generation mode to flags
+    const mode = generationMode || 'standard';
+    const useAgenticMode = mode !== 'fast';
+    const useTrulyAgentic = mode !== 'fast';
+    const useAdvancedCuration = mode === 'advanced';
+
+    // Generate itinerary
     const itinerary = await generateItinerary(
       supabase,
       {
@@ -43,7 +49,9 @@ export async function POST(request: NextRequest) {
         activityDensity: activityDensity || 'moderate',
       },
       preferences,
-      useAgenticMode // Pass the mode to generator
+      useAgenticMode,
+      useTrulyAgentic,
+      useAdvancedCuration
     );
 
     return NextResponse.json({ itinerary });

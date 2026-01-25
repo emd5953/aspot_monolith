@@ -21,7 +21,7 @@ export function EditDayModal({
   onSubmit,
 }: EditDayModalProps) {
   const [prompt, setPrompt] = useState('');
-  const [mode, setMode] = useState<'fast' | 'credible'>('fast');
+  const [mode, setMode] = useState<'fast' | 'credible'>('credible'); // Changed to credible (Truly Agentic) as default
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -94,6 +94,25 @@ export function EditDayModal({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
+                  onClick={() => setMode('credible')}
+                  disabled={isSubmitting}
+                  className={`p-4 border-2 border-foreground transition-all ${
+                    mode === 'credible'
+                      ? 'bg-accent/20 border-accent shadow-hand-drawn'
+                      : 'bg-card hover:bg-muted'
+                  }`}
+                >
+                  <div className="text-left">
+                    <div className="font-heading text-lg mb-1">🤖 Truly Agentic</div>
+                    <div className="text-sm text-foreground/70 font-body">
+                      Real web-scraped data
+                      <br />
+                      <span className="text-xs">~10-20 seconds</span>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setMode('fast')}
                   disabled={isSubmitting}
                   className={`p-4 border-2 border-foreground transition-all ${
@@ -105,36 +124,17 @@ export function EditDayModal({
                   <div className="text-left">
                     <div className="font-heading text-lg mb-1">⚡ Fast Mode</div>
                     <div className="text-sm text-foreground/70 font-body">
-                      AI-generated activities
+                      AI knowledge only
                       <br />
-                      <span className="text-xs">~8-10 seconds</span>
-                    </div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('credible')}
-                  disabled={isSubmitting}
-                  className={`p-4 border-2 border-foreground transition-all ${
-                    mode === 'credible'
-                      ? 'bg-accent/20 border-accent shadow-hand-drawn'
-                      : 'bg-card hover:bg-muted'
-                  }`}
-                >
-                  <div className="text-left">
-                    <div className="font-heading text-lg mb-1">🔍 Credible Mode</div>
-                    <div className="text-sm text-foreground/70 font-body">
-                      Real web-scraped data
-                      <br />
-                      <span className="text-xs">~20-30 seconds</span>
+                      <span className="text-xs">~5-8 seconds</span>
                     </div>
                   </div>
                 </button>
               </div>
               <p className="text-xs text-foreground/60 mt-2 font-body">
-                {mode === 'fast' 
-                  ? '💡 Fast mode uses AI knowledge - quick but may suggest outdated places'
-                  : '💡 Credible mode scrapes live data from TripAdvisor, Google Maps, etc.'}
+                {mode === 'credible' 
+                  ? '💡 Truly Agentic scrapes live data from Google, Reddit, TripAdvisor for real places'
+                  : '💡 Fast mode uses AI knowledge - quick but may suggest generic places'}
               </p>
             </div>
 
@@ -203,7 +203,7 @@ export function EditDayModal({
           </form>
 
           <p className="text-xs text-foreground/50 text-center mt-4 font-body">
-            ⏱️ {mode === 'fast' ? 'Fast mode: ~8-10 seconds' : 'Credible mode: ~20-30 seconds'}
+            ⏱️ {mode === 'credible' ? 'Truly Agentic: ~10-20 seconds' : 'Fast mode: ~5-8 seconds'}
           </p>
         </div>
       </HandDrawnCard>

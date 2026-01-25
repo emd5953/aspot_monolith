@@ -27,7 +27,7 @@ export interface SimWorkflowInput {
     activityTypes: string[];
     budgetRange: string;
     travelPace: string;
-    adventureTolerance: number;
+    comfortZone: number;
   };
   duration: number;
   startDate: string;

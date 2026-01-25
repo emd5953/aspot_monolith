@@ -42,17 +42,17 @@ export default function EditProfilePage() {
         setPreferences({
           id: prefsData.id,
           userId: prefsData.user_id,
-          cuisinePreferences: prefsData.cuisine_preferences,
-          activityTypes: prefsData.activity_types,
-          budgetRange: prefsData.budget_range,
-          travelPace: prefsData.travel_pace,
-          accommodationStyle: prefsData.accommodation_style,
-          socialPreferences: prefsData.social_preferences,
-          accessibilityNeeds: prefsData.accessibility_needs,
-          climatePreferences: prefsData.climate_preferences,
-          culturalInterests: prefsData.cultural_interests,
-          adventureTolerance: prefsData.adventure_tolerance,
-          rawAnswers: prefsData.raw_answers,
+          travelMotivations: prefsData.travel_motivations || [],
+          planningStyle: prefsData.planning_style || '',
+          authenticityPreference: prefsData.authenticity_preference || '',
+          timeRhythm: prefsData.time_rhythm || '',
+          comfortZone: prefsData.comfort_zone || 5,
+          activityTypes: prefsData.activity_types || [],
+          cuisinePreferences: prefsData.cuisine_preferences || [],
+          budgetRange: prefsData.budget_range || '',
+          travelPace: prefsData.travel_pace || '',
+          socialPreferences: prefsData.social_preferences || '',
+          rawAnswers: prefsData.raw_answers || {},
           createdAt: new Date(prefsData.created_at),
           updatedAt: new Date(prefsData.updated_at),
         });
@@ -86,11 +86,16 @@ export default function EditProfilePage() {
       const { error: prefsError } = await supabase
         .from('user_preferences')
         .update({
+          travel_motivations: preferences.travelMotivations,
+          planning_style: preferences.planningStyle,
+          authenticity_preference: preferences.authenticityPreference,
+          time_rhythm: preferences.timeRhythm,
+          comfort_zone: preferences.comfortZone,
+          activity_types: preferences.activityTypes,
+          cuisine_preferences: preferences.cuisinePreferences,
           budget_range: preferences.budgetRange,
           travel_pace: preferences.travelPace,
-          accommodation_style: preferences.accommodationStyle,
           social_preferences: preferences.socialPreferences,
-          adventure_tolerance: preferences.adventureTolerance,
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', preferences.userId);
@@ -188,12 +193,65 @@ export default function EditProfilePage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-foreground font-body text-lg mb-2">
+                    Planning Style
+                  </label>
+                  <select
+                    value={preferences.planningStyle}
+                    onChange={(e) =>
+                      setPreferences({ ...preferences, planningStyle: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-card border-2 border-foreground border-wobbly-sm font-body text-base text-foreground focus:outline-none focus:border-secondary-accent focus:ring-2 focus:ring-secondary-accent/20"
+                  >
+                    <option value="hyper_planner">Hyper Planner</option>
+                    <option value="structured_flexible">Structured but Flexible</option>
+                    <option value="loose_framework">Loose Framework</option>
+                    <option value="pure_spontaneous">Pure Spontaneous</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-foreground font-body text-lg mb-2">
+                    Authenticity Preference
+                  </label>
+                  <select
+                    value={preferences.authenticityPreference}
+                    onChange={(e) =>
+                      setPreferences({ ...preferences, authenticityPreference: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-card border-2 border-foreground border-wobbly-sm font-body text-base text-foreground focus:outline-none focus:border-secondary-accent focus:ring-2 focus:ring-secondary-accent/20"
+                  >
+                    <option value="authentic_local">Authentic & Local</option>
+                    <option value="balanced">Balanced</option>
+                    <option value="popular_spots">Popular Spots</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-foreground font-body text-lg mb-2">
+                    Time Rhythm
+                  </label>
+                  <select
+                    value={preferences.timeRhythm}
+                    onChange={(e) =>
+                      setPreferences({ ...preferences, timeRhythm: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-card border-2 border-foreground border-wobbly-sm font-body text-base text-foreground focus:outline-none focus:border-secondary-accent focus:ring-2 focus:ring-secondary-accent/20"
+                  >
+                    <option value="early_bird">Early Bird</option>
+                    <option value="steady_daytime">Steady Daytime</option>
+                    <option value="afternoon_evening">Afternoon/Evening</option>
+                    <option value="night_owl">Night Owl</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-foreground font-body text-lg mb-2">
                     Budget
                   </label>
                   <select
                     value={preferences.budgetRange}
                     onChange={(e) =>
-                      setPreferences({ ...preferences, budgetRange: e.target.value as UserPreferences['budgetRange'] })
+                      setPreferences({ ...preferences, budgetRange: e.target.value })
                     }
                     className="w-full px-4 py-3 bg-card border-2 border-foreground border-wobbly-sm font-body text-base text-foreground focus:outline-none focus:border-secondary-accent focus:ring-2 focus:ring-secondary-accent/20"
                   >
@@ -210,7 +268,7 @@ export default function EditProfilePage() {
                   <select
                     value={preferences.travelPace}
                     onChange={(e) =>
-                      setPreferences({ ...preferences, travelPace: e.target.value as UserPreferences['travelPace'] })
+                      setPreferences({ ...preferences, travelPace: e.target.value })
                     }
                     className="w-full px-4 py-3 bg-card border-2 border-foreground border-wobbly-sm font-body text-base text-foreground focus:outline-none focus:border-secondary-accent focus:ring-2 focus:ring-secondary-accent/20"
                   >
@@ -222,31 +280,12 @@ export default function EditProfilePage() {
 
                 <div>
                   <label className="block text-foreground font-body text-lg mb-2">
-                    Accommodation Style
-                  </label>
-                  <select
-                    value={preferences.accommodationStyle}
-                    onChange={(e) =>
-                      setPreferences({ ...preferences, accommodationStyle: e.target.value as UserPreferences['accommodationStyle'] })
-                    }
-                    className="w-full px-4 py-3 bg-card border-2 border-foreground border-wobbly-sm font-body text-base text-foreground focus:outline-none focus:border-secondary-accent focus:ring-2 focus:ring-secondary-accent/20"
-                  >
-                    <option value="hostel">Hostels</option>
-                    <option value="airbnb">Vacation rentals</option>
-                    <option value="hotel">Standard hotels</option>
-                    <option value="boutique">Boutique hotels</option>
-                    <option value="luxury">Luxury resorts</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-foreground font-body text-lg mb-2">
                     Travel Style
                   </label>
                   <select
                     value={preferences.socialPreferences}
                     onChange={(e) =>
-                      setPreferences({ ...preferences, socialPreferences: e.target.value as UserPreferences['socialPreferences'] })
+                      setPreferences({ ...preferences, socialPreferences: e.target.value })
                     }
                     className="w-full px-4 py-3 bg-card border-2 border-foreground border-wobbly-sm font-body text-base text-foreground focus:outline-none focus:border-secondary-accent focus:ring-2 focus:ring-secondary-accent/20"
                   >
@@ -258,18 +297,21 @@ export default function EditProfilePage() {
 
                 <div>
                   <label className="block text-foreground font-body text-lg mb-2">
-                    Adventure Level: {preferences.adventureTolerance}/10
+                    Comfort Zone: {preferences.comfortZone}/10
                   </label>
                   <input
                     type="range"
                     min="1"
                     max="10"
-                    value={preferences.adventureTolerance}
+                    value={preferences.comfortZone}
                     onChange={(e) =>
-                      setPreferences({ ...preferences, adventureTolerance: parseInt(e.target.value) })
+                      setPreferences({ ...preferences, comfortZone: parseInt(e.target.value) })
                     }
                     className="w-full h-2 bg-card border-2 border-foreground appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-foreground [&::-webkit-slider-thumb]:cursor-pointer"
                   />
+                  <p className="text-sm text-foreground/60 font-body mt-1">
+                    1 = Familiar & comfortable, 10 = Challenging & adventurous
+                  </p>
                 </div>
               </div>
             </div>
