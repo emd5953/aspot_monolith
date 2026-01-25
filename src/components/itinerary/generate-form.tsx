@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DestinationAutocomplete } from './destination-autocomplete';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
@@ -17,9 +17,11 @@ interface GenerateFormProps {
     activityDensity?: 'relaxed' | 'moderate' | 'packed';
   }) => Promise<void>;
   isLoading?: boolean;
+  useStreaming?: boolean; // Enable real-time progress updates
+  onProgress?: (progress: { status: string; message: string; progress?: number }) => void;
 }
 
-export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
+export function GenerateForm({ onSubmit, isLoading, useStreaming, onProgress }: GenerateFormProps) {
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -27,6 +29,14 @@ export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
   const [generationMode, setGenerationMode] = useState<'fast' | 'standard' | 'advanced'>('standard'); // New: mode selection
   const [activityDensity, setActivityDensity] = useState<'relaxed' | 'moderate' | 'packed'>('moderate');
   const [error, setError] = useState('');
+  const [realProgress, setRealProgress] = useState<{ status: string; message: string; progress?: number } | null>(null);
+
+  // Update parent when progress changes
+  useEffect(() => {
+    if (realProgress && onProgress) {
+      onProgress(realProgress);
+    }
+  }, [realProgress, onProgress]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +81,7 @@ export function GenerateForm({ onSubmit, isLoading }: GenerateFormProps) {
   if (isLoading) {
     return (
       <div className="max-w-xl mx-auto">
-        <KanyeQuotes destination={destination} />
+        <KanyeQuotes destination={destination} realProgress={realProgress} />
       </div>
     );
   }

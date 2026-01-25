@@ -111,7 +111,10 @@ async function buildDayWithReasoning(
   day: DayPlan;
   reasoning: string[];
 }> {
-  const dayPrompt = `You are planning Day ${dayNumber} of an itinerary.
+  const dayPrompt = `You are planning Day ${dayNumber} of an itinerary for ${theme}.
+
+CRITICAL: ALL activities MUST be located in the destination city. DO NOT include activities from other cities or countries.
+Verify each location is actually in the correct destination before including it.
 
 THEME: ${theme}
 USER PERSONALITY:
@@ -138,6 +141,7 @@ ${availableOptions.activities.length > 0
   : `Use your knowledge of popular activities in the destination`}
 
 NOTE: Create realistic, specific activities based on your knowledge of the destination. Include real place names and addresses.
+IMPORTANT: Verify all locations are in the correct destination city.
 
 BUILD THIS DAY (Day ${dayNumber} of the trip):
 IMPORTANT: This is Day ${dayNumber}, so activities should be DIFFERENT from other days!

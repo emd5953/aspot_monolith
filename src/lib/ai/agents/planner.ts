@@ -52,6 +52,9 @@ Please create an IMPROVED version that addresses all the issues above.
 
   const planningPrompt = `You are an expert travel planner creating a ${tripDuration}-day itinerary for ${research.destination}.
 
+CRITICAL: ALL activities, attractions, and restaurants MUST be located in ${research.destination}. 
+DO NOT include locations from other cities or countries. Verify each location is actually in ${research.destination}.
+
 ${revisionContext}
 
 AVAILABLE OPTIONS:
@@ -75,21 +78,26 @@ LOCAL INSIGHTS:
 ${research.localInsights.map(i => `- ${i}`).join('\n')}
 
 RULES:
-1. Day 1 should be lighter (arrival day)
-2. Don't repeat attractions/activities across different days
-3. DO NOT repeat the same location within a single day (e.g., don't visit the same park twice in one day)
-4. Include lunch and dinner restaurants each day
-5. Match adventure level to user preference
-6. Group nearby attractions together
-7. Leave free time for spontaneous exploration
-8. Consider opening hours (museums morning, nightlife evening)
+1. ONLY use attractions, restaurants, and activities from the AVAILABLE OPTIONS list above
+2. ALL locations must be in ${research.destination} - double check each one
+3. DO NOT make up new places - only use what's in the lists above
+4. Day 1 should be lighter (arrival day)
+5. Don't repeat attractions/activities across different days
+6. DO NOT repeat the same location within a single day (e.g., don't visit the same park twice in one day)
+7. Include lunch and dinner restaurants each day
+8. Match adventure level to user preference
+9. Group nearby attractions together
+10. Leave free time for spontaneous exploration
+11. Consider opening hours (museums morning, nightlife evening)
 
-Create a detailed ${tripDuration}-day itinerary. For each day, provide:
+Create a detailed ${tripDuration}-day itinerary for ${research.destination}. For each day, provide:
 - A theme for the day
 - Morning activities (starting ~9am)
 - Afternoon activities (including lunch ~12-1pm)
 - Evening activities (including dinner ~7pm)
 - Practical notes
+
+VERIFY: Before responding, confirm every single location is in ${research.destination}.
 
 RESPOND WITH VALID JSON:
 {
@@ -118,14 +126,20 @@ RESPOND WITH VALID JSON:
     const result = await generateText({
       model: openai(process.env.FAST_MODE === 'true' ? 'gpt-4o-mini' : 'gpt-4o'),
       prompt: planningPrompt,
-      temperature: 0.8,
+      temperature: 0.7, // Reduced from 0.8
     });
 
     console.log(`[TIMING] Planning AI call completed in ${((Date.now() - planStartTime) / 1000).toFixed(1)}s`);
+    console.log(`[DEBUG] Planner response for ${research.destination}:`, result.text.substring(0, 300));
 
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
+
+      // Debug: Check first day's activities
+      console.log(`[DEBUG] Day 1 activities for ${research.destination}:`, 
+        parsed.days?.[0]?.morning?.map((a: any) => a.name)
+      );
 
       // Validate and structure the plan
       const days: DayPlan[] = (parsed.days || []).map((day: Partial<DayPlan>, index: number) => {

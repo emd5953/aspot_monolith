@@ -397,21 +397,37 @@ function createFallbackResearch(destination: string, preferences: { activityType
 async function generateResearchFromAI(destination: string, preferences: { activityTypes: string[]; cuisinePreferences: string[]; budgetRange: string; comfortZone: number }): Promise<ResearchResult> {
   const prompt = `Generate travel recommendations for ${destination}.
 
+🚨 CRITICAL: ALL recommendations MUST be located in ${destination.toUpperCase()}
+- If destination is "Berkeley", only include places in Berkeley, California
+- DO NOT include places from nearby cities (San Francisco, Oakland, San Jose, etc.)
+- DO NOT include places from other states or countries
+- VERIFY each place is actually in ${destination}
+
+Destination: ${destination}
 Preferences: ${preferences.activityTypes.slice(0, 3).join(', ')}, ${preferences.cuisinePreferences.slice(0, 3).join(', ')}, ${preferences.budgetRange} budget, comfort zone ${preferences.comfortZone}/10.
 
-Return JSON with 10 attractions, 8 restaurants, 6 activities, 3 tips:
-{"attractions":[{"name":"","description":"","category":"museums","estimatedDuration":90,"priceRange":"moderate","rating":4.5}],"restaurants":[{"name":"","cuisine":[""],"priceRange":"moderate","rating":4.5}],"activities":[{"name":"","description":"","category":"tours","duration":120,"adventureLevel":5,"priceRange":"moderate"}],"localInsights":[""]}`;
+Return JSON with 10 attractions, 8 restaurants, 6 activities, 3 tips - ALL in ${destination}:
+{"attractions":[{"name":"[Name in ${destination}]","description":"","category":"museums","estimatedDuration":90,"priceRange":"moderate","rating":4.5}],"restaurants":[{"name":"[Restaurant in ${destination}]","cuisine":[""],"priceRange":"moderate","rating":4.5}],"activities":[{"name":"[Activity in ${destination}]","description":"","category":"tours","duration":120,"adventureLevel":5,"priceRange":"moderate"}],"localInsights":[""]}
+
+VERIFY: Every single place must be in ${destination} before returning.`;
 
   try {
     const analysis = await generateText({
       model: openai('gpt-4o-mini'), // Use mini for speed
       prompt,
-      temperature: 0.7,
+      temperature: 0.6, // Reduced from 0.7 for more consistency
     });
+
+    console.log(`[DEBUG] Research AI response for ${destination}:`, analysis.text.substring(0, 300));
 
     const jsonMatch = analysis.text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
+      
+      // Debug: Check if attractions are actually in the destination
+      console.log(`[DEBUG] First 3 attractions for ${destination}:`, 
+        parsed.attractions?.slice(0, 3).map((a: any) => a.name)
+      );
       
       return {
         destination,

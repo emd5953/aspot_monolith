@@ -84,32 +84,56 @@ async function generateItineraryFast(
     intense: '10+ activities (excluding meals)',
   };
 
-  const prompt = `Create a ${tripDuration}-day itinerary for ${destination}.
+  const prompt = `You are creating a travel itinerary for ${destination}.
 
-Traveler: ${preferences.activityTypes.slice(0, 3).join(', ')}, ${preferences.cuisinePreferences.slice(0, 2).join(', ')}, ${preferences.budgetRange} budget, ${preferences.travelPace} pace.
+🚨 CRITICAL RULE: EVERY SINGLE ACTIVITY MUST BE IN ${destination.toUpperCase()}
+- If the destination is "San Francisco", ALL activities must be in San Francisco, California
+- If the destination is "Paris", ALL activities must be in Paris, France
+- DO NOT include activities from nearby cities or other locations
+- DO NOT include activities from other countries
+- VERIFY each activity is actually located in ${destination}
 
-Activity Density: ${activityDensity} (${densityGuide[activityDensity]})
+Trip Details:
+- Destination: ${destination}
+- Duration: ${tripDuration} days
+- Traveler: ${preferences.activityTypes.slice(0, 3).join(', ')}, ${preferences.cuisinePreferences.slice(0, 2).join(', ')}
+- Budget: ${preferences.budgetRange}
+- Pace: ${preferences.travelPace}
+- Activity Density: ${activityDensity} (${densityGuide[activityDensity]})
 
-IMPORTANT: 
-- Include specific location names/addresses for each activity so they can be shown on a map
-- DO NOT include meal activities (breakfast/lunch/dinner) - they will be added automatically
-- Focus on attractions, activities, entertainment, shopping, etc.
+Requirements:
+1. ALL activities MUST be in ${destination} - no exceptions
+2. Include specific location names/addresses for mapping
+3. DO NOT include meal activities (breakfast/lunch/dinner) - added automatically
+4. Focus on: attractions, activities, entertainment, shopping, museums, parks
+5. Each activity needs: name, description, category, locationName
 
-Return JSON with ${tripDuration} days, each with ${densityGuide[activityDensity]}:
-{"days":[{"dayNumber":1,"activities":[{"name":"Eiffel Tower","description":"Iconic landmark","category":"attraction","locationName":"Champ de Mars, 5 Avenue Anatole France, 75007 Paris"}]}]}`;
+Example format (for ${destination}):
+{"days":[{"dayNumber":1,"activities":[{"name":"[Activity in ${destination}]","description":"[Description]","category":"attraction","locationName":"[Full address in ${destination}]"}]}]}
+
+FINAL CHECK: Before responding, verify EVERY activity is actually in ${destination}.
+
+Generate ${tripDuration} days with ${densityGuide[activityDensity]} per day:`;
 
   const result = await generateText({
     model: openai('gpt-4o-mini'),
     prompt,
-    temperature: 0.8,
+    temperature: 0.7, // Reduced from 0.8 for more consistent results
   });
+
+  console.log('[DEBUG] AI Response:', result.text.substring(0, 500)); // Log first 500 chars
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
+    console.error('[ERROR] Failed to parse AI response:', result.text);
     throw new Error('Failed to parse AI response');
   }
 
   const parsed = JSON.parse(jsonMatch[0]);
+  console.log('[DEBUG] Parsed itinerary destination check:', {
+    requestedDestination: destination,
+    firstActivity: parsed.days?.[0]?.activities?.[0],
+  });
   
   return (parsed.days || []).map((day: { dayNumber: number; activities: Array<{ name: string; description: string; category: string; locationName?: string }> }, index: number) => {
     const dayDate = new Date(startDate);
@@ -141,6 +165,10 @@ Return JSON with ${tripDuration} days, each with ${densityGuide[activityDensity]
   });
 }
 
+export interface ProgressCallback {
+  (data: { status: string; message: string; progress?: number }): void;
+}
+
 /**
  * Generate a complete personalized itinerary
  * Uses Sim Studio workflow if configured, otherwise falls back to local pipeline
@@ -151,7 +179,8 @@ export async function generateItinerary(
   preferences: UserPreferences,
   useAgenticMode: boolean = false,
   useTrulyAgentic: boolean = false, // NEW: Use the truly agentic system
-  useAdvancedCuration: boolean = false // NEW: Use advanced curation (extensive scraping + iterations)
+  useAdvancedCuration: boolean = false, // NEW: Use advanced curation (extensive scraping + iterations)
+  onProgress?: ProgressCallback // NEW: Progress callback for streaming
 ): Promise<GeneratedItinerary> {
   const { userId, destination, startDate, endDate, title, activityDensity = 'moderate' } = input;
   
@@ -172,19 +201,23 @@ export async function generateItinerary(
   
   if (useFastMode) {
     console.log('[TIMING] Using ULTRA FAST single-call generation...');
+    onProgress?.({ status: 'generating', message: 'Creating your itinerary...', progress: 30 });
     const startTime = Date.now();
     
     try {
       dayPlans = await generateItineraryFast(destination, startDate, endDate, preferences, activityDensity);
       console.log(`[TIMING] Single-call generation completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+      onProgress?.({ status: 'finalizing', message: 'Finalizing your itinerary...', progress: 80 });
     } catch (error) {
       console.error('Fast generation error:', error);
+      onProgress?.({ status: 'fallback', message: 'Using fallback generation...', progress: 50 });
       dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate, activityDensity);
     }
   } else if (useTrulyAgentic) {
     // TRULY AGENTIC MODE: Full reasoning, adaptive stopping, dynamic tool selection
     console.log('[TIMING] Starting TRULY AGENTIC System...');
     console.log('Features: Dynamic tool selection, reasoning chains, adaptive stopping');
+    onProgress?.({ status: 'researching', message: 'Researching destination...', progress: 10 });
     const startTime = Date.now();
     
     try {
@@ -198,6 +231,18 @@ export async function generateItinerary(
         useAdvancedCuration, // Pass flag to enable extensive scraping
         onProgress: (state) => {
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
+          
+          // Map internal status to user-friendly messages
+          const statusMap: Record<string, { message: string; progress: number }> = {
+            'researching': { message: 'Researching top attractions and hidden gems...', progress: 20 },
+            'planning': { message: 'Creating your personalized itinerary...', progress: 50 },
+            'reviewing': { message: 'Optimizing your schedule...', progress: 70 },
+            'complete': { message: 'Finalizing details...', progress: 90 },
+          };
+          
+          const mapped = statusMap[state.status] || { message: 'Processing...', progress: 40 };
+          onProgress?.({ status: state.status, message: mapped.message, progress: mapped.progress });
+          
           if (state.reasoning && state.reasoning.length > 0) {
             const latest = state.reasoning[state.reasoning.length - 1];
             console.log(`  💭 ${latest.agent}: ${latest.thought}`);
@@ -220,15 +265,18 @@ export async function generateItinerary(
         });
       } else {
         console.warn('Truly Agentic system failed, falling back to local pipeline');
+        onProgress?.({ status: 'fallback', message: 'Using alternative generation...', progress: 50 });
         dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
       }
     } catch (error) {
       console.error('Truly Agentic error:', error);
+      onProgress?.({ status: 'fallback', message: 'Using fallback generation...', progress: 50 });
       dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
     }
   } else {
     // Standard Multi-Agent System (Agentic Mode)
     console.log('[TIMING] Starting Multi-Agent System (Agentic Mode)...');
+    onProgress?.({ status: 'researching', message: 'Researching destination...', progress: 15 });
     const startTime = Date.now();
     console.log('Agents: Research → Plan → Review (with autonomous loops)');
     
@@ -241,6 +289,17 @@ export async function generateItinerary(
         useFastMode: false, // Agentic mode uses full features
         onProgress: (state) => {
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
+          
+          // Map internal status to user-friendly messages
+          const statusMap: Record<string, { message: string; progress: number }> = {
+            'researching': { message: 'Finding the best local restaurants...', progress: 25 },
+            'planning': { message: 'Mapping optimal routes and neighborhoods...', progress: 50 },
+            'reviewing': { message: 'Checking opening hours and availability...', progress: 70 },
+            'complete': { message: 'Personalizing based on your preferences...', progress: 85 },
+          };
+          
+          const mapped = statusMap[state.status] || { message: 'Processing...', progress: 40 };
+          onProgress?.({ status: state.status, message: mapped.message, progress: mapped.progress });
         },
       });
 
@@ -254,15 +313,18 @@ export async function generateItinerary(
         console.log(`Iterations: ${orchestratorResult.state.iteration}`);
       } else {
         console.warn('Multi-Agent system failed, falling back to local pipeline:', orchestratorResult.error);
+        onProgress?.({ status: 'fallback', message: 'Using alternative generation...', progress: 50 });
         dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
       }
     } catch (error) {
       console.error('Multi-Agent error:', error);
+      onProgress?.({ status: 'fallback', message: 'Using fallback generation...', progress: 50 });
       dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
     }
   }
 
   // Save to database
+  onProgress?.({ status: 'saving', message: 'Saving your itinerary...', progress: 95 });
   return await saveItineraryToDatabase(supabase, {
     userId,
     title: title || `Trip to ${destination}`,

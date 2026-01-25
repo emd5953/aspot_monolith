@@ -204,22 +204,60 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
             },
           });
 
+          // Google Maps Directions API has a limit of 25 waypoints
+          // If we have too many, just draw lines between consecutive points
+          const maxWaypoints = 23; // Leave room for origin and destination
           const waypoints = markers.slice(1, -1).map(marker => ({
             location: marker.getPosition()!,
             stopover: true,
           }));
 
           try {
-            const result = await directionsService.route({
-              origin: markers[0].getPosition()!,
-              destination: markers[markers.length - 1].getPosition()!,
-              waypoints,
-              travelMode: google.maps.TravelMode.WALKING,
-            });
+            if (waypoints.length <= maxWaypoints) {
+              // Try to get directions with all waypoints
+              const result = await directionsService.route({
+                origin: markers[0].getPosition()!,
+                destination: markers[markers.length - 1].getPosition()!,
+                waypoints,
+                travelMode: google.maps.TravelMode.WALKING,
+                optimizeWaypoints: false, // Keep the order as planned
+              });
 
-            directionsRenderer.setDirections(result);
-          } catch (err) {
+              directionsRenderer.setDirections(result);
+            } else {
+              // Too many waypoints - draw simple polylines instead
+              console.warn(`Too many waypoints (${waypoints.length}), drawing simple lines`);
+              const path = markers.map(marker => marker.getPosition()!);
+              
+              new google.maps.Polyline({
+                path,
+                geodesic: true,
+                strokeColor: '#3b82f6',
+                strokeOpacity: 0.7,
+                strokeWeight: 3,
+                map: newMap,
+              });
+            }
+          } catch (err: any) {
             console.error('Failed to calculate route:', err);
+            
+            // Fallback: Draw simple polylines between consecutive markers
+            // This happens when no walking route exists (e.g., across water, restricted areas)
+            if (err?.code === 'ZERO_RESULTS' || err?.message?.includes('ZERO_RESULTS')) {
+              console.warn('No route found, drawing straight lines between points');
+              
+              const path = markers.map(marker => marker.getPosition()!);
+              
+              new google.maps.Polyline({
+                path,
+                geodesic: true,
+                strokeColor: '#94a3b8', // Gray color to indicate it's not a real route
+                strokeOpacity: 0.5,
+                strokeWeight: 2,
+                strokeStyle: 'dashed',
+                map: newMap,
+              });
+            }
           }
         }
 
