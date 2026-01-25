@@ -100,6 +100,7 @@ Return JSON with your strategy:
 async function buildDayWithReasoning(
   dayNumber: number,
   theme: string,
+  destination: string, // ADD THIS
   availableOptions: {
     attractions: ResearchResult['attractions'];
     restaurants: ResearchResult['restaurants'];
@@ -111,10 +112,13 @@ async function buildDayWithReasoning(
   day: DayPlan;
   reasoning: string[];
 }> {
-  const dayPrompt = `You are planning Day ${dayNumber} of an itinerary for ${theme}.
+  const dayPrompt = `You are planning Day ${dayNumber} of a trip to ${destination.toUpperCase()}.
 
-CRITICAL: ALL activities MUST be located in the destination city. DO NOT include activities from other cities or countries.
-Verify each location is actually in the correct destination before including it.
+🚨 CRITICAL: ALL activities MUST be in ${destination.toUpperCase()}
+- Destination: ${destination}
+- DO NOT include activities from other cities (not San Francisco, not Oakland, not San Jose if destination is Berkeley)
+- DO NOT include activities from other states or countries
+- VERIFY each activity is actually located in ${destination}
 
 THEME: ${theme}
 USER PERSONALITY:
@@ -127,21 +131,21 @@ USER PERSONALITY:
 - Budget: ${preferences.budgetRange}
 - Pace: ${preferences.travelPace}
 
-AVAILABLE OPTIONS (not yet used):
+AVAILABLE OPTIONS (not yet used) - ALL IN ${destination.toUpperCase()}:
 ${availableOptions.attractions.length > 0 
-  ? `Attractions: ${availableOptions.attractions.filter(a => !usedItems.has(a.name)).slice(0, 10).map(a => `${a.name} (${a.category}, ${a.estimatedDuration}min, ${a.priceRange})`).join(', ')}`
-  : `Use your knowledge of ${preferences.activityTypes.slice(0, 3).join(', ')} activities in the destination`}
+  ? `Attractions in ${destination}: ${availableOptions.attractions.filter(a => !usedItems.has(a.name)).slice(0, 10).map(a => `${a.name} (${a.category}, ${a.estimatedDuration}min, ${a.priceRange})`).join(', ')}`
+  : `Use your knowledge of ${preferences.activityTypes.slice(0, 3).join(', ')} activities in ${destination}`}
 
 ${availableOptions.restaurants.length > 0
-  ? `Restaurants: ${availableOptions.restaurants.filter(r => !usedItems.has(r.name)).slice(0, 8).map(r => `${r.name} (${r.cuisine.join('/')}, ${r.priceRange})`).join(', ')}`
-  : `Use your knowledge of ${preferences.cuisinePreferences.slice(0, 2).join(', ')} restaurants in the destination`}
+  ? `Restaurants in ${destination}: ${availableOptions.restaurants.filter(r => !usedItems.has(r.name)).slice(0, 8).map(r => `${r.name} (${r.cuisine.join('/')}, ${r.priceRange})`).join(', ')}`
+  : `Use your knowledge of ${preferences.cuisinePreferences.slice(0, 2).join(', ')} restaurants in ${destination}`}
 
 ${availableOptions.activities.length > 0
-  ? `Activities: ${availableOptions.activities.filter(a => !usedItems.has(a.name)).slice(0, 6).map(a => `${a.name} (${a.category}, ${a.duration}min)`).join(', ')}`
-  : `Use your knowledge of popular activities in the destination`}
+  ? `Activities in ${destination}: ${availableOptions.activities.filter(a => !usedItems.has(a.name)).slice(0, 6).map(a => `${a.name} (${a.category}, ${a.duration}min)`).join(', ')}`
+  : `Use your knowledge of popular activities in ${destination}`}
 
-NOTE: Create realistic, specific activities based on your knowledge of the destination. Include real place names and addresses.
-IMPORTANT: Verify all locations are in the correct destination city.
+NOTE: Create realistic, specific activities in ${destination}. Include real place names and addresses IN ${destination}.
+VERIFY: Every single activity must be in ${destination} - not nearby cities, not other states.
 
 BUILD THIS DAY (Day ${dayNumber} of the trip):
 IMPORTANT: This is Day ${dayNumber}, so activities should be DIFFERENT from other days!
@@ -339,6 +343,7 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
     return buildDayWithReasoning(
       dayNumber,
       theme,
+      research.destination, // ADD THIS
       {
         attractions: research.attractions,
         restaurants: research.restaurants,
