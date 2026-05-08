@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Pencil, Plus, List, Clock } from 'lucide-react';
 import { ActivityCard } from './activity-card';
 import { TimelineView } from './timeline-view';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
@@ -46,13 +47,12 @@ export function DaySchedule({
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
 
-  const formatDate = (d: Date) => {
-    return d.toLocaleDateString('en-US', {
+  const formatDate = (d: Date) =>
+    d.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'short',
       day: 'numeric',
     });
-  };
 
   const handleDragStart = (e: React.DragEvent, activityId: string) => {
     setDraggedId(activityId);
@@ -68,7 +68,7 @@ export function DaySchedule({
     e.preventDefault();
     if (!draggedId || draggedId === targetId || !onReorder) return;
 
-    const currentOrder = activities.map(a => a.id);
+    const currentOrder = activities.map((a) => a.id);
     const draggedIndex = currentOrder.indexOf(draggedId);
     const targetIndex = currentOrder.indexOf(targetId);
 
@@ -79,56 +79,39 @@ export function DaySchedule({
     setDraggedId(null);
   };
 
-  const handleDragEnd = () => {
-    setDraggedId(null);
-  };
+  const handleDragEnd = () => setDraggedId(null);
 
   const sortedActivities = [...activities].sort((a, b) => a.sortOrder - b.sortOrder);
-
-  // Check if activities have timing info
-  const hasTimingInfo = sortedActivities.some(a => a.startTime && a.endTime);
+  const hasTimingInfo = sortedActivities.some((a) => a.startTime && a.endTime);
 
   return (
-    <HandDrawnCard decoration="tack" className="p-6 bg-muted/30">
-      <div className="flex items-center justify-between mb-6">
+    <div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-2xl font-heading text-foreground -rotate-1">
-            📅 Day {dayNumber}
-          </h3>
-          <p className="text-base text-foreground/70 font-body">{formatDate(date)}</p>
+          <p className="text-sm font-medium text-[color:var(--ink-muted)]">Day {dayNumber}</p>
+          <h3 className="mt-1 font-heading text-2xl text-[color:var(--ink)]">{formatDate(date)}</h3>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {hasTimingInfo && (
-            <div className="flex border-2 border-foreground border-wobbly-sm overflow-hidden">
-              <button
+            <div className="inline-flex rounded-full border border-[color:var(--border)] bg-[color:var(--surface-soft)] p-1">
+              <ViewToggle
+                selected={viewMode === 'list'}
                 onClick={() => setViewMode('list')}
-                className={`px-3 py-1 text-sm font-body transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-accent text-white'
-                    : 'bg-card text-foreground hover:bg-muted'
-                }`}
-              >
-                📋 List
-              </button>
-              <button
+                icon={<List className="h-3.5 w-3.5" strokeWidth={2} />}
+                label="List"
+              />
+              <ViewToggle
+                selected={viewMode === 'timeline'}
                 onClick={() => setViewMode('timeline')}
-                className={`px-3 py-1 text-sm font-body transition-colors border-l-2 border-foreground ${
-                  viewMode === 'timeline'
-                    ? 'bg-accent text-white'
-                    : 'bg-card text-foreground hover:bg-muted'
-                }`}
-              >
-                ⏱️ Timeline
-              </button>
+                icon={<Clock className="h-3.5 w-3.5" strokeWidth={2} />}
+                label="Timeline"
+              />
             </div>
           )}
           {onEditDay && (
-            <HandDrawnButton
-              onClick={onEditDay}
-              variant="accent"
-              size="sm"
-            >
-              ✏️ Edit Day
+            <HandDrawnButton onClick={onEditDay} variant="primary" size="sm" className="gap-2">
+              <Pencil className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Edit day
             </HandDrawnButton>
           )}
           {onAddActivity && (
@@ -136,28 +119,31 @@ export function DaySchedule({
               onClick={onAddActivity}
               variant="secondary"
               size="sm"
+              className="gap-2"
             >
-              ➕ Add Activity
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Add activity
             </HandDrawnButton>
           )}
         </div>
       </div>
 
       {notes && (
-        <HandDrawnCard variant="post-it" className="p-3 mb-4">
-          <p className="text-sm text-foreground/80 font-body italic">💭 {notes}</p>
-        </HandDrawnCard>
+        <div className="mb-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-soft)] p-4">
+          <p className="mb-1 text-sm font-medium text-[color:var(--ink-muted)]">Note</p>
+          <p className="text-sm italic text-[color:var(--ink)]">{notes}</p>
+        </div>
       )}
 
       <div className="space-y-4">
         {sortedActivities.length === 0 ? (
-          <HandDrawnCard className="p-8 text-center bg-card">
-            <p className="text-foreground/60 font-body">
-              📭 No activities planned for this day yet
+          <HandDrawnCard className="p-10 text-center">
+            <p className="text-sm text-[color:var(--ink-muted)]">
+              No activities planned for this day
             </p>
           </HandDrawnCard>
         ) : viewMode === 'timeline' && hasTimingInfo ? (
-          <HandDrawnCard className="p-6 bg-card">
+          <HandDrawnCard className="p-6">
             <TimelineView activities={sortedActivities} />
           </HandDrawnCard>
         ) : (
@@ -181,6 +167,32 @@ export function DaySchedule({
           ))
         )}
       </div>
-    </HandDrawnCard>
+    </div>
+  );
+}
+
+function ViewToggle({
+  selected,
+  onClick,
+  icon,
+  label,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+        selected
+          ? 'bg-[color:var(--ink)] text-white'
+          : 'text-[color:var(--ink-muted)] hover:text-[color:var(--ink)]'
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }

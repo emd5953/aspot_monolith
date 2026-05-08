@@ -11,7 +11,6 @@ interface RegenerateDayInput {
   destination: string;
   userPrompt: string;
   preferences: UserPreferences;
-  mode?: 'fast' | 'credible';
 }
 
 interface Activity {
@@ -682,7 +681,7 @@ export async function regenerateDay(
   supabase: SupabaseClient,
   input: RegenerateDayInput
 ): Promise<Activity[]> {
-  const { itineraryId, dayId, dayNumber, date, destination, userPrompt, preferences, mode = 'fast' } = input;
+  const { itineraryId, dayId, dayNumber, date, destination, userPrompt, preferences } = input;
 
   // Get current activities for context
   const { data: currentActivities } = await supabase
@@ -705,126 +704,124 @@ export async function regenerateDay(
     bookingUrl?: string;
   }> = [];
 
-  if (mode === 'credible') {
-    // CREDIBLE MODE: Use agentic researcher for real data
-    console.log('[Day Regeneration] Using CREDIBLE mode with agentic researcher...');
-    const startTime = Date.now();
+  // Use agentic researcher for real data
+  console.log('[Day Regeneration] Using agentic researcher...');
+  const startTime = Date.now();
 
-    try {
-      // STEP 1: Analyze the user prompt to understand what they want
-      console.log('[Day Regeneration] Analyzing user intent...');
-      const intentAnalysis = await analyzeUserIntent(userPrompt, preferences);
-      console.log('[Day Regeneration] Intent:', intentAnalysis);
-      console.log('[Day Regeneration] Action type:', intentAnalysis.action);
+  // STEP 1: Analyze the user prompt to understand what they want
+  console.log('[Day Regeneration] Analyzing user intent...');
+  const intentAnalysis = await analyzeUserIntent(userPrompt, preferences);
+  console.log('[Day Regeneration] Intent:', intentAnalysis);
+  console.log('[Day Regeneration] Action type:', intentAnalysis.action);
 
-      // Handle different action types
-      if (intentAnalysis.action === 'add') {
-        // ADD MODE: Keep existing activities, just add new ones
-        console.log('[Day Regeneration] ADD mode: Keeping existing activities and adding new ones');
-        return await addActivitiesToDay(supabase, {
-          itineraryId,
-          dayId,
-          dayNumber,
-          date,
-          destination,
-          currentActivities: currentActivities || [],
-          intentAnalysis,
-          preferences,
-        });
-      } else if (intentAnalysis.action === 'remove') {
-        // REMOVE MODE: Delete matching activities
-        console.log('[Day Regeneration] REMOVE mode: Removing matching activities');
-        return await removeActivitiesFromDay(supabase, {
-          itineraryId,
-          dayId,
-          currentActivities: currentActivities || [],
-          intentAnalysis,
-        });
-      } else if (intentAnalysis.action === 'replace') {
-        // REPLACE MODE: Remove old, add new
-        console.log('[Day Regeneration] REPLACE mode: Swapping activities');
-        // First remove, then add
-        await removeActivitiesFromDay(supabase, {
-          itineraryId,
-          dayId,
-          currentActivities: currentActivities || [],
-          intentAnalysis,
-        });
-        return await addActivitiesToDay(supabase, {
-          itineraryId,
-          dayId,
-          dayNumber,
-          date,
-          destination,
-          currentActivities: currentActivities || [],
-          intentAnalysis,
-          preferences,
-        });
-      }
+  // Handle different action types
+  if (intentAnalysis.action === 'add') {
+    // ADD MODE: Keep existing activities, just add new ones
+    console.log('[Day Regeneration] ADD mode: Keeping existing activities and adding new ones');
+    return await addActivitiesToDay(supabase, {
+      itineraryId,
+      dayId,
+      dayNumber,
+      date,
+      destination,
+      currentActivities: currentActivities || [],
+      intentAnalysis,
+      preferences,
+    });
+  } else if (intentAnalysis.action === 'remove') {
+    // REMOVE MODE: Delete matching activities
+    console.log('[Day Regeneration] REMOVE mode: Removing matching activities');
+    return await removeActivitiesFromDay(supabase, {
+      itineraryId,
+      dayId,
+      currentActivities: currentActivities || [],
+      intentAnalysis,
+    });
+  } else if (intentAnalysis.action === 'replace') {
+    // REPLACE MODE: Remove old, add new
+    console.log('[Day Regeneration] REPLACE mode: Swapping activities');
+    // First remove, then add
+    await removeActivitiesFromDay(supabase, {
+      itineraryId,
+      dayId,
+      currentActivities: currentActivities || [],
+      intentAnalysis,
+    });
+    return await addActivitiesToDay(supabase, {
+      itineraryId,
+      dayId,
+      dayNumber,
+      date,
+      destination,
+      currentActivities: currentActivities || [],
+      intentAnalysis,
+      preferences,
+    });
+  }
 
-      // REGENERATE MODE: Full regeneration (existing behavior)
-      console.log('[Day Regeneration] REGENERATE mode: Full day regeneration');
+  // REGENERATE MODE: Full regeneration (existing behavior)
+  console.log('[Day Regeneration] REGENERATE mode: Full day regeneration');
 
-      // STEP 2: Use the full agentic researcher for comprehensive scraping
-      const { runAgenticResearcher } = await import('@/lib/ai/agents/agentic-researcher');
-      
-      console.log('[Day Regeneration] Running agentic researcher...');
-      const researchResult = await runAgenticResearcher({
-        destination,
-        preferences: {
-          ...preferences,
-          // Boost categories based on user intent
-          activityTypes: [...intentAnalysis.categories, ...preferences.activityTypes],
-        },
-      });
+  // STEP 2: Use the full agentic researcher for comprehensive scraping
+  const { runAgenticResearcher } = await import('@/lib/ai/agents/agentic-researcher');
+  
+  console.log('[Day Regeneration] Running agentic researcher...');
+  const researchResult = await runAgenticResearcher({
+    destination,
+    preferences: {
+      ...preferences,
+      // Boost categories based on user intent
+      activityTypes: [...intentAnalysis.categories, ...preferences.activityTypes],
+    },
+  });
 
-      console.log(`[Day Regeneration] Research completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
-      console.log(`[Day Regeneration] Found ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants, ${researchResult.result.activities.length} activities`);
+  console.log(`[Day Regeneration] Research completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+  console.log(`[Day Regeneration] Found ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants, ${researchResult.result.activities.length} activities`);
 
-      // STEP 3: Also do targeted date-aware scraping for events
-      console.log('[Day Regeneration] Doing additional date-aware event scraping...');
-      const eventData = await scrapeTargetedData(destination, intentAnalysis, date);
-      console.log(`[Day Regeneration] Found ${eventData.length} date-specific events`);
+  // STEP 3: Also do targeted date-aware scraping for events
+  console.log('[Day Regeneration] Doing additional date-aware event scraping...');
+  const eventData = await scrapeTargetedData(destination, intentAnalysis, date);
+  console.log(`[Day Regeneration] Found ${eventData.length} date-specific events`);
 
-      // STEP 3.5: If no specific events found, search for ANY events on that date
-      if (eventData.length === 0) {
-        console.log('[Day Regeneration] No specific events found, searching for ANY events on this date...');
-        const anyEvents = await scrapeAnyEventsOnDate(destination, date);
-        console.log(`[Day Regeneration] Found ${anyEvents.length} general events on this date`);
-        eventData.push(...anyEvents);
-      }
+  // STEP 3.5: If no specific events found, search for ANY events on that date
+  if (eventData.length === 0) {
+    console.log('[Day Regeneration] No specific events found, searching for ANY events on this date...');
+    const anyEvents = await scrapeAnyEventsOnDate(destination, date);
+    console.log(`[Day Regeneration] Found ${anyEvents.length} general events on this date`);
+    eventData.push(...anyEvents);
+  }
 
-      // Combine agentic research with targeted event data
-      const allPlaces = [
-        ...eventData, // Prioritize date-specific events
-        ...researchResult.result.attractions.map(a => ({
-          name: a.name,
-          description: a.description,
-          type: a.category,
-          details: `${a.priceRange}, ${a.estimatedDuration}min`,
-          eventLink: undefined,
-          address: a.location,
-        })),
-        ...researchResult.result.restaurants.map(r => ({
-          name: r.name,
-          description: r.cuisine.join(', '),
-          type: 'food',
-          details: r.priceRange,
-          eventLink: undefined,
-          address: r.location,
-        })),
-        ...researchResult.result.activities.map(a => ({
-          name: a.name,
-          description: a.description,
-          type: a.category,
-          details: `${a.duration}min`,
-          eventLink: undefined,
-          address: undefined,
-        })),
-      ];
+  // Combine agentic research with targeted event data
+  const allPlaces = [
+    ...eventData, // Prioritize date-specific events
+    ...researchResult.result.attractions.map(a => ({
+      name: a.name,
+      description: a.description,
+      type: a.category,
+      details: `${a.priceRange}, ${a.estimatedDuration}min`,
+      eventLink: undefined,
+      address: a.location,
+    })),
+    ...researchResult.result.restaurants.map(r => ({
+      name: r.name,
+      description: r.cuisine.join(', '),
+      type: 'food',
+      details: r.priceRange,
+      eventLink: undefined,
+      address: r.location,
+    })),
+    ...researchResult.result.activities.map(a => ({
+      name: a.name,
+      description: a.description,
+      type: a.category,
+      details: `${a.duration}min`,
+      eventLink: undefined,
+      address: undefined,
+    })),
+  ];
 
-      // Build AI prompt with REAL scraped data from agentic researcher + targeted events
-      const systemPrompt = `You are a travel planning AI. Generate activities for a single day using REAL places from agentic research and targeted web scraping.
+  // Build AI prompt with REAL scraped data from agentic researcher + targeted events
+  const systemPrompt = `You are a travel planning AI. Generate activities for a single day using REAL places from agentic research and targeted web scraping.
 
 Destination: ${destination}
 Day: ${dayNumber}
@@ -909,39 +906,29 @@ EXAMPLE when user wants sports but concert available:
   ]
 }`;
 
-      const aiStartTime = Date.now();
-      const result = await generateText({
-        model: openai('gpt-4o'),
-        prompt: systemPrompt,
-        temperature: 0.7,
-      });
+  const aiStartTime = Date.now();
+  const result = await generateText({
+    model: openai('gpt-4o'),
+    prompt: systemPrompt,
+    temperature: 0.7,
+  });
 
-      console.log(`[Day Regeneration] AI synthesis completed in ${((Date.now() - aiStartTime) / 1000).toFixed(1)}s`);
+  console.log(`[Day Regeneration] AI synthesis completed in ${((Date.now() - aiStartTime) / 1000).toFixed(1)}s`);
 
-      // Parse response
-      const jsonMatch = result.text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Failed to parse AI response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      newActivities = parsed.activities || [];
-
-      if (newActivities.length === 0) {
-        throw new Error('No activities generated');
-      }
-
-      console.log(`[Day Regeneration] CREDIBLE mode completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s total`);
-    } catch (error) {
-      console.error('[Day Regeneration] Credible mode failed, falling back to fast mode:', error);
-      // Fall back to fast mode if credible mode fails
-      newActivities = await generateFastMode(destination, dayNumber, date, preferences, userPrompt, currentActivitiesText);
-    }
-  } else {
-    // FAST MODE: Pure AI generation
-    console.log('[Day Regeneration] Using FAST mode (AI-only)...');
-    newActivities = await generateFastMode(destination, dayNumber, date, preferences, userPrompt, currentActivitiesText);
+  // Parse response
+  const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse AI response');
   }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  newActivities = parsed.activities || [];
+
+  if (newActivities.length === 0) {
+    throw new Error('No activities generated');
+  }
+
+  console.log(`[Day Regeneration] Completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s total`);
 
   // Delete old activities
   await supabase.from('activities').delete().eq('day_id', dayId);
@@ -956,7 +943,7 @@ EXAMPLE when user wants sports but concert available:
     estimated_cost: act.estimatedCost || null,
     booking_url: act.bookingUrl || null,
     sort_order: index + 1,
-    notes: `Regenerated (${mode} mode): "${userPrompt}"`,
+    notes: `Regenerated: "${userPrompt}"`,
   }));
 
   const { data: insertedActivities, error: insertError } = await supabase
@@ -988,82 +975,6 @@ EXAMPLE when user wants sports but concert available:
     notes: act.notes,
   }));
 }
-
-/**
- * Fast mode generation helper
- */
-async function generateFastMode(
-  destination: string,
-  dayNumber: number,
-  date: Date,
-  preferences: UserPreferences,
-  userPrompt: string,
-  currentActivitiesText: string
-): Promise<Array<{
-  name: string;
-  description: string;
-  locationName?: string;
-  category: string;
-  duration?: number;
-  estimatedCost?: number;
-  bookingUrl?: string;
-}>> {
-  const systemPrompt = `You are a travel planning AI. Generate activities for a single day of travel based on the user's request.
-
-Destination: ${destination}
-Day: ${dayNumber}
-Date: ${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-
-User Preferences:
-- Activities: ${preferences.activityTypes.slice(0, 5).join(', ')}
-- Cuisine: ${preferences.cuisinePreferences.slice(0, 3).join(', ')}
-- Budget: ${preferences.budgetRange}
-- Pace: ${preferences.travelPace}
-- Planning Style: ${preferences.planningStyle}
-
-Current Activities:
-${currentActivitiesText}
-
-User's Request: "${userPrompt}"
-
-Generate 3-6 activities for this day that match the user's request. Include specific location names/addresses so they can be shown on a map.
-
-Return ONLY valid JSON in this exact format:
-{
-  "activities": [
-    {
-      "name": "Activity Name",
-      "description": "Brief description",
-      "locationName": "Specific address or location name",
-      "category": "food|attraction|activity|shopping|entertainment|relaxation",
-      "duration": 60,
-      "estimatedCost": 25,
-      "bookingUrl": "Optional URL for event/booking link"
-    }
-  ]
-}`;
-
-  console.log('[Day Regeneration] Calling AI with prompt:', userPrompt);
-  const startTime = Date.now();
-
-  const result = await generateText({
-    model: openai('gpt-4o-mini'),
-    prompt: systemPrompt,
-    temperature: 0.8,
-  });
-
-  console.log(`[Day Regeneration] AI completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
-
-  // Parse response
-  const jsonMatch = result.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Failed to parse AI response');
-  }
-
-  const parsed = JSON.parse(jsonMatch[0]);
-  return parsed.activities || [];
-}
-
 
 /**
  * Add new activities to existing day (keeps current activities)

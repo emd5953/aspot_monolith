@@ -1,6 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { X, ArrowRight } from 'lucide-react';
+import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { HandDrawnInput } from '@/components/ui/hand-drawn-input';
 
 interface CreateTripModalProps {
   itineraryId: string;
@@ -9,13 +13,13 @@ interface CreateTripModalProps {
   onCreated: (tripId: string) => void;
 }
 
-export function CreateTripModal({ 
-  itineraryId, 
-  itineraryTitle, 
-  onClose, 
-  onCreated 
+export function CreateTripModal({
+  itineraryId,
+  itineraryTitle,
+  onClose,
+  onCreated,
 }: CreateTripModalProps) {
-  const [name, setName] = useState(`${itineraryTitle} - Group Trip`);
+  const [name, setName] = useState(`${itineraryTitle} — Group trip`);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -46,59 +50,69 @@ export function CreateTripModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Create Collaborative Trip</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--ink)]/35 p-4 backdrop-blur-sm">
+      <HandDrawnCard className="animate-fade-up w-full max-w-md p-7">
+        <div className="mb-5 flex items-start justify-between">
+          <div>
+            <p className="mb-2 text-sm font-medium text-[color:var(--ink-muted)]">
+              New shared trip
+            </p>
+            <h2 className="font-heading text-3xl text-[color:var(--ink)]">
+              Plan <span className="italic">together</span>.
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink-soft)] transition-all hover:border-[color:var(--border-strong)] hover:text-[color:var(--ink)] disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" strokeWidth={2} />
           </button>
         </div>
 
-        <p className="text-gray-600 text-sm mb-4">
+        <p className="mb-5 text-sm text-[color:var(--ink-muted)]">
           Turn your itinerary into a collaborative trip that you can share with friends.
         </p>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="tripName" className="block text-sm font-medium text-gray-700 mb-1">
-              Trip Name
-            </label>
-            <input
-              type="text"
-              id="tripName"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter trip name"
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <HandDrawnInput
+            label="Trip name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Enter a trip name"
+            required
+          />
 
           {error && (
-            <p className="text-sm text-red-600 mb-4">{error}</p>
+            <div className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              {error}
+            </div>
           )}
 
           <div className="flex gap-3">
-            <button
+            <HandDrawnButton
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              variant="secondary"
+              disabled={isLoading}
+              className="flex-1"
             >
               Cancel
-            </button>
-            <button
+            </HandDrawnButton>
+            <HandDrawnButton
               type="submit"
+              variant="primary"
               disabled={isLoading || !name.trim()}
-              className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="flex-1 gap-2"
             >
-              {isLoading ? 'Creating...' : 'Create Trip'}
-            </button>
+              {isLoading ? 'Creating…' : 'Create trip'}
+              {!isLoading && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />}
+            </HandDrawnButton>
           </div>
         </form>
-      </div>
+      </HandDrawnCard>
     </div>
   );
 }

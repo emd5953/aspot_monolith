@@ -9,14 +9,16 @@ export function QuizProgressBar({ currentStep, totalSteps }: QuizProgressProps) 
   const percentage = Math.round((currentStep / totalSteps) * 100);
 
   return (
-    <div className="w-full mb-8">
-      <div className="flex justify-between text-lg text-foreground mb-3 font-body">
-        <span>Question {currentStep + 1} of {totalSteps}</span>
-        <span>{percentage}% complete</span>
+    <div className="w-full">
+      <div className="mb-3 flex justify-between text-xs font-medium text-[color:var(--ink-muted)]">
+        <span>
+          Question {currentStep + 1} of {totalSteps}
+        </span>
+        <span>{percentage}%</span>
       </div>
-      <div className="w-full bg-muted border-2 border-foreground border-wobbly-sm h-6 relative overflow-hidden">
+      <div className="relative h-1 overflow-hidden rounded-full bg-[color:var(--surface-soft)]">
         <div
-          className="bg-accent h-full transition-all duration-300 border-r-2 border-foreground"
+          className="absolute inset-y-0 left-0 rounded-full bg-[color:var(--accent)] transition-[width] duration-500 ease-out"
           style={{ width: `${percentage}%` }}
         />
       </div>

@@ -3,39 +3,43 @@ import { cn } from '@/lib/utils';
 
 interface HandDrawnCardProps extends HTMLAttributes<HTMLDivElement> {
   decoration?: 'tape' | 'tack' | 'none';
-  variant?: 'default' | 'post-it';
+  variant?: 'default' | 'post-it' | 'solid';
   rotation?: number;
 }
 
+/**
+ * Soft white card for the daytime sky theme. Name preserved for import
+ * compatibility. `decoration` and `rotation` are accepted but intentionally
+ * no-op'd — the old tape/tack visuals don't fit the new aesthetic.
+ */
 export const HandDrawnCard = forwardRef<HTMLDivElement, HandDrawnCardProps>(
-  ({ className, decoration = 'none', variant = 'default', rotation, children, ...props }, ref) => {
-    const baseStyles = 'border-wobbly-md border-2 border-foreground shadow-hand-subtle p-6 relative';
-    
-    const variantStyles = {
-      default: 'bg-card',
-      'post-it': 'bg-post-it',
+  (
+    { className, decoration: _decoration, variant = 'default', rotation: _rotation, children, ...props },
+    ref
+  ) => {
+    void _decoration;
+    void _rotation;
+
+    const base = 'relative rounded-3xl p-6 transition-all duration-300 ease-out';
+
+    const variantStyles: Record<string, string> = {
+      default:
+        'bg-white/85 border border-white backdrop-blur-xl ' +
+        'shadow-[0_18px_40px_-20px_rgba(20,50,100,0.22)]',
+      'post-it':
+        'bg-[color:var(--post-it)] text-[color:var(--ink)] border border-amber-200/80 ' +
+        'shadow-[0_14px_30px_-16px_rgba(120,90,10,0.3)]',
+      solid:
+        'bg-white text-[color:var(--ink)] border border-white ' +
+        'shadow-[0_18px_40px_-20px_rgba(20,50,100,0.22)]',
     };
-    
-    const rotationStyle = rotation ? { transform: `rotate(${rotation}deg)` } : {};
-    
+
     return (
       <div
         ref={ref}
-        className={cn(baseStyles, variantStyles[variant], className)}
-        style={rotationStyle}
+        className={cn(base, variantStyles[variant], className)}
         {...props}
       >
-        {/* Decorations */}
-        {decoration === 'tape' && (
-          <div 
-            className="absolute -top-3 left-1/2 -translate-x-1/2 w-20 h-6 bg-muted/60 border border-foreground/20 rotate-1"
-            style={{ borderRadius: '4px' }}
-          />
-        )}
-        {decoration === 'tack' && (
-          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-accent rounded-full border-2 border-foreground" />
-        )}
-        
         {children}
       </div>
     );

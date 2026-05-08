@@ -49,7 +49,6 @@ export function DestinationAutocomplete({
         const response = await fetch(
           `/api/maps/autocomplete?input=${encodeURIComponent(value)}`
         );
-        
         if (response.ok) {
           const data = await response.json();
           setSuggestions(data.suggestions || []);
@@ -80,25 +79,30 @@ export function DestinationAutocomplete({
         placeholder={placeholder}
         className="w-full"
       />
-      
+
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-2 bg-white border-2 border-foreground rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 mt-2 max-h-64 w-full overflow-y-auto rounded-2xl border border-[color:var(--border)] bg-white shadow-[0_24px_60px_-20px_rgba(20,50,100,0.3)]">
           {suggestions.map((suggestion) => (
             <button
               key={suggestion.placeId}
               onClick={() => handleSelect(suggestion)}
-              className="w-full px-4 py-3 text-left hover:bg-accent/10 transition-colors border-b border-foreground/10 last:border-0"
+              type="button"
+              className="w-full border-b border-[color:var(--border)] px-4 py-3 text-left transition-colors last:border-0 hover:bg-[color:var(--surface-soft)]"
             >
-              <div className="font-medium text-foreground">{suggestion.mainText}</div>
-              <div className="text-sm text-foreground/60">{suggestion.secondaryText}</div>
+              <div className="text-sm font-medium text-[color:var(--ink)]">
+                {suggestion.mainText}
+              </div>
+              <div className="mt-0.5 text-xs text-[color:var(--ink-muted)]">
+                {suggestion.secondaryText}
+              </div>
             </button>
           ))}
         </div>
       )}
-      
+
       {isLoading && (
-        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          <div className="animate-spin h-4 w-4 border-2 border-accent border-t-transparent rounded-full"></div>
+        <div className="absolute top-1/2 right-4 -translate-y-1/2">
+          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
         </div>
       )}
     </div>

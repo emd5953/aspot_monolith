@@ -1,17 +1,25 @@
 'use client';
 
 import { useState } from 'react';
+import { X, ArrowRight } from 'lucide-react';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
-import { HandDrawnInput } from '@/components/ui/hand-drawn-input';
 
 interface EditDayModalProps {
   isOpen: boolean;
   dayNumber: number;
   currentActivities: string[];
   onClose: () => void;
-  onSubmit: (prompt: string, mode: 'fast' | 'credible') => Promise<void>;
+  onSubmit: (prompt: string) => Promise<void>;
 }
+
+const EXAMPLES = [
+  'I want more food experiences and less museums',
+  'Make it more relaxing with spa time',
+  'Add adventure activities like hiking',
+  'Focus on local culture and hidden gems',
+  "I'm feeling tired, make it a lighter day",
+];
 
 export function EditDayModal({
   isOpen,
@@ -21,7 +29,6 @@ export function EditDayModal({
   onSubmit,
 }: EditDayModalProps) {
   const [prompt, setPrompt] = useState('');
-  const [mode, setMode] = useState<'fast' | 'credible'>('credible'); // Changed to credible (Truly Agentic) as default
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -32,7 +39,7 @@ export function EditDayModal({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(prompt.trim(), mode);
+      await onSubmit(prompt.trim());
       setPrompt('');
       onClose();
     } catch (error) {
@@ -42,170 +49,111 @@ export function EditDayModal({
     }
   };
 
-  const examples = [
-    "I want more food experiences and less museums",
-    "Make it more relaxing with spa time",
-    "Add adventure activities like hiking",
-    "Focus on local culture and hidden gems",
-    "I'm feeling tired, make it a lighter day",
-  ];
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <HandDrawnCard decoration="tape" className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h2 className="text-3xl font-heading text-foreground -rotate-1">
-                ✏️ Edit Day {dayNumber}
-              </h2>
-              <p className="text-foreground/70 font-body mt-2">
-                Tell the AI what you're feeling and it'll regenerate this day
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-foreground/60 hover:text-foreground text-2xl"
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--ink)]/35 p-4 backdrop-blur-sm">
+      <HandDrawnCard className="animate-fade-up max-h-[90vh] w-full max-w-2xl overflow-y-auto p-7">
+        <div className="mb-5 flex items-start justify-between">
+          <div>
+            <p className="mb-2 text-sm font-medium text-[color:var(--ink-muted)]">
+              Day {dayNumber}
+            </p>
+            <h2 className="font-heading text-3xl text-[color:var(--ink)]">
+              Tweak this <span className="italic">day</span>.
+            </h2>
+            <p className="mt-2 text-sm text-[color:var(--ink-muted)]">
+              Describe what you want — the AI will regenerate this day accordingly.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink-soft)] transition-all hover:border-[color:var(--border-strong)] hover:text-[color:var(--ink)] disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" strokeWidth={2} />
+          </button>
+        </div>
+
+        {/* Current Activities */}
+        <div className="mb-6 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-soft)] p-4">
+          <p className="mb-2 text-sm font-medium text-[color:var(--ink-muted)]">
+            Currently planned
+          </p>
+          <ul className="space-y-1 text-sm text-[color:var(--ink)]">
+            {currentActivities.slice(0, 5).map((activity, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="shrink-0 text-[color:var(--ink-soft)]">·</span>
+                {activity}
+              </li>
+            ))}
+            {currentActivities.length > 5 && (
+              <li className="text-[color:var(--ink-soft)]">
+                … and {currentActivities.length - 5} more
+              </li>
+            )}
+          </ul>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[color:var(--ink-muted)]">
+              What are you feeling?
+            </label>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="e.g., I want more outdoor activities and less shopping…"
+              className="min-h-[120px] w-full resize-none rounded-2xl border border-[color:var(--border)] bg-white px-5 py-3 text-[15px] text-[color:var(--ink)] shadow-[0_2px_10px_-4px_rgba(20,50,100,0.1)] transition-all placeholder:text-[color:var(--ink-soft)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-4 focus:ring-[color:var(--accent)]/15"
               disabled={isSubmitting}
-            >
-              ✕
-            </button>
+              autoFocus
+            />
           </div>
 
-          {/* Current Activities Preview */}
-          <HandDrawnCard variant="post-it" className="p-4 mb-6">
-            <h3 className="font-heading text-lg text-foreground mb-2">Current Activities:</h3>
-            <ul className="text-sm text-foreground/80 font-body space-y-1">
-              {currentActivities.slice(0, 5).map((activity, i) => (
-                <li key={i}>• {activity}</li>
+          {/* Examples */}
+          <div>
+            <p className="mb-2 text-sm font-medium text-[color:var(--ink-muted)]">
+              Try one of these
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {EXAMPLES.map((example, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setPrompt(example)}
+                  disabled={isSubmitting}
+                  className="rounded-full border border-[color:var(--border)] bg-white px-3 py-1.5 text-xs text-[color:var(--ink-muted)] transition-all hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--ink)] disabled:opacity-50"
+                >
+                  {example}
+                </button>
               ))}
-              {currentActivities.length > 5 && (
-                <li className="text-foreground/60">... and {currentActivities.length - 5} more</li>
-              )}
-            </ul>
-          </HandDrawnCard>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Mode Selection */}
-            <div>
-              <label className="block text-foreground font-body text-lg mb-3">
-                🎯 Generation Mode
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setMode('credible')}
-                  disabled={isSubmitting}
-                  className={`p-4 border-2 border-foreground transition-all ${
-                    mode === 'credible'
-                      ? 'bg-accent/20 border-accent shadow-hand-drawn'
-                      : 'bg-card hover:bg-muted'
-                  }`}
-                >
-                  <div className="text-left">
-                    <div className="font-heading text-lg mb-1">🤖 Truly Agentic</div>
-                    <div className="text-sm text-foreground/70 font-body">
-                      Real web-scraped data
-                      <br />
-                      <span className="text-xs">~10-20 seconds</span>
-                    </div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('fast')}
-                  disabled={isSubmitting}
-                  className={`p-4 border-2 border-foreground transition-all ${
-                    mode === 'fast'
-                      ? 'bg-accent/20 border-accent shadow-hand-drawn'
-                      : 'bg-card hover:bg-muted'
-                  }`}
-                >
-                  <div className="text-left">
-                    <div className="font-heading text-lg mb-1">⚡ Fast Mode</div>
-                    <div className="text-sm text-foreground/70 font-body">
-                      AI knowledge only
-                      <br />
-                      <span className="text-xs">~5-8 seconds</span>
-                    </div>
-                  </div>
-                </button>
-              </div>
-              <p className="text-xs text-foreground/60 mt-2 font-body">
-                {mode === 'credible' 
-                  ? '💡 Truly Agentic scrapes live data from Google, Reddit, TripAdvisor for real places'
-                  : '💡 Fast mode uses AI knowledge - quick but may suggest generic places'}
-              </p>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-foreground font-body text-lg mb-2">
-                What are you feeling? 💭
-              </label>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="e.g., I want more outdoor activities and less shopping..."
-                className="w-full min-h-[120px] px-4 py-3 border-2 border-foreground border-wobbly-sm bg-card font-body text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-accent resize-none"
-                disabled={isSubmitting}
-                autoFocus
-              />
-            </div>
+          <div className="flex gap-3 pt-2">
+            <HandDrawnButton
+              type="button"
+              onClick={onClose}
+              variant="secondary"
+              disabled={isSubmitting}
+              className="flex-1"
+            >
+              Cancel
+            </HandDrawnButton>
+            <HandDrawnButton
+              type="submit"
+              variant="primary"
+              disabled={isSubmitting || !prompt.trim()}
+              className="flex-1 gap-2"
+            >
+              {isSubmitting ? 'Regenerating…' : 'Regenerate day'}
+              {!isSubmitting && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />}
+            </HandDrawnButton>
+          </div>
+        </form>
 
-            {/* Examples */}
-            <div>
-              <p className="text-sm text-foreground/60 font-body mb-2">💡 Try these examples:</p>
-              <div className="space-y-2">
-                {examples.map((example, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setPrompt(example)}
-                    className="block w-full text-left px-3 py-2 text-sm font-body text-foreground/70 hover:text-foreground bg-muted/50 hover:bg-muted border border-foreground/20 hover:border-foreground/40 transition-colors"
-                    disabled={isSubmitting}
-                  >
-                    "{example}"
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3">
-              <HandDrawnButton
-                type="button"
-                onClick={onClose}
-                variant="secondary"
-                disabled={isSubmitting}
-                className="flex-1"
-              >
-                Cancel
-              </HandDrawnButton>
-              <HandDrawnButton
-                type="submit"
-                variant="accent"
-                disabled={isSubmitting || !prompt.trim()}
-                className="flex-1"
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 inline mr-2" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Regenerating...
-                  </>
-                ) : (
-                  <>🪄 Regenerate Day</>
-                )}
-              </HandDrawnButton>
-            </div>
-          </form>
-
-          <p className="text-xs text-foreground/50 text-center mt-4 font-body">
-            ⏱️ {mode === 'credible' ? 'Truly Agentic: ~10-20 seconds' : 'Fast mode: ~5-8 seconds'}
-          </p>
-        </div>
+        <p className="mt-4 text-center text-xs text-[color:var(--ink-soft)]">
+          Uses real web-scraped data · ~10-20 seconds
+        </p>
       </HandDrawnCard>
     </div>
   );

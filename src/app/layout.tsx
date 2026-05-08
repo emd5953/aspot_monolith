@@ -1,23 +1,27 @@
 import type { Metadata } from "next";
-import { Kalam, Patrick_Hand } from "next/font/google";
+import { Inter, Instrument_Serif } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
-const kalam = Kalam({
-  weight: ["700"],
-  variable: "--font-kalam",
+const inter = Inter({
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const patrickHand = Patrick_Hand({
-  weight: ["400"],
-  variable: "--font-patrick-hand",
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "aSpot - AI Itinerary Planner - Plan Your Perfect Trip",
-  description: "Multi-agent AI system that creates personalized travel itineraries",
+  title: "aSpot — Your AI travel companion",
+  description:
+    "aSpot is your personal AI travel planner. Discover destinations, build personalized itineraries, and plan together with friends — all in one place.",
 };
 
 export default function RootLayout({
@@ -28,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${kalam.variable} ${patrickHand.variable} antialiased`}
+        className={`${inter.variable} ${instrumentSerif.variable} antialiased`}
         suppressHydrationWarning
       >
         {children}

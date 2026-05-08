@@ -16,11 +16,36 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserPreferences } from '@/types/quiz';
 import { fetchDestinationData } from './firecrawl-service';
-import { generateRecommendations, buildItinerary, DayPlan, ActivityRecommendation } from './sim-service';
 import { runOrchestrator, OrchestratorOutput } from './agents/orchestrator';
 import { runAgenticOrchestrator, AgenticOrchestratorOutput } from './agents/agentic-orchestrator';
 import { ItineraryPlan, ScheduledItem } from './agents/types';
-import { scheduleActivities, SchedulingOptions } from './smart-scheduler';
+import type { Attraction, Restaurant, ActivityOption } from '@/types/destination';
+
+// ---------------------------------------------------------------------------
+// Local shape used by this service and the persistence layer.
+// (Kept local because agents/types.ts uses a different day shape — morning /
+// afternoon / evening buckets — whereas we normalise to a flat activity list.)
+// ---------------------------------------------------------------------------
+
+/** Recommendation as produced by the generator, before database persistence. */
+export interface ActivityRecommendation {
+  type: 'attraction' | 'restaurant' | 'activity';
+  item: Attraction | Restaurant | ActivityOption;
+  matchScore: number;
+  matchReasons: string[];
+  suggestedTimeSlot: 'morning' | 'afternoon' | 'evening';
+  suggestedDuration: number;
+}
+
+/** Normalised per-day plan used throughout this service. */
+export interface DayPlan {
+  id?: string;
+  dayNumber: number;
+  date: Date;
+  activities: ActivityRecommendation[];
+  totalDuration?: number;
+  notes: string;
+}
 
 // Helper interface for database operations
 interface SimpleActivity {
@@ -58,113 +83,6 @@ export interface GeneratedItinerary {
   createdAt: Date;
 }
 
-/**
- * Ultra-fast single AI call to generate complete itinerary
- * Skips research and planning agents, does everything in one shot
- */
-async function generateItineraryFast(
-  destination: string,
-  startDate: Date,
-  endDate: Date,
-  preferences: UserPreferences,
-  activityDensity: 'relaxed' | 'moderate' | 'packed' = 'moderate'
-): Promise<DayPlan[]> {
-  const { generateText } = await import('ai');
-  const { openai } = await import('@ai-sdk/openai');
-  
-  const tripDuration = Math.ceil(
-    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-  ) + 1;
-
-  const densityGuide = {
-    very_relaxed: '2-3 activities (excluding meals)',
-    relaxed: '3-4 activities (excluding meals)',
-    moderate: '5-6 activities (excluding meals)',
-    packed: '8-10 activities (excluding meals)',
-    intense: '10+ activities (excluding meals)',
-  };
-
-  const prompt = `You are creating a travel itinerary for ${destination}.
-
-🚨 CRITICAL RULE: EVERY SINGLE ACTIVITY MUST BE IN ${destination.toUpperCase()}
-- If the destination is "San Francisco", ALL activities must be in San Francisco, California
-- If the destination is "Paris", ALL activities must be in Paris, France
-- DO NOT include activities from nearby cities or other locations
-- DO NOT include activities from other countries
-- VERIFY each activity is actually located in ${destination}
-
-Trip Details:
-- Destination: ${destination}
-- Duration: ${tripDuration} days
-- Traveler: ${preferences.activityTypes.slice(0, 3).join(', ')}, ${preferences.cuisinePreferences.slice(0, 2).join(', ')}
-- Budget: ${preferences.budgetRange}
-- Pace: ${preferences.travelPace}
-- Activity Density: ${activityDensity} (${densityGuide[activityDensity]})
-
-Requirements:
-1. ALL activities MUST be in ${destination} - no exceptions
-2. Include specific location names/addresses for mapping
-3. DO NOT include meal activities (breakfast/lunch/dinner) - added automatically
-4. Focus on: attractions, activities, entertainment, shopping, museums, parks
-5. Each activity needs: name, description, category, locationName
-
-Example format (for ${destination}):
-{"days":[{"dayNumber":1,"activities":[{"name":"[Activity in ${destination}]","description":"[Description]","category":"attraction","locationName":"[Full address in ${destination}]"}]}]}
-
-FINAL CHECK: Before responding, verify EVERY activity is actually in ${destination}.
-
-Generate ${tripDuration} days with ${densityGuide[activityDensity]} per day:`;
-
-  const result = await generateText({
-    model: openai('gpt-4o-mini'),
-    prompt,
-    temperature: 0.7, // Reduced from 0.8 for more consistent results
-  });
-
-  console.log('[DEBUG] AI Response:', result.text.substring(0, 500)); // Log first 500 chars
-
-  const jsonMatch = result.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    console.error('[ERROR] Failed to parse AI response:', result.text);
-    throw new Error('Failed to parse AI response');
-  }
-
-  const parsed = JSON.parse(jsonMatch[0]);
-  console.log('[DEBUG] Parsed itinerary destination check:', {
-    requestedDestination: destination,
-    firstActivity: parsed.days?.[0]?.activities?.[0],
-  });
-  
-  return (parsed.days || []).map((day: { dayNumber: number; activities: Array<{ name: string; description: string; category: string; locationName?: string }> }, index: number) => {
-    const dayDate = new Date(startDate);
-    dayDate.setDate(dayDate.getDate() + index);
-
-    // Prepare activities for scheduling
-    const rawActivities = (day.activities || []).map((act: { name: string; description: string; category: string; locationName?: string }, i: number) => ({
-      id: `temp-${index}-${i}`,
-      title: act.name || 'Activity',
-      description: act.description || '',
-      locationName: act.locationName || act.name,
-      category: act.category || 'activity',
-      sortOrder: i + 1,
-      notes: '',
-    }));
-
-    // Apply smart scheduling with meals and time gaps
-    const scheduledActivities = scheduleActivities(rawActivities, {
-      activityDensity,
-      mealPreferences: preferences.cuisinePreferences,
-    });
-
-    return {
-      dayNumber: day.dayNumber || index + 1,
-      date: dayDate,
-      activities: scheduledActivities,
-      notes: '',
-    };
-  });
-}
-
 export interface ProgressCallback {
   (data: { status: string; message: string; progress?: number }): void;
 }
@@ -196,24 +114,7 @@ export async function generateItinerary(
   let dayPlans: DayPlan[];
   let orchestratorResult: OrchestratorOutput | AgenticOrchestratorOutput | undefined;
 
-  // Choose mode based on user preference
-  const useFastMode = !useAgenticMode && !useTrulyAgentic && (process.env.FAST_MODE === 'true' || !process.env.OPENAI_API_KEY);
-  
-  if (useFastMode) {
-    console.log('[TIMING] Using ULTRA FAST single-call generation...');
-    onProgress?.({ status: 'generating', message: 'Creating your itinerary...', progress: 30 });
-    const startTime = Date.now();
-    
-    try {
-      dayPlans = await generateItineraryFast(destination, startDate, endDate, preferences, activityDensity);
-      console.log(`[TIMING] Single-call generation completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
-      onProgress?.({ status: 'finalizing', message: 'Finalizing your itinerary...', progress: 80 });
-    } catch (error) {
-      console.error('Fast generation error:', error);
-      onProgress?.({ status: 'fallback', message: 'Using fallback generation...', progress: 50 });
-      dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate, activityDensity);
-    }
-  } else if (useTrulyAgentic) {
+  if (useTrulyAgentic) {
     // TRULY AGENTIC MODE: Full reasoning, adaptive stopping, dynamic tool selection
     console.log('[TIMING] Starting TRULY AGENTIC System...');
     console.log('Features: Dynamic tool selection, reasoning chains, adaptive stopping');
@@ -245,7 +146,7 @@ export async function generateItinerary(
           
           if (state.reasoning && state.reasoning.length > 0) {
             const latest = state.reasoning[state.reasoning.length - 1];
-            console.log(`  💭 ${latest.agent}: ${latest.thought}`);
+            console.log(`  [${latest.agent}] ${latest.thought}`);
           }
         },
       });
@@ -255,13 +156,13 @@ export async function generateItinerary(
       if (agenticResult.success && agenticResult.plan) {
         dayPlans = convertAgentPlanToDayPlans(agenticResult.plan, startDate);
         
-        console.log('🤖 Truly Agentic orchestration complete!');
+        console.log('Truly Agentic orchestration complete');
         console.log(`Final score: ${agenticResult.finalScore}/100`);
         console.log(`Iterations: ${agenticResult.iterations}`);
         console.log(`Reasoning steps: ${agenticResult.reasoning.length}`);
         console.log('\nReasoning Chain:');
         agenticResult.reasoning.forEach((step, i) => {
-          console.log(`${i + 1}. [${step.agent}] ${step.thought} → ${step.action} → ${step.result}`);
+          console.log(`${i + 1}. [${step.agent}] ${step.thought} -> ${step.action} -> ${step.result}`);
         });
       } else {
         console.warn('Truly Agentic system failed, falling back to local pipeline');
@@ -286,7 +187,6 @@ export async function generateItinerary(
         startDate,
         endDate,
         preferences,
-        useFastMode: false, // Agentic mode uses full features
         onProgress: (state) => {
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
           
@@ -401,7 +301,8 @@ function getTimeSlot(time: string): 'morning' | 'afternoon' | 'evening' {
 }
 
 /**
- * Local fallback pipeline (Firecrawl + scoring)
+ * Local fallback pipeline used when the agentic systems fail. Uses whatever
+ * Firecrawl returns and slots items into a light time-of-day schedule.
  */
 async function generateLocalItinerary(
   destination: string,
@@ -410,21 +311,118 @@ async function generateLocalItinerary(
   startDate: Date,
   activityDensity: 'relaxed' | 'moderate' | 'packed' = 'moderate'
 ): Promise<DayPlan[]> {
-  // Step 1: Fetch destination data via Firecrawl
   console.log(`Fetching destination data for ${destination}...`);
-  const destinationData = await fetchDestinationData(destination);
+  const data = await fetchDestinationData(destination);
 
-  // Step 2: Generate personalized recommendations
-  console.log('Generating personalized recommendations...');
-  const recommendations = await generateRecommendations(
-    preferences,
-    destinationData,
-    tripDuration
+  const perDay =
+    activityDensity === 'relaxed' ? 3 : activityDensity === 'packed' ? 7 : 5;
+
+  // Simple preference-aware sort: anything whose category is in the user's
+  // preferred activity types or cuisine list gets a small boost.
+  const preferred = new Set([
+    ...(preferences.activityTypes ?? []),
+    ...(preferences.cuisinePreferences ?? []),
+  ]);
+
+  const score = (category: string) => (preferred.has(category) ? 1 : 0);
+
+  const attractionPool: ActivityRecommendation[] = (data.attractions ?? [])
+    .slice()
+    .sort((a, b) => score(b.category) - score(a.category))
+    .map((item) => ({
+      type: 'attraction' as const,
+      item,
+      matchScore: 70 + score(item.category) * 15,
+      matchReasons: preferred.has(item.category) ? ['Matches your preferences'] : [],
+      suggestedTimeSlot: 'morning' as const,
+      suggestedDuration: item.estimatedDuration ?? 120,
+    }));
+
+  const restaurantPool: ActivityRecommendation[] = (data.restaurants ?? [])
+    .slice()
+    .sort((a, b) => {
+      const aScore = Math.max(0, ...a.cuisine.map(score));
+      const bScore = Math.max(0, ...b.cuisine.map(score));
+      return bScore - aScore;
+    })
+    .map((item) => {
+      const matches = item.cuisine.some((c) => preferred.has(c));
+      return {
+        type: 'restaurant' as const,
+        item,
+        matchScore: 70 + (matches ? 15 : 0),
+        matchReasons: matches ? ['Matches your cuisine preferences'] : [],
+        suggestedTimeSlot: 'afternoon' as const,
+        suggestedDuration: 90,
+      };
+    });
+
+  const activityPool: ActivityRecommendation[] = (data.activities ?? []).map(
+    (item) => ({
+      type: 'activity' as const,
+      item,
+      matchScore: 70 + score(item.category) * 15,
+      matchReasons: preferred.has(item.category) ? ['Matches your preferences'] : [],
+      suggestedTimeSlot: 'evening' as const,
+      suggestedDuration: item.duration ?? 120,
+    })
   );
 
-  // Step 3: Build day-by-day itinerary
-  console.log('Building itinerary...');
-  return await buildItinerary(recommendations, tripDuration, preferences, startDate);
+  const days: DayPlan[] = [];
+  let attractionIdx = 0;
+  let restaurantIdx = 0;
+  let activityIdx = 0;
+
+  const pick = (
+    pool: ActivityRecommendation[],
+    idxRef: { i: number },
+    slot: ActivityRecommendation['suggestedTimeSlot']
+  ): ActivityRecommendation | null => {
+    if (pool.length === 0) return null;
+    const item = pool[idxRef.i % pool.length];
+    idxRef.i += 1;
+    return { ...item, suggestedTimeSlot: slot };
+  };
+
+  for (let d = 0; d < tripDuration; d++) {
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + d);
+
+    const attractionRef = { i: attractionIdx };
+    const restaurantRef = { i: restaurantIdx };
+    const activityRef = { i: activityIdx };
+
+    const activities: ActivityRecommendation[] = [];
+    // Rotate attraction / restaurant / activity slots until we hit perDay.
+    const slotOrder: ActivityRecommendation['suggestedTimeSlot'][] = [
+      'morning',
+      'afternoon',
+      'evening',
+    ];
+    for (let i = 0; i < perDay; i++) {
+      const slot = slotOrder[i % 3];
+      let next: ActivityRecommendation | null = null;
+      if (slot === 'afternoon') next = pick(restaurantPool, restaurantRef, slot);
+      if (!next && slot === 'evening') next = pick(activityPool, activityRef, slot);
+      if (!next) next = pick(attractionPool, attractionRef, slot);
+      if (!next) break;
+      activities.push(next);
+    }
+
+    attractionIdx = attractionRef.i;
+    restaurantIdx = restaurantRef.i;
+    activityIdx = activityRef.i;
+
+    days.push({
+      dayNumber: d + 1,
+      date,
+      activities,
+      totalDuration: activities.reduce((sum, a) => sum + a.suggestedDuration, 0),
+      notes: `Day ${d + 1} in ${destination}`,
+    });
+  }
+
+  return days;
 }
 
 /**
@@ -599,7 +597,7 @@ export async function listItineraries(
     throw new Error(`Failed to list itineraries: ${error.message}`);
   }
 
-  return data.map((it) => ({
+  return data.map((it: Record<string, string>) => ({
     id: it.id,
     userId: it.user_id,
     title: it.title,
@@ -607,7 +605,7 @@ export async function listItineraries(
     startDate: new Date(it.start_date),
     endDate: new Date(it.end_date),
     days: [],
-    status: it.status,
+    status: it.status as GeneratedItinerary['status'],
     createdAt: new Date(it.created_at),
   }));
 }
@@ -681,9 +679,9 @@ export async function regenerateItinerary(
   let dayPlans: DayPlan[];
   let orchestratorResult: OrchestratorOutput | AgenticOrchestratorOutput | undefined;
 
-  // Use agentic mode if requested, otherwise fast mode
-  const useAgenticMode = options?.useAgenticMode || false;
-  const useTrulyAgentic = options?.useTrulyAgentic || false;
+  // Always use agentic mode for regeneration
+  const useTrulyAgentic = options?.useTrulyAgentic ?? true;
+  const useAgenticMode = options?.useAgenticMode ?? true;
 
   if (useTrulyAgentic) {
     // Truly Agentic System for regeneration
@@ -713,29 +711,29 @@ export async function regenerateItinerary(
         console.log(`Regeneration score: ${agenticResult.finalScore}/100`);
         console.log(`Iterations: ${agenticResult.iterations}`);
         console.log(`Generated ${dayPlans.length} days with ${dayPlans.reduce((sum, d) => sum + d.activities.length, 0)} total activities`);
-        console.log('\n🧠 Reasoning Chain:');
+        console.log('\nReasoning Chain:');
         agenticResult.reasoning.forEach((step, i) => {
           console.log(`${i + 1}. [${step.agent}] ${step.thought}`);
-          console.log(`   → ${step.action}`);
-          console.log(`   → ${step.result}`);
+          console.log(`   -> ${step.action}`);
+          console.log(`   -> ${step.result}`);
         });
       } else {
         console.error('DEBUG: Agentic result failed or no plan:', agenticResult);
-        console.warn('Truly Agentic regeneration failed, falling back to fast mode');
-        dayPlans = await generateItineraryFast(
+        console.warn('Truly Agentic regeneration failed, falling back to local pipeline');
+        dayPlans = await generateLocalItinerary(
           existing.destination,
-          existing.startDate,
-          existing.endDate,
-          modifiedPreferences
+          tripDuration,
+          modifiedPreferences,
+          existing.startDate
         );
       }
     } catch (error) {
       console.error('Truly Agentic regeneration error:', error);
-      dayPlans = await generateItineraryFast(
+      dayPlans = await generateLocalItinerary(
         existing.destination,
-        existing.startDate,
-        existing.endDate,
-        modifiedPreferences
+        tripDuration,
+        modifiedPreferences,
+        existing.startDate
       );
     }
   } else if (useAgenticMode) {
@@ -749,7 +747,6 @@ export async function regenerateItinerary(
         startDate: existing.startDate,
         endDate: existing.endDate,
         preferences: modifiedPreferences,
-        useFastMode: false,
         onProgress: (state) => {
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
         },
@@ -761,38 +758,16 @@ export async function regenerateItinerary(
         dayPlans = convertAgentPlanToDayPlans(orchestratorResult.plan, existing.startDate);
         console.log(`Regeneration score: ${orchestratorResult.state.review?.score || 'N/A'}/100`);
       } else {
-        console.warn('Multi-Agent regeneration failed, falling back to fast mode');
-        dayPlans = await generateItineraryFast(
+        console.warn('Multi-Agent regeneration failed, falling back to local pipeline');
+        dayPlans = await generateLocalItinerary(
           existing.destination,
-          existing.startDate,
-          existing.endDate,
-          modifiedPreferences
+          tripDuration,
+          modifiedPreferences,
+          existing.startDate
         );
       }
     } catch (error) {
       console.error('Multi-Agent regeneration error:', error);
-      dayPlans = await generateItineraryFast(
-        existing.destination,
-        existing.startDate,
-        existing.endDate,
-        modifiedPreferences
-      );
-    }
-  } else {
-    // Fast mode regeneration
-    console.log('[TIMING] Regenerating with fast mode...');
-    const startTime = Date.now();
-    
-    try {
-      dayPlans = await generateItineraryFast(
-        existing.destination,
-        existing.startDate,
-        existing.endDate,
-        modifiedPreferences
-      );
-      console.log(`[TIMING] Regeneration completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
-    } catch (error) {
-      console.error('Regeneration error:', error);
       dayPlans = await generateLocalItinerary(
         existing.destination,
         tripDuration,
@@ -800,6 +775,14 @@ export async function regenerateItinerary(
         existing.startDate
       );
     }
+  } else {
+    // Fallback: use local pipeline
+    dayPlans = await generateLocalItinerary(
+      existing.destination,
+      tripDuration,
+      modifiedPreferences,
+      existing.startDate
+    );
   }
 
   // Delete existing days and activities

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { DestinationAutocomplete } from './destination-autocomplete';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnInput } from '@/components/ui/hand-drawn-input';
-import { KanyeQuotes } from './kanye-quotes'; // TODO: Rename to LoadingProgress
+import { PromoChip } from '@/components/ui/promo-chip';
+import { KanyeQuotes } from './kanye-quotes';
 
 interface GenerateFormProps {
   onSubmit: (data: {
@@ -13,49 +15,56 @@ interface GenerateFormProps {
     startDate: string;
     endDate: string;
     title?: string;
-    generationMode?: 'fast' | 'standard' | 'advanced';
+    generationMode?: 'standard' | 'advanced';
     activityDensity?: 'relaxed' | 'moderate' | 'packed';
   }) => Promise<void>;
   isLoading?: boolean;
-  useStreaming?: boolean; // Enable real-time progress updates
+  useStreaming?: boolean;
   onProgress?: (progress: { status: string; message: string; progress?: number }) => void;
 }
 
-export function GenerateForm({ onSubmit, isLoading, useStreaming, onProgress }: GenerateFormProps) {
+export function GenerateForm({ onSubmit, isLoading, onProgress }: GenerateFormProps) {
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [title, setTitle] = useState('');
-  const [generationMode, setGenerationMode] = useState<'fast' | 'standard' | 'advanced'>('standard'); // New: mode selection
-  const [activityDensity, setActivityDensity] = useState<'relaxed' | 'moderate' | 'packed'>('moderate');
+  const [generationMode, setGenerationMode] = useState<'standard' | 'advanced'>('standard');
+  const [activityDensity, setActivityDensity] = useState<'relaxed' | 'moderate' | 'packed'>(
+    'moderate'
+  );
   const [error, setError] = useState('');
-  const [realProgress, setRealProgress] = useState<{ status: string; message: string; progress?: number } | null>(null);
+  const [realProgress, setRealProgress] = useState<{
+    status: string;
+    message: string;
+    progress?: number;
+  } | null>(null);
 
-  // Update parent when progress changes
   useEffect(() => {
-    if (realProgress && onProgress) {
-      onProgress(realProgress);
-    }
+    if (realProgress && onProgress) onProgress(realProgress);
   }, [realProgress, onProgress]);
+
+  // Pre-fill from landing/dashboard prompt if present
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem('aspot:pending-prompt');
+      if (pending && !title) {
+        setTitle(pending);
+        sessionStorage.removeItem('aspot:pending-prompt');
+      }
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!destination.trim()) {
-      setError('Please enter a destination');
-      return;
-    }
-
-    if (!startDate || !endDate) {
-      setError('Please select both start and end dates');
-      return;
-    }
-
-    if (new Date(startDate) > new Date(endDate)) {
-      setError('End date must be after start date');
-      return;
-    }
+    if (!destination.trim()) return setError('Please enter a destination');
+    if (!startDate || !endDate) return setError('Please select both dates');
+    if (new Date(startDate) > new Date(endDate))
+      return setError('End date must be after start date');
 
     try {
       await onSubmit({
@@ -72,51 +81,55 @@ export function GenerateForm({ onSubmit, isLoading, useStreaming, onProgress }: 
   };
 
   const today = new Date().toISOString().split('T')[0];
-  
-  // Calculate trip duration
-  const tripDays = startDate && endDate 
-    ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
-    : 0;
+  const tripDays =
+    startDate && endDate
+      ? Math.ceil(
+          (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)
+        ) + 1
+      : 0;
 
   if (isLoading) {
     return (
-      <div className="max-w-xl mx-auto">
+      <div className="animate-fade-up mx-auto max-w-xl">
         <KanyeQuotes destination={destination} realProgress={realProgress} />
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-xl mx-auto">
-      <HandDrawnCard decoration="tape" className="p-8">
-        <h2 className="text-3xl font-heading text-foreground mb-6 -rotate-1">
-          ✈️ Generate Your Itinerary
+    <form onSubmit={handleSubmit} className="mx-auto max-w-xl">
+      <div className="animate-fade-up mb-8">
+        <PromoChip>New itinerary</PromoChip>
+        <h2 className="mt-5 font-heading text-5xl leading-[0.95] text-[color:var(--ink)] md:text-6xl">
+          Where <span className="italic">to</span>?
         </h2>
+      </div>
 
-        <div className="space-y-6">
+      <HandDrawnCard className="animate-fade-up p-7" style={{ animationDelay: '0.1s' }}>
+        <div className="space-y-5">
           <div>
-            <label className="block text-foreground font-body text-lg mb-2">
-              Where are you going? 🌍
+            <label className="mb-2 block text-sm font-medium text-[color:var(--ink-muted)]">
+              Destination
             </label>
             <DestinationAutocomplete
               value={destination}
               onChange={setDestination}
-              placeholder="e.g., Paris, Tokyo, New York..."
+              placeholder="Paris, Tokyo, Lisbon…"
             />
           </div>
 
           <HandDrawnInput
-            label="Trip name (optional) 📝"
+            label="Trip name (optional)"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g., Summer Vacation 2026"
+            placeholder="Summer in Portugal"
             disabled={isLoading}
           />
 
           <div className="grid grid-cols-2 gap-4">
             <HandDrawnInput
-              label="Start date 📅"
+              label="Start date"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -124,7 +137,7 @@ export function GenerateForm({ onSubmit, isLoading, useStreaming, onProgress }: 
               disabled={isLoading}
             />
             <HandDrawnInput
-              label="End date 📅"
+              label="End date"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -134,149 +147,127 @@ export function GenerateForm({ onSubmit, isLoading, useStreaming, onProgress }: 
           </div>
 
           <div>
-            <label className="block text-foreground font-body text-lg mb-3">
-              Activity Density 🎯
+            <label className="mb-3 block text-sm font-medium text-[color:var(--ink-muted)]">
+              Daily pace
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               {[
-                { value: 'relaxed', emoji: '🌴', label: 'Relaxed', desc: '2-3 activities/day' },
-                { value: 'moderate', emoji: '⚖️', label: 'Moderate', desc: '4-5 activities/day' },
-                { value: 'packed', emoji: '⚡', label: 'Packed', desc: '6-8 activities/day' },
+                { value: 'relaxed', label: 'Relaxed', desc: '2-3 / day' },
+                { value: 'moderate', label: 'Moderate', desc: '4-5 / day' },
+                { value: 'packed', label: 'Packed', desc: '6-8 / day' },
               ].map((option) => (
-                <button
+                <SegmentedButton
                   key={option.value}
-                  type="button"
-                  onClick={() => setActivityDensity(option.value as 'relaxed' | 'moderate' | 'packed')}
+                  selected={activityDensity === option.value}
+                  onClick={() =>
+                    setActivityDensity(option.value as 'relaxed' | 'moderate' | 'packed')
+                  }
                   disabled={isLoading}
-                  className={`p-4 border-2 border-wobbly-sm font-body text-center transition-all ${
-                    activityDensity === option.value
-                      ? 'bg-accent text-white border-accent shadow-hand -rotate-1'
-                      : 'bg-card text-foreground border-foreground hover:bg-muted hover:shadow-hand-sm'
-                  }`}
-                >
-                  <div className="text-2xl mb-1">{option.emoji}</div>
-                  <div className="font-heading text-sm">{option.label}</div>
-                  <div className="text-xs opacity-80 mt-1">{option.desc}</div>
-                </button>
+                  label={option.label}
+                  sublabel={option.desc}
+                />
               ))}
             </div>
           </div>
 
           <div>
-            <label className="block text-foreground font-body text-lg mb-3">
-              🎯 Generation Mode
+            <label className="mb-3 block text-sm font-medium text-[color:var(--ink-muted)]">
+              Generation mode
             </label>
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => setGenerationMode('fast')}
-                disabled={isLoading}
-                className={`p-4 border-2 border-foreground transition-all ${
-                  generationMode === 'fast'
-                    ? 'bg-accent/20 border-accent shadow-hand-drawn'
-                    : 'bg-card hover:bg-muted'
-                }`}
-              >
-                <div className="text-left">
-                  <div className="font-heading text-lg mb-1">⚡ Fast</div>
-                  <div className="text-sm text-foreground/70 font-body">
-                    AI knowledge only
-                    <br />
-                    <span className="text-xs">~5-10 seconds</span>
-                  </div>
-                </div>
-              </button>
-              <button
-                type="button"
+            <div className="grid grid-cols-2 gap-2">
+              <SegmentedButton
+                selected={generationMode === 'standard'}
                 onClick={() => setGenerationMode('standard')}
                 disabled={isLoading}
-                className={`p-4 border-2 border-foreground transition-all ${
-                  generationMode === 'standard'
-                    ? 'bg-accent/20 border-accent shadow-hand-drawn'
-                    : 'bg-card hover:bg-muted'
-                }`}
-              >
-                <div className="text-left">
-                  <div className="font-heading text-lg mb-1">🤖 Standard</div>
-                  <div className="text-sm text-foreground/70 font-body">
-                    Web research + AI
-                    <br />
-                    <span className="text-xs">~15-30 seconds</span>
-                  </div>
-                </div>
-              </button>
-              <button
-                type="button"
+                label="Standard"
+                sublabel="~15-30 seconds"
+              />
+              <SegmentedButton
+                selected={generationMode === 'advanced'}
                 onClick={() => setGenerationMode('advanced')}
                 disabled={isLoading}
-                className={`p-4 border-2 border-foreground transition-all ${
-                  generationMode === 'advanced'
-                    ? 'bg-secondary-accent/20 border-secondary-accent shadow-hand-drawn'
-                    : 'bg-card hover:bg-muted'
-                }`}
-              >
-                <div className="text-left">
-                  <div className="font-heading text-lg mb-1">🔬 Advanced</div>
-                  <div className="text-sm text-foreground/70 font-body">
-                    Extensive research
-                    <br />
-                    <span className="text-xs">~10-15 minutes</span>
-                  </div>
-                </div>
-              </button>
+                label="Deep research"
+                sublabel="~10-15 minutes"
+              />
             </div>
-            <p className="text-xs text-foreground/60 mt-2 font-body">
-              {generationMode === 'fast' 
-                ? '💡 Fast mode uses AI knowledge - quick but may suggest generic places'
-                : generationMode === 'standard'
-                ? '💡 Standard mode scrapes 1 web source for real locations - best balance of speed & quality'
-                : '💡 Advanced mode scrapes multiple sources (Google, Reddit, TripAdvisor) with quality iterations - takes 10-15 min but highest quality'}
+            <p className="mt-3 text-xs text-[color:var(--ink-soft)]">
+              {generationMode === 'standard'
+                ? 'Balanced web research for real locations, best for quick planning.'
+                : 'Deeper multi-source research with quality iterations — slower, higher fidelity.'}
             </p>
           </div>
 
           {error && (
-            <HandDrawnCard className="p-4 bg-accent/10 border-accent">
-              <p className="text-sm text-accent font-body">⚠️ {error}</p>
-            </HandDrawnCard>
+            <div className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              {error}
+            </div>
           )}
 
           {tripDays > 5 && (
-            <HandDrawnCard variant="post-it" className="p-4 bg-secondary-accent/10 border-secondary-accent">
-              <p className="text-sm text-foreground font-body">
-                ⏱️ <strong>Heads up!</strong> Your {tripDays}-day trip will take a bit longer to generate 
-                {tripDays > 10 
-                  ? (generationMode === 'advanced' ? ' (15-20 minutes)' : generationMode === 'standard' ? ' (30-45s)' : ' (15-25s)')
-                  : (generationMode === 'advanced' ? ' (10-15 minutes)' : generationMode === 'standard' ? ' (20-35s)' : ' (10-15s)')
-                } due to the extra planning needed. Worth the wait! ✨
-              </p>
-            </HandDrawnCard>
+            <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-soft)] px-4 py-3 text-sm text-[color:var(--ink-muted)]">
+              <span className="font-medium text-[color:var(--ink)]">Heads up: </span>
+              Your {tripDays}-day trip may take a bit longer to generate
+              {tripDays > 10
+                ? generationMode === 'advanced'
+                  ? ' (15-20 min)'
+                  : ' (30-45s)'
+                : generationMode === 'advanced'
+                  ? ' (10-15 min)'
+                  : ' (20-35s)'}
+              .
+            </div>
           )}
 
           <HandDrawnButton
             type="submit"
             disabled={isLoading}
-            variant="accent"
+            variant="primary"
             size="lg"
-            className="w-full"
+            className="w-full gap-2"
           >
-            {isLoading ? (
-              <>
-                <svg className="animate-spin h-5 w-5 inline mr-2" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Creating magic...
-              </>
-            ) : (
-              <>⚡ Generate Itinerary</>
-            )}
+            Generate itinerary
+            <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
           </HandDrawnButton>
         </div>
 
-        <p className="text-xs text-foreground/60 text-center mt-4 font-body">
-          ✨ AI will create a personalized itinerary based on your quiz preferences
+        <p className="mt-4 text-center text-xs text-[color:var(--ink-soft)]">
+          Personalized from your quiz preferences
         </p>
       </HandDrawnCard>
     </form>
+  );
+}
+
+function SegmentedButton({
+  selected,
+  onClick,
+  disabled,
+  label,
+  sublabel,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+  label: string;
+  sublabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-2xl border px-3 py-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+        selected
+          ? 'border-[color:var(--ink)] bg-[color:var(--ink)] text-white'
+          : 'border-[color:var(--border)] bg-white text-[color:var(--ink)] hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-soft)]'
+      }`}
+    >
+      <div className="font-heading text-lg leading-none">{label}</div>
+      <div
+        className={`mt-1.5 text-xs ${selected ? 'text-white/75' : 'text-[color:var(--ink-muted)]'}`}
+      >
+        {sublabel}
+      </div>
+    </button>
   );
 }

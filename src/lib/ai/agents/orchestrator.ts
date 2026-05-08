@@ -25,7 +25,6 @@ export interface OrchestratorInput {
   startDate: Date;
   endDate: Date;
   preferences: UserPreferences;
-  useFastMode?: boolean;
   onProgress?: (state: OrchestrationState) => void;
 }
 
@@ -73,7 +72,7 @@ function log(state: OrchestrationState, agent: keyof OrchestrationState['agents'
  * Run the multi-agent orchestration
  */
 export async function runOrchestrator(input: OrchestratorInput): Promise<OrchestratorOutput> {
-  const { destination, startDate, endDate, preferences, useFastMode = false, onProgress } = input;
+  const { destination, startDate, endDate, preferences, onProgress } = input;
   const sessionId = `session_${Date.now()}`;
   const state = createInitialState(sessionId);
 
@@ -84,7 +83,7 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
     state.status = 'researching';
     state.agents.orchestrator.thoughts.push(`Starting itinerary generation for ${destination}`);
     state.agents.orchestrator.thoughts.push(`Trip duration: ${Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1} days`);
-    state.agents.orchestrator.thoughts.push(`Mode: ${useFastMode ? 'Fast (AI knowledge)' : 'Agentic (Web research + Review loops)'}`);
+    state.agents.orchestrator.thoughts.push(`Mode: Agentic (Web research + Review loops)`);
     log(state, 'orchestrator', 'Starting research phase');
     notify();
 
@@ -96,7 +95,7 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
     const researchResult = await runResearchAgent({
       destination,
       preferences,
-    }, useFastMode);
+    });
 
     state.research = researchResult.result;
     state.agents.researcher.thoughts = researchResult.thoughts;
@@ -139,16 +138,7 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
       log(state, 'planner', 'Plan created', `${currentPlan.days.length} days planned`);
       notify();
 
-      // Fast mode: Skip review, accept immediately
-      if (useFastMode) {
-        approved = true;
-        state.agents.orchestrator.thoughts.push(`✓ Plan created (review skipped in fast mode)`);
-        log(state, 'orchestrator', 'Plan accepted without review');
-        notify();
-        break;
-      }
-
-      // Agentic mode: Run Reviewer Agent
+      // Run Reviewer Agent
       state.status = 'reviewing';
       state.agents.reviewer.status = 'executing';
       state.agents.reviewer.currentTask = 'Evaluating itinerary quality';

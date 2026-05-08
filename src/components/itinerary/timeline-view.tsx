@@ -18,76 +18,59 @@ interface TimelineViewProps {
   activities: Activity[];
 }
 
+const CATEGORY_TONES: Record<string, string> = {
+  breakfast: 'from-amber-200 to-amber-50 border-amber-300 text-amber-900',
+  lunch: 'from-orange-200 to-orange-50 border-orange-300 text-orange-900',
+  dinner: 'from-rose-200 to-rose-50 border-rose-300 text-rose-900',
+  dining: 'from-rose-200 to-rose-50 border-rose-300 text-rose-900',
+  attraction: 'from-sky-200 to-sky-50 border-sky-300 text-sky-900',
+  museum: 'from-violet-200 to-violet-50 border-violet-300 text-violet-900',
+  shopping: 'from-pink-200 to-pink-50 border-pink-300 text-pink-900',
+  activity: 'from-emerald-200 to-emerald-50 border-emerald-300 text-emerald-900',
+  nature: 'from-teal-200 to-teal-50 border-teal-300 text-teal-900',
+  beach: 'from-cyan-200 to-cyan-50 border-cyan-300 text-cyan-900',
+  nightlife: 'from-indigo-200 to-indigo-50 border-indigo-300 text-indigo-900',
+  entertainment: 'from-fuchsia-200 to-fuchsia-50 border-fuchsia-300 text-fuchsia-900',
+  transport: 'from-slate-200 to-slate-50 border-slate-300 text-slate-900',
+};
+
 export function TimelineView({ activities }: TimelineViewProps) {
-  const categoryEmojis: Record<string, string> = {
-    attraction: '🏛️',
-    dining: '🍽️',
-    breakfast: '🥐',
-    lunch: '🍱',
-    dinner: '🍷',
-    activity: '🎯',
-    transport: '🚗',
-    museum: '🖼️',
-    shopping: '🛍️',
-    entertainment: '🎭',
-    nightlife: '🌃',
-    nature: '🌲',
-    beach: '🏖️',
-    sports: '⚽',
-  };
+  const scheduled = activities.filter((a) => a.startTime && a.endTime);
 
-  const categoryColors: Record<string, string> = {
-    breakfast: 'bg-yellow-100 border-yellow-400',
-    lunch: 'bg-orange-100 border-orange-400',
-    dinner: 'bg-red-100 border-red-400',
-    attraction: 'bg-blue-100 border-blue-400',
-    museum: 'bg-purple-100 border-purple-400',
-    shopping: 'bg-pink-100 border-pink-400',
-    activity: 'bg-green-100 border-green-400',
-    nature: 'bg-emerald-100 border-emerald-400',
-    beach: 'bg-cyan-100 border-cyan-400',
-  };
-
-  // Filter activities with times
-  const scheduledActivities = activities.filter(a => a.startTime && a.endTime);
-
-  if (scheduledActivities.length === 0) {
+  if (scheduled.length === 0) {
     return (
-      <div className="text-center text-foreground/60 py-8 font-body">
+      <div className="py-8 text-center text-sm text-[color:var(--ink-muted)]">
         No scheduled activities with times
       </div>
     );
   }
 
-  // Calculate time position (percentage of day)
   const getTimePosition = (time: string): number => {
     const [hours, minutes] = time.split(':').map(Number);
     const totalMinutes = hours * 60 + minutes;
-    // Day from 6am (360 min) to 11pm (1380 min) = 1020 min range
-    const dayStart = 6 * 60; // 6am
-    const dayEnd = 23 * 60; // 11pm
-    const dayRange = dayEnd - dayStart;
-    return ((totalMinutes - dayStart) / dayRange) * 100;
+    const dayStart = 6 * 60;
+    const dayEnd = 23 * 60;
+    return ((totalMinutes - dayStart) / (dayEnd - dayStart)) * 100;
   };
 
   const getDuration = (start: string, end: string): number => {
-    const [startHour, startMin] = start.split(':').map(Number);
-    const [endHour, endMin] = end.split(':').map(Number);
-    return (endHour * 60 + endMin) - (startHour * 60 + startMin);
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    return eh * 60 + em - (sh * 60 + sm);
   };
 
   const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
-    if (hours > 0) return `${hours}h`;
-    return `${mins}m`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
   };
 
   return (
     <div className="relative">
       {/* Time axis */}
-      <div className="flex justify-between text-xs text-foreground/40 mb-2 font-body">
+      <div className="mb-2 flex justify-between text-xs text-[color:var(--ink-soft)]">
         <span>6 AM</span>
         <span>9 AM</span>
         <span>12 PM</span>
@@ -98,14 +81,13 @@ export function TimelineView({ activities }: TimelineViewProps) {
       </div>
 
       {/* Timeline bar */}
-      <div className="relative h-2 bg-foreground/10 rounded-full mb-6">
-        {/* Hour markers */}
+      <div className="relative mb-6 h-1.5 rounded-full bg-[color:var(--surface-soft)]">
         {[6, 9, 12, 15, 18, 21].map((hour) => {
           const position = ((hour - 6) / 17) * 100;
           return (
             <div
               key={hour}
-              className="absolute top-0 bottom-0 w-px bg-foreground/20"
+              className="absolute top-0 bottom-0 w-px bg-[color:var(--border)]"
               style={{ left: `${position}%` }}
             />
           );
@@ -114,56 +96,40 @@ export function TimelineView({ activities }: TimelineViewProps) {
 
       {/* Activities */}
       <div className="space-y-3">
-        {scheduledActivities.map((activity, index) => {
+        {scheduled.map((activity, index) => {
           const startPos = getTimePosition(activity.startTime!);
           const duration = getDuration(activity.startTime!, activity.endTime!);
-          const emoji = categoryEmojis[activity.category] || '📍';
-          const colorClass = categoryColors[activity.category] || 'bg-gray-100 border-gray-400';
+          const tone = CATEGORY_TONES[activity.category] || CATEGORY_TONES.activity;
 
           return (
             <div key={activity.id} className="relative">
-              {/* Time indicator line */}
               <div className="relative h-16">
                 <div
-                  className={`absolute top-0 h-full border-l-4 ${colorClass} rounded-l-lg`}
-                  style={{ left: `${startPos}%` }}
-                >
-                  <div className="absolute left-0 top-0 w-3 h-3 rounded-full bg-current -ml-2" />
-                </div>
-
-                {/* Activity card */}
-                <div
-                  className={`absolute top-0 h-full border-2 ${colorClass} rounded-lg p-2 shadow-sm hover:shadow-md transition-shadow`}
+                  className={`absolute top-0 h-full rounded-xl border bg-gradient-to-br p-2 ${tone}`}
                   style={{
                     left: `${startPos}%`,
                     width: `${Math.max((duration / (17 * 60)) * 100, 15)}%`,
                   }}
                 >
-                  <div className="flex items-start gap-2 h-full">
-                    <span className="text-lg flex-shrink-0">{emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-heading text-sm text-foreground truncate">
-                        {activity.title}
-                      </div>
-                      <div className="text-xs text-foreground/60 font-body">
-                        {activity.startTime} - {activity.endTime}
-                        <span className="ml-1 text-foreground/40">
-                          ({formatDuration(duration)})
-                        </span>
+                  <div className="flex h-full items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-heading text-sm">{activity.title}</div>
+                      <div className="text-[11px] opacity-80">
+                        {activity.startTime} – {activity.endTime}
+                        <span className="ml-1 opacity-70">({formatDuration(duration)})</span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Gap indicator */}
-              {index < scheduledActivities.length - 1 && (
-                <div className="flex items-center gap-2 my-1 ml-4">
-                  <div className="flex-1 border-t border-dashed border-foreground/20" />
-                  <span className="text-xs text-foreground/40 font-body">
-                    ⏱️ Travel time
+              {index < scheduled.length - 1 && (
+                <div className="my-1 ml-4 flex items-center gap-2">
+                  <div className="flex-1 border-t border-dashed border-[color:var(--border)]" />
+                  <span className="text-[10px] font-medium text-[color:var(--ink-soft)]">
+                    Travel
                   </span>
-                  <div className="flex-1 border-t border-dashed border-foreground/20" />
+                  <div className="flex-1 border-t border-dashed border-[color:var(--border)]" />
                 </div>
               )}
             </div>
@@ -172,16 +138,13 @@ export function TimelineView({ activities }: TimelineViewProps) {
       </div>
 
       {/* Summary */}
-      <div className="mt-6 pt-4 border-t-2 border-dashed border-foreground/20">
-        <div className="flex items-center justify-between text-sm font-body">
-          <span className="text-foreground/60">
-            Total activities: {scheduledActivities.length}
-          </span>
-          <span className="text-foreground/60">
-            Total time: {formatDuration(
-              scheduledActivities.reduce((sum, a) => 
-                sum + getDuration(a.startTime!, a.endTime!), 0
-              )
+      <div className="mt-6 border-t border-[color:var(--border)] pt-4">
+        <div className="flex items-center justify-between text-xs text-[color:var(--ink-muted)]">
+          <span>{scheduled.length} scheduled activities</span>
+          <span>
+            Total:{' '}
+            {formatDuration(
+              scheduled.reduce((sum, a) => sum + getDuration(a.startTime!, a.endTime!), 0)
             )}
           </span>
         </div>

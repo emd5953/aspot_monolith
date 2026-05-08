@@ -1,139 +1,99 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import Link from 'next/link';
-import { Lightbulb, ClipboardList, Users } from 'lucide-react';
-import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
-import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { CoverVideo } from '@/components/landing/cover-video';
+import { SkyPrompt } from '@/components/landing/sky-prompt';
 
-// Force dynamic rendering - don't cache this page
+// Force dynamic rendering — don't cache this page.
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // If logged in, redirect to dashboard
   if (user) {
     redirect('/dashboard');
   }
 
-  // Landing page for non-logged-in users
   return (
-    <div className="min-h-screen">
-      {/* Navigation */}
-      <nav className="bg-card border-b-4 border-dashed border-foreground">
-        <div className="max-w-5xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl md:text-4xl font-heading text-foreground -rotate-1">
-              ✈️ aSpot - AI Itinerary Planner
-            </h1>
-            <div className="flex gap-3">
-              <Link href="/login">
-                <HandDrawnButton variant="secondary" size="sm">
-                  Log In
-                </HandDrawnButton>
-              </Link>
-              <Link href="/signup">
-                <HandDrawnButton variant="accent" size="sm">
-                  Sign Up
-                </HandDrawnButton>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+      <CoverVideo />
 
-      {/* Hero Section */}
-      <main className="max-w-5xl mx-auto px-6 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-5xl md:text-6xl font-heading text-foreground mb-6 leading-tight">
-            Plan Your Perfect Trip
-            <span className="inline-block rotate-12 text-accent ml-2">!</span>
-          </h2>
-          <p className="text-xl md:text-2xl text-foreground/80 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Multi-agent AI system that researches destinations, creates personalized itineraries, 
-            and helps you collaborate with friends on group trips.
-          </p>
-          
-          {/* Hand-drawn arrow decoration (desktop only) */}
-          <div className="hidden md:block absolute left-1/2 ml-32 mt-4">
-            <svg width="120" height="60" viewBox="0 0 120 60" className="rotate-12">
-              <path
-                d="M 10 30 Q 40 10, 70 25 T 110 20"
-                stroke="#2d2d2d"
-                strokeWidth="2"
-                fill="none"
-                strokeDasharray="5,5"
-              />
-              <path
-                d="M 110 20 L 100 15 M 110 20 L 105 28"
-                stroke="#2d2d2d"
-                strokeWidth="2"
-                fill="none"
-              />
-            </svg>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
-            <Link href="/signup">
-              <HandDrawnButton variant="accent" size="lg">
-                Get Started Free
-              </HandDrawnButton>
+      {/* Nav */}
+      <header className="relative z-10 px-6 pt-6 md:px-10">
+        <nav className="mx-auto flex max-w-6xl items-center justify-between">
+          <Link
+            href="/"
+            aria-label="aSpot home"
+            className="font-heading text-2xl leading-none text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.2)]"
+          >
+            aSpot
+          </Link>
+
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Link
+              href="/login"
+              className="rounded-full px-4 py-2 text-sm text-white/90 transition-colors hover:text-white"
+            >
+              Log in
             </Link>
-            <Link href="/login">
-              <HandDrawnButton variant="primary" size="lg">
-                Log In
-              </HandDrawnButton>
+            <Link
+              href="/signup"
+              className="rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-slate-900 transition-all hover:bg-white hover:-translate-y-[1px]"
+            >
+              Sign up
             </Link>
           </div>
+        </nav>
+      </header>
+
+      {/* Hero */}
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-88px)] max-w-4xl flex-col items-center justify-center px-6 pb-28 text-center">
+        <p
+          className="animate-fade-up text-sm font-medium text-white/85 drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
+          style={{ animationDelay: '0.05s' }}
+        >
+          Your pocket travel buddy
+        </p>
+
+        <h1
+          className="animate-fade-up mt-5 font-heading text-5xl leading-[1.05] tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.3)] md:text-7xl"
+          style={{ animationDelay: '0.15s' }}
+        >
+          Where are we
+          <br />
+          <span className="italic">going next?</span>
+        </h1>
+
+        <p
+          className="animate-fade-up mt-6 max-w-md text-base leading-relaxed text-white/85 drop-shadow-[0_2px_10px_rgba(0,0,0,0.25)] md:text-lg"
+          style={{ animationDelay: '0.25s' }}
+        >
+          Tell us the vibe. We&rsquo;ll sketch the days, find the spots, and
+          leave room for wandering.
+        </p>
+
+        <div
+          className="animate-fade-up mt-10 w-full"
+          style={{ animationDelay: '0.35s' }}
+        >
+          <SkyPrompt />
         </div>
 
-        {/* Features Grid */}
-        <div className="mt-20 grid md:grid-cols-3 gap-8">
-          <HandDrawnCard decoration="tape" className="hover:rotate-1 transition-transform">
-            <div 
-              className="w-16 h-16 border-wobbly-sm border-[3px] border-foreground flex items-center justify-center mb-4 bg-post-it"
-            >
-              <Lightbulb className="w-8 h-8 text-foreground" strokeWidth={2.5} />
-            </div>
-            <h3 className="text-2xl font-heading mb-3 text-foreground">AI-Powered Research</h3>
-            <p className="text-lg text-foreground/80 leading-relaxed">
-              Our agents scrape TripAdvisor, Yelp, Reddit, and more to find the best attractions and restaurants.
-            </p>
-          </HandDrawnCard>
-
-          <HandDrawnCard decoration="tack" className="hover:-rotate-1 transition-transform">
-            <div 
-              className="w-16 h-16 border-wobbly-sm border-[3px] border-foreground flex items-center justify-center mb-4 bg-muted"
-            >
-              <ClipboardList className="w-8 h-8 text-foreground" strokeWidth={2.5} />
-            </div>
-            <h3 className="text-2xl font-heading mb-3 text-foreground">Personalized Itineraries</h3>
-            <p className="text-lg text-foreground/80 leading-relaxed">
-              Take a quick quiz and get day-by-day plans tailored to your interests, budget, and travel style.
-            </p>
-          </HandDrawnCard>
-
-          <HandDrawnCard decoration="tape" className="hover:rotate-1 transition-transform">
-            <div 
-              className="w-16 h-16 border-wobbly-sm border-[3px] border-foreground flex items-center justify-center mb-4 bg-card"
-            >
-              <Users className="w-8 h-8 text-foreground" strokeWidth={2.5} />
-            </div>
-            <h3 className="text-2xl font-heading mb-3 text-foreground">Collaborative Planning</h3>
-            <p className="text-lg text-foreground/80 leading-relaxed">
-              Invite friends, share suggestions, vote on activities, and plan group trips together.
-            </p>
-          </HandDrawnCard>
-        </div>
-
-        {/* Decorative bouncing element */}
-        <div className="hidden md:block absolute right-20 top-1/2 animate-gentle-bounce">
-          <div 
-            className="w-24 h-24 border-dashed border-4 border-accent"
-            style={{ borderRadius: '155px 25px 145px 25px / 25px 145px 25px 155px' }}
-          />
-        </div>
+        <p
+          className="animate-fade-up mt-5 text-sm text-white/80 drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
+          style={{ animationDelay: '0.5s' }}
+        >
+          No credit card. Just a daydream.{' '}
+          <Link
+            href="/signup"
+            className="underline decoration-white/50 decoration-1 underline-offset-4 transition-colors hover:text-white hover:decoration-white"
+          >
+            Start free
+          </Link>
+        </p>
       </main>
     </div>
   );

@@ -15,11 +15,7 @@ export function LogoutButton() {
   };
 
   return (
-    <HandDrawnButton
-      onClick={handleLogout}
-      variant="secondary"
-      size="sm"
-    >
+    <HandDrawnButton onClick={handleLogout} variant="ghost" size="sm">
       Sign out
     </HandDrawnButton>
   );

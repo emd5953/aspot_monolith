@@ -124,7 +124,7 @@ RESPOND WITH VALID JSON:
     const planStartTime = Date.now();
 
     const result = await generateText({
-      model: openai(process.env.FAST_MODE === 'true' ? 'gpt-4o-mini' : 'gpt-4o'),
+      model: openai('gpt-4o'),
       prompt: planningPrompt,
       temperature: 0.7, // Reduced from 0.8
     });
@@ -161,7 +161,7 @@ RESPOND WITH VALID JSON:
         });
         
         if (duplicates.length > 0) {
-          console.warn(`⚠️ Duplicates detected in Day ${index + 1}:`, duplicates);
+          console.warn(`Duplicates detected in Day ${index + 1}:`, duplicates);
           // Remove duplicates - keep first occurrence only
           const seen = new Set<string>();
           const filterDuplicates = (items: ScheduledItem[]) => 
@@ -175,7 +175,7 @@ RESPOND WITH VALID JSON:
           day.afternoon = filterDuplicates(day.afternoon || []);
           day.evening = filterDuplicates(day.evening || []);
           
-          console.log(`✓ Duplicates removed from Day ${index + 1}`);
+          console.log(`Duplicates removed from Day ${index + 1}`);
         }
 
         return {

@@ -1,15 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  /* Hand-Drawn Design System Colors */
-  --background: #fdfbf7;
-  --foreground: #2d2d2d;
-  --muted: #e5e0d8;
-  --accent: #ff4d4d;
-  --border: #2d2d2d;
-  --secondary-accent: #2d5da1;
+  /* ——— Daytime sky palette ——— */
+  --background: #e8f1fb;
+  --foreground: #0b1e3c;
+  --muted: #5a6a85;
+  --accent: #2f6fd8;
+  --border: rgba(11, 30, 60, 0.12);
+  --secondary-accent: #7eaff2;
   --card: #ffffff;
-  --post-it: #fff9c4;
+  --post-it: #fff4cf;
+
+  /* ——— Extended tokens ——— */
+  --ink: #0b1e3c;
+  --ink-muted: #5a6a85;
+  --ink-soft: #8a97af;
+  --surface: #ffffff;
+  --surface-soft: #f6faff;
+  --surface-strong: #ffffff;
+  --border-strong: rgba(11, 30, 60, 0.2);
+  --halo: rgba(255, 255, 255, 0.85);
+
+  /* Sky band used on interior pages (paired with a subtle cloud layer). */
+  --sky-top: #bcd6f5;
+  --sky-mid: #d8e7f8;
+  --sky-bottom: #eef5fc;
 }
 
 @theme inline {
@@ -21,62 +36,190 @@
   --color-secondary-accent: var(--secondary-accent);
   --color-card: var(--card);
   --color-post-it: var(--post-it);
-  
-  --font-heading: var(--font-kalam);
-  --font-body: var(--font-patrick-hand);
-  
-  /* Wobbly border radius values */
-  --radius-wobbly: 255px 15px 225px 15px / 15px 225px 15px 255px;
-  --radius-wobbly-md: 125px 15px 115px 20px / 20px 115px 15px 125px;
-  --radius-wobbly-sm: 85px 10px 75px 12px / 12px 75px 10px 85px;
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-soft: var(--ink-soft);
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-strong: var(--surface-strong);
+  --color-border-strong: var(--border-strong);
+
+  --font-heading: var(--font-instrument-serif);
+  --font-body: var(--font-inter);
+
+  /* Legacy radii — kept so existing utilities still work */
+  --radius-wobbly: 28px;
+  --radius-wobbly-md: 20px;
+  --radius-wobbly-sm: 14px;
+}
+
+html,
+body {
+  min-height: 100vh;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-patrick-hand), cursive;
-  
-  /* Paper texture background */
-  background-image: radial-gradient(#e5e0d8 1px, transparent 1px);
-  background-size: 24px 24px;
+  color: var(--ink);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Daytime sky: soft blue wash with wispy cloud highlights. */
+  background-color: var(--sky-mid);
+  background-image:
+    radial-gradient(1100px 700px at 18% -10%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(900px 600px at 85% 5%, rgba(255, 255, 255, 0.7), transparent 65%),
+    radial-gradient(1200px 800px at 50% 110%, rgba(255, 255, 255, 0.85), transparent 65%),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 45%, var(--sky-bottom) 100%);
+  background-attachment: fixed;
+  background-size: cover;
 }
 
-/* Hard offset shadow utilities */
-.shadow-hand {
-  box-shadow: 4px 4px 0px 0px #2d2d2d;
-}
-
-.shadow-hand-lg {
-  box-shadow: 8px 8px 0px 0px #2d2d2d;
-}
-
-.shadow-hand-sm {
-  box-shadow: 2px 2px 0px 0px #2d2d2d;
-}
-
-.shadow-hand-subtle {
-  box-shadow: 3px 3px 0px 0px rgba(45, 45, 45, 0.1);
-}
-
-/* Wobbly border utilities */
+/* ——— Legacy radius shims ——— */
 .border-wobbly {
-  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  border-radius: 28px;
 }
-
 .border-wobbly-md {
-  border-radius: 125px 15px 115px 20px / 20px 115px 15px 125px;
+  border-radius: 20px;
 }
-
 .border-wobbly-sm {
-  border-radius: 85px 10px 75px 12px / 12px 75px 10px 85px;
+  border-radius: 14px;
 }
 
-/* Animations */
+/* ——— Softer shadows tuned for light surfaces ——— */
+.shadow-hand {
+  box-shadow:
+    0 18px 48px -20px rgba(20, 50, 100, 0.22),
+    0 2px 6px -2px rgba(20, 50, 100, 0.08);
+}
+.shadow-hand-lg {
+  box-shadow:
+    0 32px 72px -28px rgba(20, 50, 100, 0.28),
+    0 4px 10px -4px rgba(20, 50, 100, 0.1);
+}
+.shadow-hand-sm {
+  box-shadow: 0 10px 24px -12px rgba(20, 50, 100, 0.18);
+}
+.shadow-hand-subtle {
+  box-shadow: 0 8px 24px -14px rgba(20, 50, 100, 0.14);
+}
+
+/* ——— Surface helpers ——— */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+.glass-solid {
+  background: #ffffff;
+  color: var(--ink);
+}
+
+/* ——— Label utility.
+   Was sustained uppercase tracked mono (the biggest B2B signal in the app).
+   Now a calm sentence-case eyebrow that reads consumer. ——— */
+.label-mono {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  color: var(--ink-muted);
+}
+
+/* ——— Hero promo chip (soft sky pill, no caps) ——— */
+.chip-promo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  font-size: 0.8rem;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 500;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 6px 18px -10px rgba(20, 50, 100, 0.18);
+}
+
+/* ——— Animations ——— */
 @keyframes gentle-bounce {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  50%      { transform: translateY(-8px); }
+}
+.animate-gentle-bounce {
+  animation: gentle-bounce 6s ease-in-out infinite;
 }
 
-.animate-gentle-bounce {
-  animation: gentle-bounce 3s ease-in-out infinite;
+@keyframes drift {
+  0%   { transform: translate3d(0, 0, 0); }
+  50%  { transform: translate3d(1.2%, -0.6%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+.animate-drift {
+  animation: drift 28s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+/* ——— Focus ring ——— */
+:focus-visible {
+  outline: none;
+}
+
+/* ——— Selection ——— */
+::selection {
+  background: rgba(47, 111, 216, 0.22);
+  color: var(--ink);
+}
+
+/* ——— Scrollbar (subtle) ——— */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(11, 30, 60, 0.14);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(11, 30, 60, 0.28);
 }

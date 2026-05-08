@@ -1,80 +1,108 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { getPreferences } from '@/lib/preferences/preferences-service';
+import { AppNav } from '@/components/layout/app-nav';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { PromoChip } from '@/components/ui/promo-chip';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect('/login');
-  }
+  if (!user) redirect('/login');
 
   const preferences = await getPreferences(supabase, user.id);
+  if (!preferences) redirect('/quiz');
 
-  if (!preferences) {
-    redirect('/quiz');
-  }
-
-  // Get profile data including username
   const { data: profile } = await supabase
     .from('profiles')
     .select('display_name, username, avatar_url')
     .eq('id', user.id)
     .single();
 
-  return (
-    <div className="min-h-screen bg-background py-12 px-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-heading text-foreground">Your Travel Profile</h1>
-          <Link href="/dashboard">
-            <HandDrawnButton variant="secondary" size="sm">
-              Back to Dashboard
-            </HandDrawnButton>
-          </Link>
-        </div>
+  const initial =
+    profile?.display_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? '?';
 
-        {/* User Info Card */}
-        <HandDrawnCard className="mb-6" decoration="tape">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 bg-accent/20 border-2 border-foreground rounded-full flex items-center justify-center">
-              <span className="text-3xl font-heading">{profile?.display_name?.[0] || user.email?.[0].toUpperCase()}</span>
+  return (
+    <div className="relative min-h-screen">
+      <AppNav />
+
+      <main className="relative mx-auto max-w-3xl px-6 pt-32 pb-24">
+        <section className="animate-fade-up">
+          <PromoChip>Your profile</PromoChip>
+          <h1 className="mt-5 font-heading text-6xl leading-[0.95] text-[color:var(--ink)] md:text-7xl">
+            Travel <span className="italic">profile</span>.
+          </h1>
+          <p className="mt-4 max-w-md text-base text-[color:var(--ink-muted)]">
+            The preferences powering every itinerary we build for you.
+          </p>
+        </section>
+
+        {/* Identity */}
+        <HandDrawnCard
+          className="animate-fade-up mt-10 p-7"
+          style={{ animationDelay: '0.1s' }}
+        >
+          <div className="flex items-center gap-5">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface-soft)] font-heading text-2xl text-[color:var(--ink)]">
+              {initial}
             </div>
-            <div>
-              <h2 className="text-2xl font-heading text-foreground">{profile?.display_name || 'Traveler'}</h2>
+            <div className="min-w-0">
+              <h2 className="truncate font-heading text-3xl text-[color:var(--ink)]">
+                {profile?.display_name || 'Traveler'}
+              </h2>
               {profile?.username && (
-                <p className="text-foreground/60 font-body">@{profile.username}</p>
+                <p className="text-sm text-[color:var(--ink-muted)]">@{profile.username}</p>
               )}
-              <p className="text-sm text-foreground/60 font-body">{user.email}</p>
+              <p className="truncate text-sm text-[color:var(--ink-soft)]">{user.email}</p>
             </div>
           </div>
         </HandDrawnCard>
 
-        {/* Preferences Card */}
-        <HandDrawnCard decoration="tack">
-          <div className="grid gap-6">
-            <ProfileSection title="Travel Personality">
-              <ProfileItem label="Planning Style" value={preferences.planningStyle?.replace('_', ' ') || 'balanced'} />
-              <ProfileItem label="Authenticity Preference" value={preferences.authenticityPreference?.replace('_', ' ') || 'balanced'} />
-              <ProfileItem label="Time Rhythm" value={preferences.timeRhythm?.replace('_', ' ') || 'daytime'} />
-              <ProfileItem label="Comfort Zone" value={`${preferences.comfortZone || 5}/10`} />
+        {/* Preferences */}
+        <HandDrawnCard
+          className="animate-fade-up mt-5 p-7"
+          style={{ animationDelay: '0.2s' }}
+        >
+          <div className="grid gap-8">
+            <ProfileSection title="Travel personality">
+              <ProfileItem
+                label="Planning style"
+                value={preferences.planningStyle?.replace('_', ' ') || 'balanced'}
+              />
+              <ProfileItem
+                label="Authenticity preference"
+                value={preferences.authenticityPreference?.replace('_', ' ') || 'balanced'}
+              />
+              <ProfileItem
+                label="Time rhythm"
+                value={preferences.timeRhythm?.replace('_', ' ') || 'daytime'}
+              />
+              <ProfileItem
+                label="Comfort zone"
+                value={`${preferences.comfortZone || 5}/10`}
+              />
             </ProfileSection>
 
-            <ProfileSection title="Travel Motivations">
+            <ProfileSection title="Travel motivations">
               <ProfileTags items={preferences.travelMotivations || []} />
             </ProfileSection>
 
-            <ProfileSection title="Budget & Pace">
+            <ProfileSection title="Budget & pace">
               <ProfileItem label="Budget" value={preferences.budgetRange} />
-              <ProfileItem label="Travel Pace" value={preferences.travelPace} />
-              <ProfileItem label="Social Style" value={preferences.socialPreferences?.replace('_', ' ') || 'couple'} />
+              <ProfileItem label="Travel pace" value={preferences.travelPace} />
+              <ProfileItem
+                label="Social style"
+                value={preferences.socialPreferences?.replace('_', ' ') || 'couple'}
+              />
             </ProfileSection>
 
-            <ProfileSection title="Food Preferences">
+            <ProfileSection title="Food preferences">
               <ProfileTags items={preferences.cuisinePreferences} />
             </ProfileSection>
 
@@ -83,20 +111,21 @@ export default async function ProfilePage() {
             </ProfileSection>
           </div>
 
-          <div className="mt-8 pt-6 border-t-2 border-foreground/20 flex gap-4">
+          <div className="mt-10 flex flex-wrap gap-3 border-t border-[color:var(--border)] pt-6">
             <Link href="/profile/edit">
-              <HandDrawnButton variant="accent">
-                Edit Profile
+              <HandDrawnButton variant="primary" size="sm" className="gap-2">
+                Edit profile
+                <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
               </HandDrawnButton>
             </Link>
             <Link href="/quiz">
-              <HandDrawnButton variant="secondary">
-                Retake Quiz
+              <HandDrawnButton variant="secondary" size="sm">
+                Retake quiz
               </HandDrawnButton>
             </Link>
           </div>
         </HandDrawnCard>
-      </div>
+      </main>
     </div>
   );
 }
@@ -104,31 +133,31 @@ export default async function ProfilePage() {
 function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h2 className="text-xl font-heading text-foreground mb-3">{title}</h2>
-      <div className="space-y-2">{children}</div>
+      <p className="mb-3 text-sm font-medium text-[color:var(--ink-muted)]">{title}</p>
+      <div className="space-y-2.5">{children}</div>
     </div>
   );
 }
 
 function ProfileItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between font-body">
-      <span className="text-foreground/70">{label}</span>
-      <span className="font-medium capitalize text-foreground">{value}</span>
+    <div className="flex items-baseline justify-between gap-4">
+      <span className="text-sm text-[color:var(--ink-muted)]">{label}</span>
+      <span className="font-heading text-xl capitalize text-[color:var(--ink)]">{value}</span>
     </div>
   );
 }
 
 function ProfileTags({ items }: { items: string[] }) {
-  if (items.length === 0) {
-    return <span className="text-foreground/40 font-body">None selected</span>;
+  if (!items || items.length === 0) {
+    return <span className="text-sm text-[color:var(--ink-soft)]">None selected</span>;
   }
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((item) => (
         <span
           key={item}
-          className="px-3 py-1 bg-accent/20 text-foreground border-2 border-foreground border-wobbly-sm font-body text-sm capitalize"
+          className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs capitalize text-[color:var(--ink)]"
         >
           {item.replace('_', ' ')}
         </span>

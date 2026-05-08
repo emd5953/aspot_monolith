@@ -141,7 +141,7 @@ export async function runAgenticOrchestrator(
   let currentScore = 0;
   let iteration = 0;
 
-  allThoughts.push('🤖 AGENTIC ORCHESTRATOR ACTIVATED');
+  allThoughts.push('AGENTIC ORCHESTRATOR ACTIVATED');
   allThoughts.push(useAdvancedCuration 
     ? `Goal: Premium quality with extensive research (${maxIterations} iterations, score ${qualityThreshold}+)`
     : `Goal: Fast quality (1 iteration for speed)`);
@@ -149,8 +149,8 @@ export async function runAgenticOrchestrator(
 
   // PHASE 1: RESEARCH (Lightweight or Extensive based on mode)
   allThoughts.push(useAdvancedCuration 
-    ? '═══ PHASE 1: EXTENSIVE RESEARCH (Advanced Mode) ═══'
-    : '═══ PHASE 1: LIGHTWEIGHT RESEARCH ═══');
+    ? '=== PHASE 1: EXTENSIVE RESEARCH (Advanced Mode) ==='
+    : '=== PHASE 1: LIGHTWEIGHT RESEARCH ===');
   
   const researchStep: ReasoningStep = {
     agent: 'orchestrator',
@@ -172,8 +172,8 @@ export async function runAgenticOrchestrator(
 
   researchStep.result = `Found ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants`;
   allThoughts.push(useAdvancedCuration
-    ? `✓ Extensive research: ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants from multiple sources`
-    : `✓ Quick research: ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants`);
+    ? `Extensive research: ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants from multiple sources`
+    : `Quick research: ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants`);
   allReasoning.push(...researchResult.reasoningSteps.map(s => ({
     agent: 'researcher',
     thought: s.thought,
@@ -187,13 +187,13 @@ export async function runAgenticOrchestrator(
 
   // PHASE 2: ITERATIVE PLANNING WITH ADAPTIVE STOPPING
   allThoughts.push('');
-  allThoughts.push('═══ PHASE 2: AGENTIC PLANNING LOOP ═══');
+  allThoughts.push('=== PHASE 2: AGENTIC PLANNING LOOP ===');
 
   while (iteration < maxIterations) {
     iteration++;
     
     allThoughts.push('');
-    allThoughts.push(`─── Iteration ${iteration}/${maxIterations} ───`);
+    allThoughts.push(`--- Iteration ${iteration}/${maxIterations} ---`);
 
     // STEP 1: Plan
     const planStep: ReasoningStep = {
@@ -267,20 +267,20 @@ export async function runAgenticOrchestrator(
     decisionStep.result = `Decision: ${decision.action} - ${decision.reasoning}`;
     allReasoning.push(decisionStep);
     allThoughts.push('');
-    allThoughts.push(`🤔 DECISION: ${decision.reasoning}`);
+    allThoughts.push(`DECISION: ${decision.reasoning}`);
 
     if (decision.action === 'stop') {
-      allThoughts.push('✅ Stopping: Quality goal achieved or iteration limit reached');
+      allThoughts.push('Stopping: Quality goal achieved or iteration limit reached');
       break;
     }
 
     if (decision.action === 'research_more') {
-      allThoughts.push('🔄 Need more research data (not implemented in this iteration)');
+      allThoughts.push('Need more research data (not implemented in this iteration)');
       // Could trigger additional research here
     }
 
     if (decision.action === 'revise') {
-      allThoughts.push('🔧 Major revision needed, continuing to next iteration');
+      allThoughts.push('Major revision needed, continuing to next iteration');
     }
 
     // Notify progress
@@ -302,7 +302,7 @@ export async function runAgenticOrchestrator(
 
   // FINAL SUMMARY
   allThoughts.push('');
-  allThoughts.push('═══ ORCHESTRATION COMPLETE ═══');
+  allThoughts.push('=== ORCHESTRATION COMPLETE ===');
   allThoughts.push(`Final Score: ${currentScore}/100`);
   allThoughts.push(`Iterations: ${iteration}`);
   allThoughts.push(`Total Reasoning Steps: ${allReasoning.length}`);

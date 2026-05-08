@@ -136,27 +136,12 @@ function buildSourceUrls(
  * Research Agent - gathers and analyzes destination data from multiple sources
  * Uses Firecrawl for real web scraping when enabled
  */
-export async function runResearchAgent(request: ResearchRequest, useFastMode: boolean = false): Promise<{
+export async function runResearchAgent(request: ResearchRequest): Promise<{
   result: ResearchResult;
   thoughts: string[];
 }> {
   const { destination, preferences } = request;
   let thoughts: string[] = [];
-  
-  console.log(`[RESEARCH MODE] Fast: ${useFastMode}`);
-  
-  if (useFastMode) {
-    thoughts.push(`🚀 FAST MODE: Using AI knowledge for ${destination} (no scraping)`);
-    thoughts.push(`User interests: ${preferences.activityTypes?.join(', ') || 'general activities'}`);
-    
-    const fastStartTime = Date.now();
-    const fastResult = await generateResearchFromAI(destination, preferences);
-    console.log(`[TIMING] Fast research AI completed in ${((Date.now() - fastStartTime) / 1000).toFixed(1)}s`);
-    
-    thoughts.push(`✅ Generated ${fastResult.attractions.length} attractions, ${fastResult.restaurants.length} restaurants`);
-    
-    return { result: fastResult, thoughts };
-  }
 
   // AGENTIC MODE: Scrape with Firecrawl
   thoughts.push(`🔍 Starting multi-source research for ${destination}...`);

@@ -1,6 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import {
+  Pencil,
+  RefreshCw,
+  Trash2,
+  ChevronDown,
+  MapPin,
+  Calendar,
+  Check,
+} from 'lucide-react';
 import { DaySchedule } from './day-schedule';
 import { ItineraryMap } from './itinerary-map';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
@@ -51,6 +60,13 @@ interface ItineraryViewProps {
   onTitleChange?: (title: string) => void;
 }
 
+const STATUS_TONES: Record<string, string> = {
+  draft: 'bg-[color:var(--surface-soft)] text-[color:var(--ink-muted)] border-[color:var(--border)]',
+  active: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  completed: 'bg-sky-50 text-sky-800 border-sky-200',
+  archived: 'bg-slate-100 text-slate-600 border-slate-200',
+};
+
 export function ItineraryView({
   itinerary,
   onEditActivity,
@@ -70,21 +86,7 @@ export function ItineraryView({
 
   const formatDateRange = (start: Date, end: Date) => {
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-    return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
-  };
-
-  const statusEmojis: Record<string, string> = {
-    draft: '📝',
-    active: '✈️',
-    completed: '✅',
-    archived: '📦',
-  };
-
-  const statusColors: Record<string, string> = {
-    draft: 'bg-post-it border-foreground',
-    active: 'bg-secondary-accent/20 text-secondary-accent border-secondary-accent',
-    completed: 'bg-accent/20 text-accent border-accent',
-    archived: 'bg-muted border-foreground',
+    return `${start.toLocaleDateString('en-US', options)} – ${end.toLocaleDateString('en-US', options)}`;
   };
 
   const handleTitleSave = () => {
@@ -97,62 +99,67 @@ export function ItineraryView({
   };
 
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleTitleSave();
-    } else if (e.key === 'Escape') {
+    if (e.key === 'Enter') handleTitleSave();
+    if (e.key === 'Escape') {
       setEditedTitle(itinerary.title);
       setIsEditingTitle(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <HandDrawnCard decoration="tape" className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
+      <HandDrawnCard className="animate-fade-up p-7">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
             {isEditingTitle ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={editedTitle}
-                  onChange={(e) => setEditedTitle(e.target.value)}
-                  onBlur={handleTitleSave}
-                  onKeyDown={handleTitleKeyDown}
-                  className="text-3xl font-heading text-foreground bg-transparent border-2 border-accent border-dashed px-2 py-1 -rotate-1 focus:outline-none focus:border-solid w-full max-w-2xl"
-                  autoFocus
-                />
-              </div>
+              <input
+                type="text"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onBlur={handleTitleSave}
+                onKeyDown={handleTitleKeyDown}
+                className="w-full max-w-2xl border-b-2 border-[color:var(--border)] bg-transparent py-1 font-heading text-4xl leading-[1] text-[color:var(--ink)] outline-none focus:border-[color:var(--accent)] md:text-5xl"
+                autoFocus
+              />
             ) : (
-              <div className="flex items-center gap-2 group">
-                <h1 className="text-3xl font-heading text-foreground -rotate-1">{itinerary.title}</h1>
+              <div className="group flex items-center gap-2">
+                <h1 className="font-heading text-4xl leading-[1] text-[color:var(--ink)] md:text-5xl">
+                  {itinerary.title}
+                </h1>
                 <button
                   onClick={() => setIsEditingTitle(true)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-foreground/50 hover:text-foreground p-1"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink-soft)] opacity-0 transition-opacity hover:border-[color:var(--border-strong)] hover:text-[color:var(--ink)] group-hover:opacity-100"
                   title="Edit title"
                 >
-                  ✏️
+                  <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
                 </button>
               </div>
             )}
-            <p className="text-foreground/70 mt-2 font-body text-lg">
-              📍 {itinerary.destination} • 📅 {formatDateRange(itinerary.startDate, itinerary.endDate)}
-            </p>
-            <p className="text-xs text-foreground/50 mt-1 font-body">
-              ✓ Auto-saved • Click status to update
-            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-[color:var(--ink-muted)]">
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5" strokeWidth={2} />
+                {itinerary.destination}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
+                {formatDateRange(itinerary.startDate, itinerary.endDate)}
+              </span>
+              <span className="text-xs text-[color:var(--ink-soft)]">Auto-saved</span>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
               <button
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
-                className={`px-3 py-1 text-sm border-2 border-wobbly-sm font-body ${statusColors[itinerary.status]} hover:opacity-80 transition-opacity cursor-pointer`}
-                title="Click to change status"
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium capitalize ${STATUS_TONES[itinerary.status] ?? STATUS_TONES.draft}`}
               >
-                {statusEmojis[itinerary.status]} {itinerary.status} ▼
+                {itinerary.status}
+                <ChevronDown className="h-3 w-3" strokeWidth={2.5} />
               </button>
               {showStatusMenu && (
-                <div className="absolute top-full right-0 mt-2 bg-card border-2 border-foreground shadow-hand z-10 min-w-[150px]">
+                <div className="absolute top-full right-0 z-20 mt-2 min-w-[160px] overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white shadow-[0_24px_64px_-20px_rgba(20,50,100,0.3)]">
                   {(['draft', 'active', 'completed', 'archived'] as const).map((status) => (
                     <button
                       key={status}
@@ -160,44 +167,45 @@ export function ItineraryView({
                         onStatusChange?.(status);
                         setShowStatusMenu(false);
                       }}
-                      className={`w-full px-4 py-2 text-left font-body hover:bg-muted transition-colors flex items-center gap-2 ${
-                        itinerary.status === status ? 'bg-accent/10' : ''
+                      className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm capitalize text-[color:var(--ink)] transition-colors hover:bg-[color:var(--surface-soft)] ${
+                        itinerary.status === status ? 'bg-[color:var(--surface-soft)]' : ''
                       }`}
                     >
-                      {statusEmojis[status]} {status}
-                      {itinerary.status === status && <span className="ml-auto">✓</span>}
+                      {status}
+                      {itinerary.status === status && (
+                        <Check
+                          className="ml-auto h-3.5 w-3.5 text-[color:var(--accent)]"
+                          strokeWidth={2.5}
+                        />
+                      )}
                     </button>
                   ))}
                 </div>
               )}
             </div>
             {onRegenerate && (
-              <HandDrawnButton
-                onClick={onRegenerate}
-                variant="accent"
-                size="sm"
-              >
-                🔄 Regenerate
+              <HandDrawnButton onClick={onRegenerate} variant="primary" size="sm" className="gap-2">
+                <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.5} />
+                Regenerate
               </HandDrawnButton>
             )}
             {onDelete && (
-              <HandDrawnButton
-                onClick={onDelete}
-                variant="secondary"
-                size="sm"
-              >
-                🗑️ Delete
+              <HandDrawnButton onClick={onDelete} variant="secondary" size="sm" className="gap-2">
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                Delete
               </HandDrawnButton>
             )}
           </div>
         </div>
       </HandDrawnCard>
 
-      {/* Map View */}
-      <HandDrawnCard decoration="tack" className="p-6">
-        <h2 className="text-2xl font-heading text-foreground mb-4 -rotate-1">
-          🗺️ Day {itinerary.days[activeTab]?.dayNumber} Route
-        </h2>
+      {/* Map */}
+      <HandDrawnCard className="animate-fade-up p-6" style={{ animationDelay: '0.05s' }}>
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-sm font-medium text-[color:var(--ink-muted)]">
+            Day {itinerary.days[activeTab]?.dayNumber} route
+          </p>
+        </div>
         <ItineraryMap
           destination={itinerary.destination}
           activities={itinerary.days[activeTab]?.activities || []}
@@ -205,17 +213,20 @@ export function ItineraryView({
       </HandDrawnCard>
 
       {/* Day Tabs */}
-      <HandDrawnCard className="overflow-hidden">
-        <div className="border-b-2 border-foreground border-dashed">
-          <div className="flex overflow-x-auto">
+      <HandDrawnCard
+        className="animate-fade-up overflow-hidden p-0"
+        style={{ animationDelay: '0.1s' }}
+      >
+        <div className="border-b border-[color:var(--border)] px-2 pt-2">
+          <div className="flex gap-1 overflow-x-auto">
             {itinerary.days.map((day, index) => (
               <button
                 key={day.id}
                 onClick={() => setActiveTab(index)}
-                className={`px-6 py-3 font-body text-base whitespace-nowrap border-b-4 transition-all ${
+                className={`whitespace-nowrap rounded-t-xl px-4 py-2.5 text-sm font-medium transition-all ${
                   activeTab === index
-                    ? 'border-accent text-accent bg-accent/10 -rotate-1'
-                    : 'border-transparent text-foreground/60 hover:text-foreground hover:bg-muted/50'
+                    ? 'bg-[color:var(--surface-soft)] text-[color:var(--ink)]'
+                    : 'text-[color:var(--ink-muted)] hover:bg-[color:var(--surface-soft)]/60 hover:text-[color:var(--ink)]'
                 }`}
               >
                 Day {day.dayNumber}
@@ -224,7 +235,6 @@ export function ItineraryView({
           </div>
         </div>
 
-        {/* Active Day Content */}
         <div className="p-6">
           {itinerary.days[activeTab] && (
             <DaySchedule
@@ -234,13 +244,24 @@ export function ItineraryView({
               notes={itinerary.days[activeTab].notes}
               onEditActivity={onEditActivity}
               onDeleteActivity={onDeleteActivity}
-              onAddActivity={onAddActivity ? () => onAddActivity(itinerary.days[activeTab].id) : undefined}
-              onReorder={onReorderActivities ? (ids) => onReorderActivities(itinerary.days[activeTab].id, ids) : undefined}
-              onEditDay={onEditDay ? () => onEditDay(
-                itinerary.days[activeTab].id,
-                itinerary.days[activeTab].dayNumber,
-                itinerary.days[activeTab].activities
-              ) : undefined}
+              onAddActivity={
+                onAddActivity ? () => onAddActivity(itinerary.days[activeTab].id) : undefined
+              }
+              onReorder={
+                onReorderActivities
+                  ? (ids) => onReorderActivities(itinerary.days[activeTab].id, ids)
+                  : undefined
+              }
+              onEditDay={
+                onEditDay
+                  ? () =>
+                      onEditDay(
+                        itinerary.days[activeTab].id,
+                        itinerary.days[activeTab].dayNumber,
+                        itinerary.days[activeTab].activities
+                      )
+                  : undefined
+              }
             />
           )}
         </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { QuizAnswer, QuizProgress } from '@/types/quiz';
 import { quizQuestions } from '@/data/quiz-questions';
 import { QuizProgressBar } from './quiz-progress';
@@ -12,7 +13,8 @@ import { saveUserPreferences } from '@/lib/quiz/profile-generator';
 import { validateAnswer } from '@/lib/quiz/validation';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
-import Link from 'next/link';
+import { AppNav } from '@/components/layout/app-nav';
+import { PromoChip } from '@/components/ui/promo-chip';
 
 interface QuizFlowProps {
   initialProgress?: QuizProgress | null;
@@ -28,12 +30,7 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
   const router = useRouter();
   const supabase = createClient();
 
-  // Reset state when initialProgress changes (e.g., when quiz is restarted)
   useEffect(() => {
-    console.log('🔄 QuizFlow useEffect triggered:', {
-      initialStep: initialProgress?.currentStep,
-      initialAnswersCount: Object.keys(initialProgress?.answers ?? {}).length,
-    });
     setCurrentStep(initialProgress?.currentStep ?? 0);
     setAnswers(initialProgress?.answers ?? {});
   }, [initialProgress]);
@@ -44,10 +41,7 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
   const hasAnswer = currentAnswer && validateAnswer(currentQuestion, currentAnswer);
 
   const handleAnswer = (answer: QuizAnswer) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [answer.questionId]: answer,
-    }));
+    setAnswers((prev) => ({ ...prev, [answer.questionId]: answer }));
   };
 
   const handleNext = async () => {
@@ -59,7 +53,6 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
       await saveAnswer(supabase, userId, answers[currentQuestion.id], nextStep);
 
       if (isLastQuestion) {
-        // Complete quiz and generate profile
         await saveUserPreferences(supabase, userId, answers);
         router.push('/quiz/complete');
       } else {
@@ -73,54 +66,64 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
   };
 
   const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
 
-  if (!currentQuestion) {
-    return null;
-  }
+  if (!currentQuestion) return null;
 
   return (
-    <div className="min-h-screen py-12 px-6">
-      {/* Header */}
-      <div className="max-w-3xl mx-auto mb-8">
-        <Link href="/dashboard">
-          <h1 className="text-3xl font-heading text-foreground -rotate-1 inline-block mb-6">
-            ✈️ aSpot - AI Itinerary Planner
+    <div className="relative min-h-screen">
+      <AppNav />
+
+      <main className="relative mx-auto max-w-2xl px-6 pt-32 pb-24">
+        <section className="animate-fade-up">
+          <PromoChip>
+            Question {currentStep + 1} of {quizQuestions.length}
+          </PromoChip>
+          <h1 className="mt-5 font-heading text-4xl leading-[1] text-[color:var(--ink)] md:text-5xl">
+            Shape your <span className="italic">travel personality</span>.
           </h1>
-        </Link>
-      </div>
+        </section>
 
-      <div className="max-w-3xl mx-auto">
-        <QuizProgressBar currentStep={currentStep} totalSteps={quizQuestions.length} />
+        <div className="mt-8">
+          <QuizProgressBar currentStep={currentStep} totalSteps={quizQuestions.length} />
+        </div>
 
-        <HandDrawnCard decoration="tape" className="p-8">
+        <HandDrawnCard
+          key={currentStep}
+          className="animate-fade-up mt-8 p-7"
+          style={{ animationDelay: '0.05s' }}
+        >
           <QuizQuestionCard
             question={currentQuestion}
             currentAnswer={answers[currentQuestion.id]}
             onAnswer={handleAnswer}
           />
 
-          <div className="flex justify-between mt-8 pt-6 border-t-2 border-dashed border-foreground/20">
+          <div className="mt-8 flex items-center justify-between border-t border-[color:var(--border)] pt-6">
             <HandDrawnButton
               onClick={handleBack}
               disabled={currentStep === 0}
               variant="secondary"
+              size="sm"
+              className="gap-2"
             >
+              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
               Back
             </HandDrawnButton>
             <HandDrawnButton
               onClick={handleNext}
               disabled={!hasAnswer || isSubmitting}
-              variant="accent"
+              variant="primary"
+              size="sm"
+              className="gap-2"
             >
-              {isSubmitting ? 'Saving...' : isLastQuestion ? 'Complete' : 'Next'}
+              {isSubmitting ? 'Saving…' : isLastQuestion ? 'Complete' : 'Next'}
+              {!isSubmitting && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />}
             </HandDrawnButton>
           </div>
         </HandDrawnCard>
-      </div>
+      </main>
     </div>
   );
 }

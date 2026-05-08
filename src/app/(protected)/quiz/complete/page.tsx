@@ -1,99 +1,92 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { getUserPreferences } from '@/lib/quiz/profile-generator';
 import { clearProgress } from '@/lib/quiz/progress-service';
+import { AppNav } from '@/components/layout/app-nav';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
-import { CheckCircle } from 'lucide-react';
+import { PromoChip } from '@/components/ui/promo-chip';
 
 export default async function QuizCompletePage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect('/login');
-  }
+  if (!user) redirect('/login');
 
   const preferences = await getUserPreferences(supabase, user.id);
+  if (!preferences) redirect('/quiz');
 
-  if (!preferences) {
-    redirect('/quiz');
-  }
-
-  // Clear quiz progress since it's complete
   await clearProgress(supabase, user.id);
 
   return (
-    <div className="min-h-screen py-12 px-6">
-      <div className="max-w-3xl mx-auto">
-        <HandDrawnCard decoration="tack" className="p-8 text-center">
-          <div 
-            className="w-20 h-20 border-wobbly-sm border-[3px] border-foreground bg-post-it flex items-center justify-center mx-auto mb-6"
-          >
-            <CheckCircle className="w-10 h-10 text-foreground" strokeWidth={2.5} />
-          </div>
+    <div className="relative min-h-screen">
+      <AppNav />
 
-          <h1 className="text-4xl md:text-5xl font-heading text-foreground mb-4">
-            Your travel profile is ready
-            <span className="inline-block rotate-12 text-accent ml-2">!</span>
+      <main className="relative mx-auto max-w-2xl px-6 pt-32 pb-24">
+        <section className="animate-fade-up text-center">
+          <div className="mx-auto mb-8 flex h-16 w-16 items-center justify-center rounded-full border border-[color:var(--border)] bg-white">
+            <CheckCircle2 className="h-7 w-7 text-[color:var(--accent)]" strokeWidth={2} />
+          </div>
+          <PromoChip>All set</PromoChip>
+          <h1 className="mt-5 font-heading text-5xl leading-[0.95] text-[color:var(--ink)] md:text-6xl">
+            Your travel <span className="italic">profile</span> is ready.
           </h1>
-          <p className="text-xl text-foreground/80 mb-8 font-body">
-            We&apos;ve saved your preferences and you&apos;re all set to create personalized itineraries.
+          <p className="mx-auto mt-5 max-w-md text-base text-[color:var(--ink-muted)]">
+            We&rsquo;ve saved your preferences. Every itinerary we build will be tuned to how
+            you travel.
           </p>
+        </section>
 
-          <HandDrawnCard variant="post-it" className="p-6 mb-8 text-left">
-            <h2 className="text-2xl font-heading text-foreground mb-4">Your preferences:</h2>
-            <div className="space-y-3 text-lg font-body">
-              <div>
-                <span className="text-foreground/70">Planning Style:</span>{' '}
-                <span className="font-heading capitalize">{preferences.planningStyle?.replace(/_/g, ' ')}</span>
-              </div>
-              <div>
-                <span className="text-foreground/70">Budget:</span>{' '}
-                <span className="font-heading capitalize">{preferences.budgetRange}</span>
-              </div>
-              <div>
-                <span className="text-foreground/70">Travel pace:</span>{' '}
-                <span className="font-heading capitalize">{preferences.travelPace}</span>
-              </div>
-              <div>
-                <span className="text-foreground/70">Comfort Zone:</span>{' '}
-                <span className="font-heading">{preferences.comfortZone}/10</span>
-              </div>
-              {preferences.cuisinePreferences.length > 0 && (
-                <div>
-                  <span className="text-foreground/70">Cuisines:</span>{' '}
-                  <span className="font-heading capitalize">
-                    {preferences.cuisinePreferences.join(', ')}
-                  </span>
-                </div>
-              )}
-              {preferences.activityTypes.length > 0 && (
-                <div>
-                  <span className="text-foreground/70">Activities:</span>{' '}
-                  <span className="font-heading capitalize">
-                    {preferences.activityTypes?.join(', ') || 'Not specified'}
-                  </span>
-                </div>
-              )}
-            </div>
-          </HandDrawnCard>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/dashboard">
-              <HandDrawnButton variant="accent" size="lg">
-                Go to Dashboard
-              </HandDrawnButton>
-            </Link>
-            <Link href="/quiz">
-              <HandDrawnButton variant="secondary" size="lg">
-                Retake Quiz
-              </HandDrawnButton>
-            </Link>
-          </div>
+        <HandDrawnCard className="animate-fade-up mt-12 p-7" style={{ animationDelay: '0.15s' }}>
+          <p className="mb-5 text-sm font-medium text-[color:var(--ink-muted)]">
+            Your preferences
+          </p>
+          <dl className="space-y-3.5">
+            <Row label="Planning style" value={preferences.planningStyle?.replace(/_/g, ' ')} />
+            <Row label="Budget" value={preferences.budgetRange} />
+            <Row label="Travel pace" value={preferences.travelPace} />
+            <Row label="Comfort zone" value={`${preferences.comfortZone}/10`} />
+            {preferences.cuisinePreferences.length > 0 && (
+              <Row label="Cuisines" value={preferences.cuisinePreferences.join(', ')} />
+            )}
+            {preferences.activityTypes.length > 0 && (
+              <Row label="Activities" value={preferences.activityTypes.join(', ')} />
+            )}
+          </dl>
         </HandDrawnCard>
-      </div>
+
+        <div
+          className="animate-fade-up mt-10 flex flex-col justify-center gap-3 sm:flex-row"
+          style={{ animationDelay: '0.25s' }}
+        >
+          <Link href="/dashboard">
+            <HandDrawnButton variant="primary" size="md" className="gap-2">
+              Go to dashboard
+              <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </HandDrawnButton>
+          </Link>
+          <Link href="/quiz">
+            <HandDrawnButton variant="secondary" size="md">
+              Retake quiz
+            </HandDrawnButton>
+          </Link>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="text-sm text-[color:var(--ink-muted)]">{label}</dt>
+      <dd className="text-right font-heading text-xl capitalize text-[color:var(--ink)]">
+        {value}
+      </dd>
     </div>
   );
 }

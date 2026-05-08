@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
         try {
           // Map generation mode to flags
           const mode = generationMode || 'standard';
-          const useAgenticMode = mode !== 'fast';
-          const useTrulyAgentic = mode !== 'fast';
+          const useAgenticMode = true;
+          const useTrulyAgentic = true;
           const useAdvancedCuration = mode === 'advanced';
 
           // Send initial progress

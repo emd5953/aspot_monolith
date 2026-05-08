@@ -16,18 +16,11 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { prompt, mode = 'fast' } = body;
+    const { prompt } = body;
 
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
       return NextResponse.json(
         { error: 'Prompt is required' },
-        { status: 400 }
-      );
-    }
-
-    if (mode !== 'fast' && mode !== 'credible') {
-      return NextResponse.json(
-        { error: 'Mode must be "fast" or "credible"' },
         { status: 400 }
       );
     }
@@ -100,7 +93,6 @@ export async function POST(
       destination: itinerary.destination,
       userPrompt: prompt.trim(),
       preferences,
-      mode: mode as 'fast' | 'credible',
     });
 
     return NextResponse.json({ 

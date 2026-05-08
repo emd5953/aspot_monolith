@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, ArrowRight, Plus, Trash2, MapPin, Calendar } from 'lucide-react';
+import { AppNav } from '@/components/layout/app-nav';
 import { GenerateForm } from '@/components/itinerary/generate-form';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { PromoChip } from '@/components/ui/promo-chip';
 
 interface Itinerary {
   id: string;
@@ -17,7 +20,22 @@ interface Itinerary {
 }
 
 export default function ItineraryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-sm text-[color:var(--ink-muted)]">Loading…</div>
+        </div>
+      }
+    >
+      <ItineraryInner />
+    </Suspense>
+  );
+}
+
+function ItineraryInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -25,6 +43,10 @@ export default function ItineraryPage() {
 
   useEffect(() => {
     fetchItineraries();
+    if (searchParams.get('from') === 'prompt') {
+      setShowForm(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchItineraries = async () => {
@@ -63,10 +85,6 @@ export default function ItineraryPage() {
       }
 
       const { itinerary } = await res.json();
-      
-      // Show success message before redirecting
-      alert('✓ Itinerary created and saved! You can now view and edit it.');
-      
       router.push(`/itinerary/${itinerary.id}`);
     } finally {
       setIsGenerating(false);
@@ -74,166 +92,151 @@ export default function ItineraryPage() {
   };
 
   const handleDelete = async (e: React.MouseEvent, itineraryId: string) => {
-    e.stopPropagation(); // Prevent navigation when clicking delete
-    
-    if (!confirm('Are you sure you want to delete this itinerary? This action cannot be undone.')) return;
+    e.stopPropagation();
+    if (!confirm('Delete this itinerary? This action cannot be undone.')) return;
 
     try {
-      const res = await fetch(`/api/itinerary/${itineraryId}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to delete itinerary');
-      }
-
-      // Refresh the list
+      const res = await fetch(`/api/itinerary/${itineraryId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete itinerary');
       fetchItineraries();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete itinerary');
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-  const statusEmojis: Record<string, string> = {
-    draft: '📝',
-    active: '✈️',
-    completed: '✅',
-    archived: '📦',
-  };
-
-  const statusColors: Record<string, string> = {
-    draft: 'bg-post-it border-foreground',
-    active: 'bg-secondary-accent/20 text-secondary-accent border-secondary-accent',
-    completed: 'bg-accent/20 text-accent border-accent',
-    archived: 'bg-muted border-foreground',
+  const statusStyles: Record<string, string> = {
+    draft: 'bg-[color:var(--surface-soft)] text-[color:var(--ink-muted)] border-[color:var(--border)]',
+    active: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    completed: 'bg-sky-50 text-sky-800 border-sky-200',
+    archived: 'bg-slate-100 text-slate-600 border-slate-200',
   };
 
   if (showForm) {
     return (
-      <div className="min-h-screen bg-background py-12 px-4">
-        <div className="max-w-xl mx-auto">
-          <HandDrawnButton
+      <div className="relative min-h-screen">
+        <AppNav />
+        <main className="relative mx-auto max-w-2xl px-6 pt-32 pb-24">
+          <button
             onClick={() => setShowForm(false)}
-            variant="secondary"
-            size="sm"
-            className="mb-6"
+            className="mb-8 inline-flex items-center gap-2 text-sm text-[color:var(--ink-muted)] transition-colors hover:text-[color:var(--ink)]"
           >
-            ← Back to itineraries
-          </HandDrawnButton>
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
+            Back to itineraries
+          </button>
           <GenerateForm onSubmit={handleGenerate} isLoading={isGenerating} />
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Navigation */}
-        <div className="flex items-center gap-3 mb-6">
-          <HandDrawnButton
-            onClick={() => router.push('/dashboard')}
-            variant="secondary"
-            size="sm"
-          >
-            ← Dashboard
-          </HandDrawnButton>
-          <HandDrawnButton
-            onClick={() => router.push('/trips')}
-            variant="secondary"
-            size="sm"
-          >
-            👥 Trips
-          </HandDrawnButton>
-        </div>
+    <div className="relative min-h-screen">
+      <AppNav />
 
-        <HandDrawnCard decoration="tape" className="p-6 mb-8">
-          <div className="flex items-center justify-between">
+      <main className="relative mx-auto max-w-5xl px-6 pt-32 pb-24">
+        {/* Hero */}
+        <section className="animate-fade-up">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="text-4xl font-heading text-foreground -rotate-1">
-                ✈️ My Itineraries
+              <PromoChip>Your trips</PromoChip>
+              <h1 className="mt-5 font-heading text-6xl leading-[0.95] text-[color:var(--ink)] md:text-7xl">
+                My <span className="italic">itineraries</span>.
               </h1>
-              <p className="text-foreground/70 font-body text-lg mt-1">
-                Your personalized travel plans
+              <p className="mt-4 max-w-md text-base text-[color:var(--ink-muted)]">
+                Every trip you&rsquo;ve planned, in one quiet place.
               </p>
             </div>
             <HandDrawnButton
               onClick={() => setShowForm(true)}
-              variant="accent"
+              variant="primary"
               size="md"
+              className="gap-2 self-start md:self-end"
             >
-              ➕ New Trip
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+              New trip
             </HandDrawnButton>
           </div>
-        </HandDrawnCard>
+        </section>
 
-        {isLoading ? (
-          <HandDrawnCard className="p-12 text-center">
-            <div className="animate-spin h-12 w-12 border-4 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-foreground/60 font-body">Loading your adventures...</p>
-          </HandDrawnCard>
-        ) : itineraries.length === 0 ? (
-          <HandDrawnCard decoration="tack" className="p-12 text-center">
-            <div className="text-6xl mb-4">🗺️</div>
-            <h2 className="text-3xl font-heading text-foreground mb-2">No itineraries yet!</h2>
-            <p className="text-foreground/70 font-body text-lg mb-6">
-              Create your first AI-powered travel itinerary
-            </p>
-            <HandDrawnButton
-              onClick={() => setShowForm(true)}
-              variant="accent"
-              size="lg"
-            >
-              ✨ Generate Itinerary
-            </HandDrawnButton>
-          </HandDrawnCard>
-        ) : (
-          <div className="grid gap-6">
-            {itineraries.map((itinerary, index) => (
-              <HandDrawnCard
-                key={itinerary.id}
-                className="p-6 cursor-pointer hover:shadow-hand transition-all hover:-rotate-1"
-                rotation={index % 2 === 0 ? 0.5 : -0.5}
-                onClick={() => router.push(`/itinerary/${itinerary.id}`)}
+        {/* List */}
+        <section className="animate-fade-up mt-14" style={{ animationDelay: '0.1s' }}>
+          {isLoading ? (
+            <HandDrawnCard className="p-16 text-center">
+              <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
+              <p className="mt-4 text-sm text-[color:var(--ink-muted)]">Loading your adventures</p>
+            </HandDrawnCard>
+          ) : itineraries.length === 0 ? (
+            <HandDrawnCard className="p-16 text-center">
+              <p className="text-sm font-medium text-[color:var(--ink-muted)]">Nothing yet</p>
+              <h2 className="mt-3 font-heading text-4xl text-[color:var(--ink)]">
+                Your first <span className="italic">trip</span> awaits.
+              </h2>
+              <p className="mx-auto mt-3 max-w-sm text-[color:var(--ink-muted)]">
+                Describe a destination, a few dates, and a vibe — aSpot builds the rest.
+              </p>
+              <HandDrawnButton
+                onClick={() => setShowForm(true)}
+                variant="primary"
+                size="md"
+                className="mt-8 gap-2"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-heading text-foreground">{itinerary.title}</h3>
-                    <p className="text-foreground/70 font-body mt-2">
-                      📍 {itinerary.destination}
-                    </p>
-                    <p className="text-sm text-foreground/60 font-body mt-1">
-                      📅 {formatDate(itinerary.startDate)} - {formatDate(itinerary.endDate)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className={`px-3 py-1 text-xs border-2 border-wobbly-sm font-body ${statusColors[itinerary.status]}`}>
-                      {statusEmojis[itinerary.status]} {itinerary.status}
-                    </span>
-                    <div className="flex items-center gap-2">
+                Generate itinerary
+                <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+              </HandDrawnButton>
+            </HandDrawnCard>
+          ) : (
+            <div className="grid gap-4">
+              {itineraries.map((itinerary) => (
+                <HandDrawnCard
+                  key={itinerary.id}
+                  onClick={() => router.push(`/itinerary/${itinerary.id}`)}
+                  className="cursor-pointer p-6 hover:bg-white hover:shadow-[0_24px_48px_-22px_rgba(20,50,100,0.28)]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-xs font-medium capitalize ${statusStyles[itinerary.status] ?? statusStyles.draft}`}
+                        >
+                          {itinerary.status}
+                        </span>
+                      </div>
+                      <h3 className="mt-3 truncate font-heading text-3xl text-[color:var(--ink)]">
+                        {itinerary.title}
+                      </h3>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-[color:var(--ink-muted)]">
+                        <span className="inline-flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5" strokeWidth={2} />
+                          {itinerary.destination}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
+                          {formatDate(itinerary.startDate)} – {formatDate(itinerary.endDate)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
                       <button
                         onClick={(e) => handleDelete(e, itinerary.id)}
-                        className="text-red-500 hover:text-red-700 text-sm font-body px-2 py-1 border-2 border-red-500 hover:bg-red-50 transition-colors"
-                        title="Delete itinerary"
+                        aria-label="Delete itinerary"
+                        className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink-soft)] transition-all hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
                       >
-                        🗑️
+                        <Trash2 className="h-4 w-4" strokeWidth={2} />
                       </button>
-                      <span className="text-3xl">→</span>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink)]">
+                        <ArrowRight className="h-4 w-4" strokeWidth={2} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </HandDrawnCard>
-            ))}
-          </div>
-        )}
-      </div>
+                </HandDrawnCard>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }

@@ -2,8 +2,10 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, ArrowRight, Users } from 'lucide-react';
 import { InviteLink } from '@/components/trips/invite-link';
 import { MemberList } from '@/components/trips/member-list';
+import { AppNav } from '@/components/layout/app-nav';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 
@@ -37,14 +39,13 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     fetchTrip();
     fetchCurrentUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchTrip = async () => {
     try {
       const res = await fetch(`/api/trips/${id}`);
-      if (!res.ok) {
-        throw new Error('Failed to load trip');
-      }
+      if (!res.ok) throw new Error('Failed to load trip');
       const data = await res.json();
       setTrip(data.trip);
     } catch (err) {
@@ -73,10 +74,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role }),
       });
-
-      if (res.ok) {
-        fetchTrip();
-      }
+      if (res.ok) fetchTrip();
     } catch (err) {
       console.error('Failed to update role:', err);
     }
@@ -84,13 +82,8 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
   const handleRemoveMember = async (userId: string) => {
     try {
-      const res = await fetch(`/api/trips/${id}/members/${userId}`, {
-        method: 'DELETE',
-      });
-
-      if (res.ok) {
-        fetchTrip();
-      }
+      const res = await fetch(`/api/trips/${id}/members/${userId}`, { method: 'DELETE' });
+      if (res.ok) fetchTrip();
     } catch (err) {
       console.error('Failed to remove member:', err);
     }
@@ -98,88 +91,100 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
   const handleRegenerateCode = async () => {
     try {
-      const res = await fetch(`/api/trips/${id}/regenerate-code`, {
-        method: 'POST',
-      });
-
-      if (res.ok) {
-        fetchTrip();
-      }
+      const res = await fetch(`/api/trips/${id}/regenerate-code`, { method: 'POST' });
+      if (res.ok) fetchTrip();
     } catch (err) {
       console.error('Failed to regenerate code:', err);
     }
   };
 
-  const isOrganizer = trip?.members.some(
-    m => m.userId === currentUserId && m.role === 'organizer'
-  ) || false;
+  const isOrganizer =
+    trip?.members.some((m) => m.userId === currentUserId && m.role === 'organizer') ?? false;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <HandDrawnCard className="p-12 text-center">
-          <div className="animate-spin h-12 w-12 border-4 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-foreground/60 font-body">Loading trip...</p>
-        </HandDrawnCard>
+      <div className="relative min-h-screen">
+        <AppNav />
+        <main className="relative mx-auto max-w-2xl px-6 pt-40 pb-24">
+          <HandDrawnCard className="p-12 text-center">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
+            <p className="mt-4 text-sm text-[color:var(--ink-muted)]">Loading trip</p>
+          </HandDrawnCard>
+        </main>
       </div>
     );
   }
 
   if (error || !trip) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <HandDrawnCard className="p-12 text-center max-w-md">
-          <div className="text-6xl mb-4">😕</div>
-          <p className="text-foreground font-body text-lg mb-6">{error || 'Trip not found'}</p>
-          <HandDrawnButton
-            onClick={() => router.push('/trips')}
-            variant="accent"
-          >
-            ← Back to trips
-          </HandDrawnButton>
-        </HandDrawnCard>
+      <div className="relative min-h-screen">
+        <AppNav />
+        <main className="relative mx-auto max-w-xl px-6 pt-40 pb-24">
+          <HandDrawnCard className="p-10 text-center">
+            <p className="text-sm font-medium text-rose-600">Something went wrong</p>
+            <h2 className="mt-3 font-heading text-3xl text-[color:var(--ink)]">
+              {error || 'Trip not found'}
+            </h2>
+            <HandDrawnButton
+              onClick={() => router.push('/trips')}
+              variant="primary"
+              size="md"
+              className="mt-8"
+            >
+              Back to trips
+            </HandDrawnButton>
+          </HandDrawnCard>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        <HandDrawnButton
-          onClick={() => router.push('/trips')}
-          variant="secondary"
-          size="sm"
-          className="mb-6"
-        >
-          ← Back to trips
-        </HandDrawnButton>
+    <div className="relative min-h-screen">
+      <AppNav />
 
-        <HandDrawnCard decoration="tape" className="p-6 mb-6">
-          <div className="flex items-start justify-between mb-6">
+      <main className="relative mx-auto max-w-3xl px-6 pt-32 pb-24">
+        <button
+          onClick={() => router.push('/trips')}
+          className="mb-6 inline-flex items-center gap-2 text-sm text-[color:var(--ink-muted)] transition-colors hover:text-[color:var(--ink)]"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
+          Back to trips
+        </button>
+
+        {/* Header card */}
+        <HandDrawnCard className="animate-fade-up mb-6 p-7">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-heading text-foreground">{trip.name}</h1>
-              <p className="text-foreground/70 font-body mt-2">
-                👥 {trip.members.length} member{trip.members.length !== 1 ? 's' : ''}
+              <p className="inline-flex items-center gap-2 text-sm font-medium text-[color:var(--ink-muted)]">
+                <Users className="h-3.5 w-3.5" strokeWidth={2} />
+                {trip.members.length} member{trip.members.length !== 1 ? 's' : ''}
               </p>
+              <h1 className="mt-2 font-heading text-5xl leading-[1] text-[color:var(--ink)]">
+                {trip.name}
+              </h1>
             </div>
             <HandDrawnButton
               onClick={() => router.push(`/itinerary/${trip.itineraryId}`)}
-              variant="accent"
+              variant="primary"
               size="sm"
+              className="gap-2"
             >
-              View Itinerary
+              View itinerary
+              <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
             </HandDrawnButton>
           </div>
 
           {isOrganizer && (
-            <InviteLink
-              inviteCode={trip.inviteCode}
-              onRegenerate={handleRegenerateCode}
-            />
+            <div className="mt-6 border-t border-[color:var(--border)] pt-6">
+              <InviteLink inviteCode={trip.inviteCode} onRegenerate={handleRegenerateCode} />
+            </div>
           )}
         </HandDrawnCard>
 
-        <HandDrawnCard decoration="tack" className="p-6">
+        {/* Members */}
+        <HandDrawnCard className="animate-fade-up p-7" style={{ animationDelay: '0.1s' }}>
+          <p className="mb-5 text-sm font-medium text-[color:var(--ink-muted)]">Members</p>
           <MemberList
             members={trip.members}
             currentUserId={currentUserId}
@@ -188,7 +193,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
             onRemove={handleRemoveMember}
           />
         </HandDrawnCard>
-      </div>
+      </main>
     </div>
   );
 }
