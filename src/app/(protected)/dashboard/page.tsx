@@ -1,12 +1,16 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AppNav } from '@/components/layout/app-nav';
-import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
-import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { ItinerarySearch } from '@/components/itinerary/itinerary-search';
-import { PromoChip } from '@/components/ui/promo-chip';
-import { ArrowRight, ClipboardList, Map, CheckCircle2, AlertCircle } from 'lucide-react';
+import { CoverVideo } from '@/components/landing/cover-video';
+import { FloatingHint } from '@/components/dashboard/floating-hint';
+
+// Matches the text-shadow stack on the landing hero so the two screens read
+// as a continuous experience.
+const TEXT_SHADOW_HERO =
+  '[text-shadow:0_2px_4px_rgba(10,30,60,0.35),0_8px_32px_rgba(10,30,60,0.45)]';
+const TEXT_SHADOW_BODY =
+  '[text-shadow:0_1px_3px_rgba(10,30,60,0.45),0_4px_16px_rgba(10,30,60,0.35)]';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -35,117 +39,94 @@ export default async function DashboardPage() {
 
   return (
     <div className="relative min-h-screen">
-      <AppNav />
+      {/* Hero section with full-bleed video background */}
+      <section className="relative min-h-screen overflow-hidden text-white">
+        <CoverVideo
+          src="/cover2.mp4"
+          poster="/cover2-poster.jpg"
+          vignette={0.35}
+        />
 
-      <main className="relative mx-auto max-w-5xl px-6 pt-36 pb-24">
-        {/* Hero */}
-        <section className="animate-fade-up text-center">
-          <PromoChip>Your travel desk</PromoChip>
-          <h1 className="mt-6 font-heading text-6xl leading-[0.95] tracking-tight text-[color:var(--ink)] md:text-7xl">
-            Welcome back
-            {firstName ? (
-              <>
-                , <span className="italic">{firstName}</span>
-              </>
-            ) : null}
-            .
-          </h1>
-          <p className="mx-auto mt-5 max-w-lg text-base text-[color:var(--ink-muted)] md:text-lg">
-            Where are we going next? Describe a trip, tweak your style, or revisit your plans.
-          </p>
-        </section>
+        {/* Soft radial scrim centered on the hero text so copy stays legible */}
+        <div
+          className="pointer-events-none absolute inset-0 z-[1]"
+          aria-hidden
+          style={{
+            background:
+              'radial-gradient(60% 45% at 50% 55%, rgba(10,25,55,0.38) 0%, rgba(10,25,55,0.15) 55%, transparent 80%)',
+          }}
+        />
 
-        {/* Prompt-style search */}
-        <section className="animate-fade-up mt-12" style={{ animationDelay: '0.1s' }}>
-          <ItinerarySearch />
-        </section>
+        <div className="relative z-10">
+          <AppNav tone="light" />
+        </div>
 
-        {/* Quick actions */}
-        <section
-          className="animate-fade-up mt-10 grid gap-5 md:grid-cols-2"
-          style={{ animationDelay: '0.2s' }}
-        >
-          <HandDrawnCard className="p-7">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-soft)]">
-                {hasCompletedQuiz ? (
-                  <CheckCircle2 className="h-5 w-5 text-[color:var(--accent)]" strokeWidth={2} />
-                ) : (
-                  <ClipboardList className="h-5 w-5 text-[color:var(--ink)]" strokeWidth={2} />
-                )}
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-[color:var(--ink-muted)]">
-                  {hasCompletedQuiz ? 'Complete' : 'Step 1'}
-                </p>
-                <h3 className="mt-1 font-heading text-2xl text-[color:var(--ink)]">
-                  Travel personality quiz
-                </h3>
-                <p className="mt-1 text-sm text-[color:var(--ink-muted)]">
-                  {hasCompletedQuiz
-                    ? 'Your preferences are saved and shape every itinerary.'
-                    : 'A two-minute quiz so aSpot learns how you like to travel.'}
-                </p>
-                <Link href="/quiz" className="mt-5 inline-block">
-                  <HandDrawnButton
-                    variant={hasCompletedQuiz ? 'secondary' : 'primary'}
-                    size="sm"
-                    className="gap-2"
-                  >
-                    {hasCompletedQuiz ? 'Retake quiz' : 'Start quiz'}
-                    <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
-                  </HandDrawnButton>
-                </Link>
-              </div>
+        {/* Floating hint bubbles — appear out of the clouds */}
+        <FloatingHint
+          position={{ top: '26%', left: '11%' }}
+          rotate={-2}
+          appearDelay={1200}
+          expandAfter={1600}
+          message={
+            hasCompletedQuiz
+              ? 'Want to update your travel personality?'
+              : 'Psst… want a quick personality quiz so I plan smarter?'
+          }
+          cta={hasCompletedQuiz ? 'Retake the quiz' : 'Take the quiz'}
+          href="/quiz"
+        />
+
+        <FloatingHint
+          position={{ bottom: '22%', right: '9%' }}
+          rotate={2}
+          appearDelay={2200}
+          expandAfter={1800}
+          message="Peek at the trips you've already dreamed up."
+          cta="Open my itineraries"
+          href="/itinerary"
+        />
+
+        <div className="pointer-events-none relative z-10 mx-auto flex min-h-screen flex-col items-center justify-center px-6 pt-16 pb-32 text-center">
+          <div className="pointer-events-auto flex w-full max-w-xl flex-col items-center">
+            <p
+              className={`animate-fade-up text-sm font-semibold tracking-wide text-white ${TEXT_SHADOW_BODY}`}
+              style={{ animationDelay: '0.05s' }}
+            >
+              Your travel desk
+            </p>
+
+            <h1
+              className={`animate-fade-up mt-5 font-heading text-5xl leading-[1.05] tracking-tight text-white md:text-7xl ${TEXT_SHADOW_HERO}`}
+              style={{ animationDelay: '0.15s' }}
+            >
+              Welcome back
+              {firstName ? (
+                <>
+                  ,<br />
+                  <span className="italic">{firstName}</span>.
+                </>
+              ) : (
+                '.'
+              )}
+            </h1>
+
+            <p
+              className={`animate-fade-up mt-6 text-base font-medium leading-relaxed text-white md:text-lg ${TEXT_SHADOW_BODY}`}
+              style={{ animationDelay: '0.25s' }}
+            >
+              Where are we going next? Describe a trip, tweak your style, or
+              revisit your plans.
+            </p>
+
+            <div
+              className="animate-fade-up mt-10 w-full"
+              style={{ animationDelay: '0.35s' }}
+            >
+              <ItinerarySearch tone="light" />
             </div>
-          </HandDrawnCard>
-
-          <HandDrawnCard className="p-7">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-soft)]">
-                <Map className="h-5 w-5 text-[color:var(--ink)]" strokeWidth={2} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-[color:var(--ink-muted)]">My itineraries</p>
-                <h3 className="mt-1 font-heading text-2xl text-[color:var(--ink)]">
-                  Every trip, in one place
-                </h3>
-                <p className="mt-1 text-sm text-[color:var(--ink-muted)]">
-                  Review, edit, and manage the trips you&rsquo;ve already planned.
-                </p>
-                <Link href="/itinerary" className="mt-5 inline-block">
-                  <HandDrawnButton variant="secondary" size="sm" className="gap-2">
-                    View itineraries
-                    <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
-                  </HandDrawnButton>
-                </Link>
-              </div>
-            </div>
-          </HandDrawnCard>
-        </section>
-
-        {!hasCompletedQuiz && (
-          <section className="animate-fade-up mt-8" style={{ animationDelay: '0.3s' }}>
-            <HandDrawnCard variant="post-it" className="p-6">
-              <div className="flex items-start gap-4">
-                <AlertCircle
-                  className="mt-0.5 h-6 w-6 shrink-0 text-[color:var(--ink)]"
-                  strokeWidth={2}
-                />
-                <div>
-                  <h4 className="font-heading text-xl text-[color:var(--ink)]">
-                    Finish your travel profile
-                  </h4>
-                  <p className="mt-1 text-sm text-[color:var(--ink-muted)]">
-                    Complete the quiz so every itinerary reflects your pace, budget, and
-                    interests from the first plan.
-                  </p>
-                </div>
-              </div>
-            </HandDrawnCard>
-          </section>
-        )}
-      </main>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

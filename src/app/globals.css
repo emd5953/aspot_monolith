@@ -197,6 +197,44 @@ body {
   animation: spin-slow 8s linear infinite;
 }
 
+/* ——— Floating hint bubble animations ——— */
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-float-in {
+  animation: float-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pop-open {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animate-pop-open {
+  animation: pop-open 0.55s cubic-bezier(0.18, 1.25, 0.4, 1) forwards;
+  transform-origin: bottom left;
+}
+
+@keyframes dot-bob {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.7; }
+  30%           { transform: translateY(-3px); opacity: 1; }
+}
+
+/* Cutesy hover bop on the hint cards. Triggered from React state via the
+   `animate-bop` class (not a hover pseudo) because the parent wrapper has a
+   rotate transform that makes CSS :hover unreliable. */
+@keyframes bop {
+  0%   { transform: translateY(0) scale(1); }
+  25%  { transform: translateY(-7px) scale(1.03); }
+  50%  { transform: translateY(-2px) scale(1.015); }
+  75%  { transform: translateY(-5px) scale(1.025); }
+  100% { transform: translateY(0) scale(1); }
+}
+.animate-bop {
+  animation: bop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+
 /* ——— Focus ring ——— */
 :focus-visible {
   outline: none;
