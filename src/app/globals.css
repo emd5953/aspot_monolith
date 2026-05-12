@@ -235,6 +235,15 @@ body {
   animation: bop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
 }
 
+/* Auth popover entrance — small origin scale + opacity */
+@keyframes popover-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-popover-in {
+  animation: popover-in 0.22s cubic-bezier(0.18, 1.25, 0.4, 1) forwards;
+}
+
 /* ——— Focus ring ——— */
 :focus-visible {
   outline: none;

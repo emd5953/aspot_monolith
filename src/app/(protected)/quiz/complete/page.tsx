@@ -15,7 +15,7 @@ export default async function QuizCompletePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect('/login');
+  if (!user) redirect('/');
 
   const preferences = await getUserPreferences(supabase, user.id);
   if (!preferences) redirect('/quiz');

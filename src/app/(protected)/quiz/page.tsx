@@ -8,7 +8,7 @@ export default async function QuizPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/login');
+    redirect('/');
   }
 
   // Always start fresh - quiz is for updating preferences

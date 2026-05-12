@@ -1,29 +1,28 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 
+interface SkyPromptProps {
+  /**
+   * Called when the user submits a prompt while unauthed. The parent can
+   * stash the prompt and open the signup popover (in-place), rather than
+   * navigating away from the landing page.
+   */
+  onSubmit: (value: string) => void;
+}
+
 /**
- * Landing-hero prompt input. Designed to sit on a photo background:
- * frosty white pill, no harsh borders, warm placeholder copy.
- * On submit, stashes the prompt and routes to signup so it can seed
- * the first itinerary post-auth.
+ * Landing-hero prompt input. Frosty white pill on the sky photo.
  */
-export function SkyPrompt() {
-  const router = useRouter();
+export function SkyPrompt({ onSubmit }: SkyPromptProps) {
   const [value, setValue] = useState('');
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const trimmed = value.trim();
     if (!trimmed) return;
-    try {
-      sessionStorage.setItem('aspot:pending-prompt', trimmed);
-    } catch {
-      /* sessionStorage can be unavailable (private mode, etc.) — ignore. */
-    }
-    router.push('/signup');
+    onSubmit(trimmed);
   };
 
   return (

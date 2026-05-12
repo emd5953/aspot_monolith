@@ -1,12 +1,90 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Pencil } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { getPreferences } from '@/lib/preferences/preferences-service';
+import { getArchetype } from '@/lib/preferences/archetype';
 import { AppNav } from '@/components/layout/app-nav';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
-import { PromoChip } from '@/components/ui/promo-chip';
+
+// Human-readable labels for the raw preference values stored in the DB.
+const LABELS: Record<string, Record<string, string>> = {
+  planningStyle: {
+    hyper_planner: 'Plans every minute',
+    structured_flexible: 'Loose plan, room to roam',
+    loose_framework: 'Just a few anchors',
+    pure_spontaneous: 'Pure improv',
+  },
+  authenticityPreference: {
+    authentic_local: 'Off the tourist trail',
+    balanced: 'Mix of both',
+    popular_spots: 'The classics',
+  },
+  timeRhythm: {
+    early_bird: 'Up with the sun',
+    steady_daytime: 'Daytime steady',
+    afternoon_evening: 'Afternoons and evenings',
+    night_owl: 'A night person',
+  },
+  budgetRange: {
+    budget: 'Budget-friendly',
+    moderate: 'Mid-range',
+    luxury: 'Luxury',
+  },
+  travelPace: {
+    relaxed: 'Relaxed',
+    moderate: 'Balanced',
+    packed: 'Action-packed',
+  },
+  socialPreferences: {
+    solo: 'Solo',
+    couple: 'With a partner',
+    small_group: 'Small group',
+    large_group: 'Large group',
+  },
+};
+
+const TAG_LABELS: Record<string, string> = {
+  // motivations
+  adventure: 'Adventure',
+  culture: 'Culture',
+  food: 'Food',
+  relaxation: 'Relaxation',
+  nature: 'Nature',
+  nightlife: 'Nightlife',
+  shopping: 'Shopping',
+  history: 'History',
+  photography: 'Photography',
+  wellness: 'Wellness',
+  // activities
+  hiking: 'Hiking',
+  museums: 'Museums',
+  beaches: 'Beaches',
+  sports: 'Sports',
+  concerts: 'Concerts',
+  cooking: 'Cooking',
+  yoga: 'Yoga',
+  diving: 'Diving',
+  // cuisines
+  italian: 'Italian',
+  japanese: 'Japanese',
+  mexican: 'Mexican',
+  french: 'French',
+  thai: 'Thai',
+  indian: 'Indian',
+  mediterranean: 'Mediterranean',
+  korean: 'Korean',
+  vietnamese: 'Vietnamese',
+  american: 'American',
+  street_food: 'Street food',
+  fine_dining: 'Fine dining',
+};
+
+const prettify = (value: string) =>
+  value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -14,7 +92,7 @@ export default async function ProfilePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect('/login');
+  if (!user) redirect('/');
 
   const preferences = await getPreferences(supabase, user.id);
   if (!preferences) redirect('/quiz');
@@ -25,143 +103,203 @@ export default async function ProfilePage() {
     .eq('id', user.id)
     .single();
 
-  const initial =
-    profile?.display_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? '?';
+  const displayName = profile?.display_name || 'Traveler';
+  const initial = displayName[0]?.toUpperCase() ?? '?';
+  const archetype = getArchetype(preferences);
 
   return (
     <div className="relative min-h-screen">
       <AppNav />
 
       <main className="relative mx-auto max-w-3xl px-6 pt-32 pb-24">
-        <section className="animate-fade-up">
-          <PromoChip>Your profile</PromoChip>
-          <h1 className="mt-5 font-heading text-6xl leading-[0.95] text-[color:var(--ink)] md:text-7xl">
-            Travel <span className="italic">profile</span>.
-          </h1>
-          <p className="mt-4 max-w-md text-base text-[color:var(--ink-muted)]">
-            The preferences powering every itinerary we build for you.
-          </p>
-        </section>
+        {/* Passport-style hero */}
+        <HandDrawnCard className="animate-fade-up overflow-hidden p-0">
+          {/* Top band — archetype banner */}
+          <div className="relative bg-gradient-to-br from-[color:var(--sky-top)] via-white to-[color:var(--sky-mid)] px-8 pt-8 pb-7">
+            <p className="text-sm font-medium text-[color:var(--ink-muted)]">
+              Travel passport
+            </p>
+            <div className="mt-2 flex items-center gap-3">
+              <span className="text-4xl leading-none">{archetype.emoji}</span>
+              <h1 className="font-heading text-4xl leading-[1.05] text-[color:var(--ink)] md:text-5xl">
+                {archetype.title}
+              </h1>
+            </div>
+            <p className="mt-3 max-w-lg text-base italic text-[color:var(--ink-muted)]">
+              {archetype.bio}
+            </p>
+          </div>
 
-        {/* Identity */}
-        <HandDrawnCard
-          className="animate-fade-up mt-10 p-7"
+          {/* Identity row */}
+          <div className="flex flex-wrap items-center justify-between gap-5 border-y border-[color:var(--border)] px-8 py-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color:var(--border)] bg-white font-heading text-2xl text-[color:var(--ink)]">
+                {profile?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={profile.avatar_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  initial
+                )}
+              </div>
+              <div className="min-w-0">
+                <h2 className="truncate font-heading text-2xl text-[color:var(--ink)]">
+                  {displayName}
+                </h2>
+                {profile?.username && (
+                  <p className="text-sm text-[color:var(--ink-muted)]">
+                    @{profile.username}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <Link href="/profile/edit">
+              <HandDrawnButton variant="secondary" size="sm" className="gap-2">
+                <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                Edit
+              </HandDrawnButton>
+            </Link>
+          </div>
+
+          {/* Traits grid */}
+          <div className="grid gap-0 divide-y divide-[color:var(--border)] md:grid-cols-2 md:divide-y-0 md:divide-x">
+            <TraitCell
+              label="Planning style"
+              value={LABELS.planningStyle[preferences.planningStyle] ?? prettify(preferences.planningStyle)}
+            />
+            <TraitCell
+              label="Authenticity"
+              value={
+                LABELS.authenticityPreference[preferences.authenticityPreference] ??
+                prettify(preferences.authenticityPreference)
+              }
+            />
+          </div>
+          <div className="grid gap-0 divide-y divide-[color:var(--border)] border-t border-[color:var(--border)] md:grid-cols-3 md:divide-y-0 md:divide-x">
+            <TraitCell
+              label="Pace"
+              value={LABELS.travelPace[preferences.travelPace] ?? prettify(preferences.travelPace)}
+            />
+            <TraitCell
+              label="Budget"
+              value={LABELS.budgetRange[preferences.budgetRange] ?? prettify(preferences.budgetRange)}
+            />
+            <TraitCell
+              label="Travels with"
+              value={
+                LABELS.socialPreferences[preferences.socialPreferences] ??
+                prettify(preferences.socialPreferences)
+              }
+            />
+          </div>
+
+          {/* Comfort-zone meter */}
+          <div className="border-t border-[color:var(--border)] px-8 py-6">
+            <div className="flex items-baseline justify-between">
+              <p className="text-sm font-medium text-[color:var(--ink-muted)]">
+                Comfort zone
+              </p>
+              <p className="font-heading text-lg text-[color:var(--ink)]">
+                {preferences.comfortZone}
+                <span className="text-[color:var(--ink-soft)]"> / 10</span>
+              </p>
+            </div>
+            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[color:var(--surface-soft)]">
+              <div
+                className="h-full rounded-full bg-[color:var(--accent)]"
+                style={{ width: `${preferences.comfortZone * 10}%` }}
+              />
+            </div>
+            <div className="mt-2 flex justify-between text-xs text-[color:var(--ink-soft)]">
+              <span>Familiar &amp; comfortable</span>
+              <span>Bring on the unknown</span>
+            </div>
+          </div>
+        </HandDrawnCard>
+
+        {/* Tag collections */}
+        <section
+          className="animate-fade-up mt-5 grid gap-5 md:grid-cols-3"
           style={{ animationDelay: '0.1s' }}
         >
-          <div className="flex items-center gap-5">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface-soft)] font-heading text-2xl text-[color:var(--ink)]">
-              {initial}
-            </div>
-            <div className="min-w-0">
-              <h2 className="truncate font-heading text-3xl text-[color:var(--ink)]">
-                {profile?.display_name || 'Traveler'}
-              </h2>
-              {profile?.username && (
-                <p className="text-sm text-[color:var(--ink-muted)]">@{profile.username}</p>
-              )}
-              <p className="truncate text-sm text-[color:var(--ink-soft)]">{user.email}</p>
-            </div>
-          </div>
-        </HandDrawnCard>
+          <TagPanel
+            title="Motivated by"
+            items={preferences.travelMotivations}
+            empty="Nothing chosen yet"
+          />
+          <TagPanel
+            title="Loves"
+            items={preferences.activityTypes}
+            empty="No activities yet"
+          />
+          <TagPanel
+            title="Eats"
+            items={preferences.cuisinePreferences}
+            empty="No cuisines yet"
+          />
+        </section>
 
-        {/* Preferences */}
-        <HandDrawnCard
-          className="animate-fade-up mt-5 p-7"
-          style={{ animationDelay: '0.2s' }}
+        {/* Footer actions */}
+        <div
+          className="animate-fade-up mt-8 flex flex-wrap justify-center gap-3"
+          style={{ animationDelay: '0.15s' }}
         >
-          <div className="grid gap-8">
-            <ProfileSection title="Travel personality">
-              <ProfileItem
-                label="Planning style"
-                value={preferences.planningStyle?.replace('_', ' ') || 'balanced'}
-              />
-              <ProfileItem
-                label="Authenticity preference"
-                value={preferences.authenticityPreference?.replace('_', ' ') || 'balanced'}
-              />
-              <ProfileItem
-                label="Time rhythm"
-                value={preferences.timeRhythm?.replace('_', ' ') || 'daytime'}
-              />
-              <ProfileItem
-                label="Comfort zone"
-                value={`${preferences.comfortZone || 5}/10`}
-              />
-            </ProfileSection>
-
-            <ProfileSection title="Travel motivations">
-              <ProfileTags items={preferences.travelMotivations || []} />
-            </ProfileSection>
-
-            <ProfileSection title="Budget & pace">
-              <ProfileItem label="Budget" value={preferences.budgetRange} />
-              <ProfileItem label="Travel pace" value={preferences.travelPace} />
-              <ProfileItem
-                label="Social style"
-                value={preferences.socialPreferences?.replace('_', ' ') || 'couple'}
-              />
-            </ProfileSection>
-
-            <ProfileSection title="Food preferences">
-              <ProfileTags items={preferences.cuisinePreferences} />
-            </ProfileSection>
-
-            <ProfileSection title="Activities">
-              <ProfileTags items={preferences.activityTypes} />
-            </ProfileSection>
-          </div>
-
-          <div className="mt-10 flex flex-wrap gap-3 border-t border-[color:var(--border)] pt-6">
-            <Link href="/profile/edit">
-              <HandDrawnButton variant="primary" size="sm" className="gap-2">
-                Edit profile
-                <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
-              </HandDrawnButton>
-            </Link>
-            <Link href="/quiz">
-              <HandDrawnButton variant="secondary" size="sm">
-                Retake quiz
-              </HandDrawnButton>
-            </Link>
-          </div>
-        </HandDrawnCard>
+          <Link href="/profile/edit">
+            <HandDrawnButton variant="primary" size="md" className="gap-2">
+              Tweak preferences
+              <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </HandDrawnButton>
+          </Link>
+          <Link href="/quiz">
+            <HandDrawnButton variant="secondary" size="md">
+              Retake quiz
+            </HandDrawnButton>
+          </Link>
+        </div>
       </main>
     </div>
   );
 }
 
-function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) {
+function TraitCell({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <p className="mb-3 text-sm font-medium text-[color:var(--ink-muted)]">{title}</p>
-      <div className="space-y-2.5">{children}</div>
+    <div className="px-8 py-5">
+      <p className="text-xs font-medium text-[color:var(--ink-soft)]">{label}</p>
+      <p className="mt-1 font-heading text-xl text-[color:var(--ink)]">{value}</p>
     </div>
   );
 }
 
-function ProfileItem({ label, value }: { label: string; value: string }) {
+function TagPanel({
+  title,
+  items,
+  empty,
+}: {
+  title: string;
+  items: string[];
+  empty: string;
+}) {
   return (
-    <div className="flex items-baseline justify-between gap-4">
-      <span className="text-sm text-[color:var(--ink-muted)]">{label}</span>
-      <span className="font-heading text-xl capitalize text-[color:var(--ink)]">{value}</span>
-    </div>
-  );
-}
-
-function ProfileTags({ items }: { items: string[] }) {
-  if (!items || items.length === 0) {
-    return <span className="text-sm text-[color:var(--ink-soft)]">None selected</span>;
-  }
-  return (
-    <div className="flex flex-wrap gap-2">
-      {items.map((item) => (
-        <span
-          key={item}
-          className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs capitalize text-[color:var(--ink)]"
-        >
-          {item.replace('_', ' ')}
-        </span>
-      ))}
-    </div>
+    <HandDrawnCard className="p-5">
+      <p className="text-sm font-medium text-[color:var(--ink-muted)]">{title}</p>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {items.length === 0 ? (
+          <span className="text-sm italic text-[color:var(--ink-soft)]">{empty}</span>
+        ) : (
+          items.map((item) => (
+            <span
+              key={item}
+              className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-soft)] px-2.5 py-1 text-xs text-[color:var(--ink)]"
+            >
+              {TAG_LABELS[item] ?? prettify(item)}
+            </span>
+          ))
+        )}
+      </div>
+    </HandDrawnCard>
   );
 }
