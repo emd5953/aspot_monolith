@@ -193,7 +193,7 @@ Reddit provides insights you can't get anywhere else:
 - Google Search: ~70% success
 - Reddit: ~60% success (but high value)
 - Eventbrite: ~50% success
-- Yelp: ~0% (blocked by Firecrawl)
+- Yelp: ~0% (blocked by Tavily)
 
 ## Future Improvements
 

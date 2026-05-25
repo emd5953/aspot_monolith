@@ -365,8 +365,8 @@ OPENAI_API_KEY=
 # Google Maps
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 
-# Firecrawl (for web scraping)
-FIRECRAWL_API_KEY=
+# Tavily (for web scraping)
+TAVILY_API_KEY=
 
 # Optional
 FAST_MODE=true  # Enable fast mode by default
@@ -404,7 +404,7 @@ FAST_MODE=true  # Enable fast mode by default
 ### Requirements
 - Node.js 18+
 - PostgreSQL (via Supabase)
-- External APIs: OpenAI, Google Maps, Firecrawl
+- External APIs: OpenAI, Google Maps, Tavily
 
 ---
 

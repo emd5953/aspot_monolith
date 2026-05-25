@@ -76,7 +76,10 @@ export function ItinerarySearch({ tone = 'default' }: ItinerarySearchProps) {
       {isGenerating && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[color:var(--ink)]/50 p-4 backdrop-blur-md">
           <div className="w-full max-w-md">
-            <KanyeQuotes destination={submittedPrompt} />
+            {/* Don't pass destination — the prompt flow doesn't know the parsed
+                city yet, and showing the raw prompt looks weird. The component
+                handles undefined gracefully with default fun facts. */}
+            <KanyeQuotes />
           </div>
         </div>
       )}

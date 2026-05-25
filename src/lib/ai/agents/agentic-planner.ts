@@ -333,16 +333,23 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
   const dayPromises = Array.from({ length: tripDays }, (_, i) => {
     const dayNumber = i + 1;
     const theme = strategy.dayThemes[i] || `Day ${dayNumber}`;
-    
+
+    // Compute the calendar date for this day so all downstream consumers
+    // (DB persistence, email, UI) see the right value. Previously this was
+    // always set to today, which meant Day 1 and Day 2 shared the same date.
+    const dayDate = new Date(startDate);
+    dayDate.setDate(dayDate.getDate() + i);
+    const dayDateIso = dayDate.toISOString().split('T')[0];
+
     thoughts.push(`  Day ${dayNumber}: ${theme}`);
-    
+
     // Create a shared set for tracking (won't prevent duplicates across parallel days, but better than nothing)
     const usedItems = new Set<string>();
-    
+
     return buildDayWithReasoning(
       dayNumber,
       theme,
-      research.destination, // ADD THIS
+      research.destination,
       {
         attractions: research.attractions,
         restaurants: research.restaurants,
@@ -358,7 +365,8 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
       };
       reasoningSteps.push(step);
       reasoning.forEach(r => thoughts.push(`    💭 ${r}`));
-      return day;
+      // Stamp the correct date now that the day has been built.
+      return { ...day, date: dayDateIso };
     });
   });
 

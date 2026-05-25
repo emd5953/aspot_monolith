@@ -127,7 +127,7 @@ export function scoreAttraction(
   const tierGap = Math.abs(priceTier(attraction.priceRange) - preferredTier(prefs.budgetRange));
   score -= tierGap * 4;
 
-  // Rating bonus (Firecrawl sometimes returns this)
+  // Rating bonus (research sometimes returns this)
   if (typeof attraction.rating === 'number') score += attraction.rating * 2;
 
   return score;

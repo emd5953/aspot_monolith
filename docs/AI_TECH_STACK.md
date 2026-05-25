@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI agents use a modern, modular stack built on Vercel's AI SDK with OpenAI models and Firecrawl for web scraping.
+The AI agents use a modern, modular stack built on Vercel's AI SDK with OpenAI models and Tavily for web scraping.
 
 ## Core Technologies
 
@@ -39,9 +39,9 @@ The AI agents use a modern, modular stack built on Vercel's AI SDK with OpenAI m
 - Quick generation: Fast mode itineraries
 ```
 
-### 3. **Firecrawl API** (v1)
+### 3. **Tavily API** (v1)
 - **Purpose:** Web scraping as a service
-- **Endpoint:** `https://api.firecrawl.dev/v1/scrape`
+- **Endpoint:** `https://api.tavily.dev/v1/scrape`
 - **Features:**
   - Converts web pages to clean markdown
   - Handles JavaScript rendering
@@ -79,7 +79,7 @@ The AI agents use a modern, modular stack built on Vercel's AI SDK with OpenAI m
 └──────────┘  └──────────┘  └──────────┘
      │             │             │
      ▼             ▼             ▼
-  Firecrawl    GPT-4o        GPT-4o
+  Tavily    GPT-4o        GPT-4o
   + GPT-4o    (Strategy)   (Validation)
 ```
 
@@ -90,7 +90,7 @@ The AI agents use a modern, modular stack built on Vercel's AI SDK with OpenAI m
 // File: src/lib/ai/agents/agentic-researcher.ts
 Model: GPT-4o
 Temperature: 0.7 (creative but focused)
-Tools: Firecrawl API
+Tools: Tavily API
 
 Responsibilities:
 - Creates research plan based on preferences
@@ -194,8 +194,8 @@ Fast Mode:
 
 Credible Mode:
   1. Intent Analysis (GPT-4o-mini)
-  2. Agentic Researcher (GPT-4o + Firecrawl)
-  3. Targeted Event Scraping (Firecrawl)
+  2. Agentic Researcher (GPT-4o + Tavily)
+  3. Targeted Event Scraping (Tavily)
   4. Synthesis (GPT-4o)
   Total: 20-30s
 ```
@@ -213,7 +213,7 @@ Credible Mode:
 
 ## Web Scraping Sources
 
-### Primary Sources (via Firecrawl)
+### Primary Sources (via Tavily)
 
 1. **TripAdvisor**
    - Attractions with ratings
@@ -246,8 +246,8 @@ Credible Mode:
 # OpenAI (Required)
 OPENAI_API_KEY=sk-...
 
-# Firecrawl (Required for credible mode)
-FIRECRAWL_API_KEY=fc-...
+# Tavily (Required for credible mode)
+TAVILY_API_KEY=fc-...
 
 # Google Maps (Optional, for map display)
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...
@@ -273,7 +273,7 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...
 - Generation: ~$0.002 (GPT-4o-mini, 1K tokens)
 - **Total: ~$0.002 per day**
 
-### Firecrawl Costs
+### Tavily Costs
 
 - ~$0.01 per page scraped
 - Typical research: 3-5 pages
@@ -309,7 +309,7 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...
 - ✅ Better at structured output
 - ✅ Multimodal (future: image analysis)
 
-### Why Firecrawl over Puppeteer?
+### Why Tavily over Puppeteer?
 - ✅ No infrastructure to manage
 - ✅ Handles anti-scraping automatically
 - ✅ Clean markdown output
@@ -333,7 +333,7 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...
 
 2. **Perplexity API**
    - Real-time web search
-   - Better than Firecrawl for some queries
+   - Better than Tavily for some queries
    - Built-in citations
 
 3. **LangChain**
@@ -368,14 +368,14 @@ const result = await generateText({
 console.log(result.text);
 ```
 
-### Using Firecrawl
+### Using Tavily
 
 ```typescript
-const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+const response = await fetch('https://api.tavily.dev/v1/scrape', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+    'Authorization': `Bearer ${TAVILY_API_KEY}`,
   },
   body: JSON.stringify({
     url: 'https://example.com',
@@ -411,7 +411,7 @@ cp .env.local.example .env.local
 
 # Add your keys
 OPENAI_API_KEY=sk-...
-FIRECRAWL_API_KEY=fc-...
+TAVILY_API_KEY=fc-...
 
 # Run dev server
 npm run dev

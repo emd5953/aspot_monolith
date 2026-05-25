@@ -83,7 +83,7 @@ User prompt → Research Agent → Web scraping (TripAdvisor, Google Maps, etc.)
 - Mode is saved in activity notes for tracking
 
 **Error Handling:**
-- If Firecrawl API fails, falls back to fast mode
+- If Tavily API fails, falls back to fast mode
 - If web scraping returns no data, falls back to fast mode
 - User sees seamless experience even if fallback occurs
 
@@ -101,11 +101,11 @@ To test:
 
 For credible mode to work:
 ```env
-FIRECRAWL_API_KEY=your-api-key
+TAVILY_API_KEY=your-api-key
 OPENAI_API_KEY=your-api-key
 ```
 
-Without Firecrawl, credible mode automatically falls back to fast mode.
+Without Tavily, credible mode automatically falls back to fast mode.
 
 ## Performance Impact
 

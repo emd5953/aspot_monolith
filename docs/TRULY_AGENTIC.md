@@ -145,7 +145,7 @@ Total Reasoning Steps: 23
 AgenticOrchestrator
 ├── AgenticResearcher
 │   ├── createResearchPlan() - Decides what to scrape
-│   ├── scrapeWithFirecrawl() - Executes scraping
+│   ├── scrapeWithTavily() - Executes scraping
 │   ├── evaluateDataQuality() - Checks if sufficient
 │   └── adaptiveScraping() - Gets more data if needed
 ├── AgenticPlanner

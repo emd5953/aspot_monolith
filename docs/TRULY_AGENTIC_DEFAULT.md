@@ -36,7 +36,7 @@ Truly Agentic mode is now the default AI generation mode across the application,
 
 ### Truly Agentic Mode Includes:
 - ✅ Full reasoning chains (visible in logs)
-- ✅ Web research via Firecrawl
+- ✅ Web research via Tavily
 - ✅ Adaptive quality stopping
 - ✅ Multi-agent coordination (Researcher → Planner → Reviewer)
 - ✅ Dynamic tool selection

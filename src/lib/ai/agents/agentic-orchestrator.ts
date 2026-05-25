@@ -183,8 +183,14 @@ export async function runAgenticOrchestrator(
       preferences,
       useAdvancedMode: useAdvancedCuration,
     });
-    // Cache for next time
-    setCachedResearch(destination, researchResult.result, researchResult.thoughts);
+    // Only cache real results — don't poison future runs with empty research
+    // from a transient Tavily failure.
+    const hasData =
+      (researchResult.result.attractions?.length ?? 0) > 0 ||
+      (researchResult.result.restaurants?.length ?? 0) > 0;
+    if (hasData) {
+      setCachedResearch(destination, researchResult.result, researchResult.thoughts);
+    }
   }
 
   // Pre-filter the pool by user preferences before the planner sees it.

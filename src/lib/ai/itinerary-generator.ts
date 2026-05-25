@@ -7,7 +7,7 @@
  * 3. Saves the result to the database
  * 
  * Multi-Agent Architecture:
- * - Research Agent: Gathers destination data via Firecrawl
+ * - Research Agent: Gathers destination data via Tavily search
  * - Planner Agent: Creates day-by-day itineraries
  * - Reviewer Agent: Validates and improves plans
  * - Orchestrator: Coordinates agents with autonomous loops
@@ -15,7 +15,7 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserPreferences } from '@/types/quiz';
-import { fetchDestinationData } from './firecrawl-service';
+import { fetchDestinationData } from './tavily-service';
 import { runOrchestrator, OrchestratorOutput } from './agents/orchestrator';
 import { runAgenticOrchestrator, AgenticOrchestratorOutput } from './agents/agentic-orchestrator';
 import { ItineraryPlan, ScheduledItem } from './agents/types';
@@ -287,7 +287,7 @@ function activityToSimple(activity: ActivityRecommendation, index: number): Simp
     priceRange?: string;
   };
 
-  // Prefer the real address if Firecrawl returned one. Falls back to the name
+  // Prefer the real address if research returned one. Falls back to the name
   // so the map still geocodes correctly. Never echo the title verbatim —
   // that's what was causing "Lunch at Nathan's / Lunch at Nathan's".
   const locationName = item.address?.trim() || item.name || '';
@@ -322,7 +322,7 @@ function getTimeSlot(time: string): 'morning' | 'afternoon' | 'evening' {
 
 /**
  * Local fallback pipeline used when the agentic systems fail. Uses whatever
- * Firecrawl returns and slots items into a light time-of-day schedule.
+ * the research layer returns and slots items into a light time-of-day schedule.
  */
 async function generateLocalItinerary(
   destination: string,

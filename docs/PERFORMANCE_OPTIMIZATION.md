@@ -4,7 +4,7 @@
 
 The generation is slow because of:
 
-1. **Firecrawl Scraping** (30-60 seconds)
+1. **Tavily Scraping** (30-60 seconds)
    - Scrapes 8 URLs: TripAdvisor, Yelp, Reddit, Google, Lonely Planet
    - Each scrape takes 5-10 seconds
    - Runs in batches of 3 to avoid rate limits
@@ -40,7 +40,7 @@ Switch from GPT-4 to GPT-3.5-turbo:
 - Change `openai('gpt-4o')` to `openai('gpt-3.5-turbo')`
 - **Saves: 10-20 seconds, but lower quality**
 
-### Option 4: Skip Firecrawl Entirely (Development Mode)
+### Option 4: Skip Tavily Entirely (Development Mode)
 Use fallback data without scraping:
 - File: `src/lib/ai/agents/researcher.ts`
 - Comment out the scraping loop

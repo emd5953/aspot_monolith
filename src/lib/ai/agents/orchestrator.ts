@@ -108,7 +108,14 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
         destination,
         preferences,
       });
-      setCachedResearch(destination, researchResult.result, researchResult.thoughts);
+      // Only cache if we actually got data — empty results are usually a
+      // transient API failure and shouldn't poison future runs.
+      const hasData =
+        (researchResult.result.attractions?.length ?? 0) > 0 ||
+        (researchResult.result.restaurants?.length ?? 0) > 0;
+      if (hasData) {
+        setCachedResearch(destination, researchResult.result, researchResult.thoughts);
+      }
     }
 
     // Pre-filter pool by user preferences (see agentic-orchestrator for rationale).

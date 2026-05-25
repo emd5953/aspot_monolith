@@ -3,9 +3,9 @@ import { join } from 'path';
 import { ResearchResult } from './agents/types';
 
 /**
- * File-based research cache. Stores the expensive Firecrawl + AI research
- * output by destination so subsequent generations for the same city skip
- * the 30s-10min scraping step entirely.
+ * File-based research cache. Stores the expensive web-research output by
+ * destination so subsequent generations for the same city skip scraping
+ * entirely.
  *
  * Cache key: lowercase destination name (e.g. "new york city").
  * Storage: `.cache/research/<key>.json` in the project root.

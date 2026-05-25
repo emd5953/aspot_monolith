@@ -56,7 +56,7 @@ scrapeTargetedData(destination, intent, date)
 
 For each search query:
 1. Builds Google search URL with specific query
-2. Scrapes results using Firecrawl
+2. Scrapes results using Tavily
 3. Extracts place names and descriptions
 4. Filters by relevance to categories
 
@@ -168,7 +168,7 @@ Result:
 - Extracts structured data from natural language
 - Temperature: 0.3 (more deterministic)
 
-### Targeted Scraping (Firecrawl)
+### Targeted Scraping (Tavily)
 - 3 queries max (for speed)
 - 8 second timeout per query
 - Parallel execution possible
@@ -188,7 +188,7 @@ Result:
 
 Requires:
 ```env
-FIRECRAWL_API_KEY=your-key
+TAVILY_API_KEY=your-key
 OPENAI_API_KEY=your-key
 ```
 

@@ -118,560 +118,113 @@ async function scrapeTargetedData(
   intent: UserIntent,
   date: Date
 ): Promise<ScrapedPlace[]> {
-  const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
-  
-  if (!FIRECRAWL_API_KEY || FIRECRAWL_API_KEY === 'your-firecrawl-api-key') {
-    console.warn('[Scraping] Firecrawl not configured, using fallback');
+  const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+  if (!TAVILY_API_KEY) {
+    console.warn('[Day-regen] TAVILY_API_KEY not set — skipping web research');
     return [];
   }
 
-  const scrapedPlaces: ScrapedPlace[] = [];
+  // Lazy-load tavily and the extraction model — keeps this file's other
+  // helpers independent and avoids loading the SDK when no key is set.
+  const { tavily } = await import('@tavily/core');
+  const client = tavily({ apiKey: TAVILY_API_KEY });
 
-  // Format date for search queries
-  const dateStr = date.toLocaleDateString('en-US', { 
-    month: 'long', 
-    day: 'numeric', 
-    year: 'numeric' 
-  });
   const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
 
-  // Build targeted search queries WITHOUT specific dates (too narrow)
-  const queries = intent.searchQueries.map(q => {
-    let query = q.replace('[destination]', destination);
-    
-    // For events/sports, use general queries (not date-specific)
-    // Date-specific queries for future dates return 0 results
-    if (intent.categories.includes('sports') || 
-        intent.categories.includes('events') ||
-        q.toLowerCase().includes('event') ||
-        q.toLowerCase().includes('game')) {
-      // Use day of week instead of specific date
-      query += ` ${dayOfWeek}`;
-    }
-    
-    return query;
-  });
-
-  console.log('[Scraping] Targeted queries:', queries);
-
-  // Scrape each query
-  // Parallelize scraping for speed
-  const scrapePromises = queries.slice(0, 2).map(async (query) => { // Reduced to 2 queries
-    try {
-      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-      
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-        },
-        body: JSON.stringify({
-          url: searchUrl,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          timeout: 5000, // Reduced from 8000ms to 5000ms
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const content = result.data?.markdown || '';
-        
-        // Extract place names and info from scraped content
-        const places = extractPlacesFromContent(content, intent.categories, date);
-        return places;
+  // Build queries shaped by user intent. We use Tavily's native search rather
+  // than the old "scrape google search results" trick, which was fragile.
+  const queries = intent.searchQueries
+    .map((q) => q.replace('[destination]', destination))
+    .map((q) => {
+      // For event-style intents add day-of-week so results lean current.
+      const categoryStr = intent.categories.join(' ').toLowerCase();
+      if (
+        categoryStr.includes('sport') ||
+        categoryStr.includes('event') ||
+        q.toLowerCase().includes('event')
+      ) {
+        return `${q} ${dayOfWeek}`;
       }
-    } catch (error) {
-      console.error(`[Scraping] Failed for query: ${query}`, error);
-      return [];
-    }
-  });
+      return q;
+    })
+    .slice(0, 3); // cap at 3 to keep latency + token costs sane
 
-  // Wait for all scraping to complete in parallel
-  const results = await Promise.all(scrapePromises);
-  results.forEach(places => {
-    if (places) {
-      scrapedPlaces.push(...places);
-      console.log(`[Scraping] Found ${places.length} places`);
-    }
-  });
+  console.log('[Day-regen] Tavily queries:', queries);
 
-  // For sports/events, also try event-specific sites
-  if (intent.categories.includes('sports') || intent.categories.includes('events')) {
-    console.log('[Scraping] Checking event-specific sources...');
-    const eventPlaces = await scrapeEventSources(destination, date, intent.keywords);
-    scrapedPlaces.push(...eventPlaces);
-  }
-
-  // Only scrape Reddit if we have very few results (saves time)
-  if (scrapedPlaces.length < 5) {
-    console.log('[Scraping] Checking Reddit for local insights...');
-    const redditPlaces = await scrapeRedditInsights(destination, intent.keywords, dayOfWeek);
-    scrapedPlaces.push(...redditPlaces);
-  }
-
-  // Skip TripAdvisor fallback to save time (AI can fill gaps)
-
-  return scrapedPlaces;
-}
-
-/**
- * Extract place information from scraped content
- */
-function extractPlacesFromContent(
-  content: string,
-  categories: string[],
-  date?: Date
-): ScrapedPlace[] {
-  const places: ScrapedPlace[] = [];
-  
-  // Simple extraction: look for patterns like "Name - Description" or "Name: Description"
-  const lines = content.split('\n');
-  
-  // For events, look for date mentions to validate
-  const dateStr = date?.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-  const dayOfWeek = date?.toLocaleDateString('en-US', { weekday: 'long' });
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
-    // Skip very short lines
-    if (line.length < 20) continue;
-    
-    // Look for place-like patterns
-    const patterns = [
-      /^[\d.]+\.\s*\*\*(.+?)\*\*[:\-](.+)$/,  // "1. **Name**: Description"
-      /^[\*\-]\s*\*\*(.+?)\*\*[:\-](.+)$/,     // "* **Name**: Description"
-      /^(.+?)\s*[\-–]\s*(.+)$/,                 // "Name - Description"
-    ];
-    
-    for (const pattern of patterns) {
-      const match = line.match(pattern);
-      if (match) {
-        const name = match[1].trim();
-        const description = match[2].trim();
-        
-        // Filter out non-place content
-        if (name.length > 3 && name.length < 100 && !name.includes('http')) {
-          // Look for URLs in the current line or next few lines
-          let eventLink: string | undefined;
-          let address: string | undefined;
-          const urlPattern = /(https?:\/\/[^\s\)]+)/;
-          
-          // Address patterns to look for
-          const addressPatterns = [
-            /\d+\s+[NSEW]?\.?\s*\w+\s+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Ln|Lane|Way|Place|Pl|Court|Ct)[.,\s]/i,
-            /\d+\s+\w+\s+\w+[.,\s]/,  // "123 Main Street"
-          ];
-          
-          // Check current line and next 3 lines for URLs and addresses
-          for (let j = i; j < Math.min(i + 4, lines.length); j++) {
-            const checkLine = lines[j];
-            
-            // Look for URL
-            if (!eventLink) {
-              const urlMatch = checkLine.match(urlPattern);
-              if (urlMatch) {
-                eventLink = urlMatch[1].replace(/[,\.\)]+$/, ''); // Remove trailing punctuation
-              }
-            }
-            
-            // Look for address
-            if (!address) {
-              for (const addrPattern of addressPatterns) {
-                const addrMatch = checkLine.match(addrPattern);
-                if (addrMatch) {
-                  // Extract the full address (might span multiple words)
-                  const startIdx = addrMatch.index!;
-                  const addressPart = checkLine.substring(startIdx, startIdx + 100);
-                  // Take until we hit a sentence end or newline
-                  const cleanAddr = addressPart.match(/^[^.!?\n]+/)?.[0].trim();
-                  if (cleanAddr && cleanAddr.length > 10 && cleanAddr.length < 100) {
-                    address = cleanAddr;
-                    break;
-                  }
-                }
-              }
-            }
-            
-            if (eventLink && address) break;
-          }
-          
-          // Accept all places - don't filter by date (too restrictive for future dates)
-          places.push({
-            name,
-            description: description.substring(0, 200),
-            type: categories[0] || 'general',
-            details: date ? `Suggested for ${dateStr}` : undefined,
-            eventLink,
-            address,
-          });
-        }
-        break;
+  // Run all searches in parallel.
+  const searchResults = await Promise.all(
+    queries.map(async (query) => {
+      try {
+        const result = await client.search(query, {
+          searchDepth: 'basic',
+          maxResults: 6,
+          includeAnswer: false,
+        });
+        return { query, hits: result.results || [] };
+      } catch (err) {
+        console.warn(`[Day-regen] Tavily search failed for "${query}":`, err);
+        return { query, hits: [] };
       }
-    }
-    
-    // Limit results
-    if (places.length >= 10) break;
-  }
-  
-  return places;
-}
-
-/**
- * Scrape Reddit for local insider tips and recommendations
- */
-async function scrapeRedditInsights(
-  destination: string,
-  keywords: string[],
-  dayOfWeek?: string
-): Promise<ScrapedPlace[]> {
-  const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
-  if (!FIRECRAWL_API_KEY || FIRECRAWL_API_KEY === 'your-firecrawl-api-key') {
-    return [];
-  }
-
-  const places: ScrapedPlace[] = [];
-
-  // Build Reddit-specific queries
-  const redditQueries = [
-    `site:reddit.com ${destination} ${keywords[0] || 'things to do'}`,
-    `site:reddit.com ${destination} hidden gems`,
-    `site:reddit.com ${destination} locals recommend`,
-  ];
-
-  if (dayOfWeek) {
-    redditQueries.push(`site:reddit.com ${destination} ${dayOfWeek} night`);
-  }
-
-  console.log('[Reddit] Scraping for local insights...');
-
-  for (const query of redditQueries.slice(0, 1)) { // Limit to 1 Reddit query for speed
-    try {
-      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-      
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-        },
-        body: JSON.stringify({
-          url: searchUrl,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          timeout: 8000,
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const content = result.data?.markdown || '';
-        
-        // Extract recommendations from Reddit discussions
-        const lines = content.split('\n');
-        for (const line of lines) {
-          // Look for place mentions in Reddit format
-          // Common patterns: "I recommend X", "Check out X", "X is amazing"
-          const patterns = [
-            /(?:recommend|check out|try|visit|go to)\s+([A-Z][A-Za-z\s&'-]{3,50})/gi,
-            /([A-Z][A-Za-z\s&'-]{3,50})\s+is\s+(?:amazing|great|awesome|fantastic|the best)/gi,
-          ];
-          
-          for (const pattern of patterns) {
-            const matches = line.matchAll(pattern);
-            for (const match of matches) {
-              const name = match[1]?.trim();
-              if (name && name.length > 3 && name.length < 50 && !name.includes('http')) {
-                // Extract context around the mention
-                const context = line.substring(Math.max(0, match.index! - 50), match.index! + 100);
-                
-                places.push({
-                  name,
-                  description: `Local recommendation from Reddit: ${context.substring(0, 150)}`,
-                  type: keywords[0] || 'general',
-                  details: 'Reddit insider tip',
-                });
-                
-                if (places.length >= 10) break;
-              }
-            }
-            if (places.length >= 10) break;
-          }
-          if (places.length >= 10) break;
-        }
-        
-        console.log(`[Reddit] Found ${places.length} recommendations from: ${query}`);
-      }
-    } catch (error) {
-      console.error(`[Reddit] Failed for query: ${query}`, error);
-    }
-  }
-
-  // Deduplicate by name
-  const uniquePlaces = Array.from(
-    new Map(places.map(p => [p.name.toLowerCase(), p])).values()
+    })
   );
 
-  return uniquePlaces.slice(0, 5); // Limit Reddit results to 5
+  // Aggregate all hits into a single corpus and extract structured places.
+  const corpusEntries: string[] = [];
+  searchResults.forEach(({ query, hits }) => {
+    if (hits.length === 0) return;
+    corpusEntries.push(`## Results for: ${query}`);
+    hits.forEach((h, i) => {
+      corpusEntries.push(`[${i + 1}] ${h.title}\n${h.content}\n${h.url}`);
+    });
+  });
+
+  if (corpusEntries.length === 0) return [];
+
+  const corpus = corpusEntries.join('\n\n');
+
+  const extractionPrompt = `Extract distinct places, venues, or events from these search results about ${destination}.
+
+CONTEXT:
+- User wants: ${intent.specificRequests.join(', ')}
+- Categories: ${intent.categories.join(', ')}
+- Date: ${date.toDateString()} (${dayOfWeek})
+
+SEARCH RESULTS:
+${corpus}
+
+Return a JSON array of places. Each item:
+{
+  "name": string (real venue/place/event name),
+  "description": string (1-2 sentences from the source),
+  "type": string (matches one of: ${intent.categories.join(', ')} — or "general"),
+  "address": string (optional, only if mentioned),
+  "url": string (optional source link),
+  "details": string (optional extra detail like rating, hours, dress code)
 }
 
-/**
- * Fallback: Scrape TripAdvisor for general recommendations
- */
-async function scrapeTripAdvisor(
-  destination: string,
-  keywords: string[]
-): Promise<ScrapedPlace[]> {
-  const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
-  if (!FIRECRAWL_API_KEY) return [];
+Skip generic mentions, lists like "10 best things to do" without real names, and items that aren't actually in ${destination}. Return up to 12. JSON only, no prose.`;
 
   try {
-    const searchTerm = keywords.length > 0 
-      ? `${destination} ${keywords[0]}` 
-      : destination;
-    
-    const url = `https://www.tripadvisor.com/Search?q=${encodeURIComponent(searchTerm)}`;
-    
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-      },
-      body: JSON.stringify({
-        url,
-        formats: ['markdown'],
-        onlyMainContent: true,
-        timeout: 8000,
-      }),
+    const { generateText } = await import('ai');
+    const { openai } = await import('@ai-sdk/openai');
+
+    const { text } = await generateText({
+      model: openai('gpt-4o-mini'),
+      prompt: extractionPrompt,
+      temperature: 0.2,
     });
 
-    if (response.ok) {
-      const result = await response.json();
-      const content = result.data?.markdown || '';
-      return extractPlacesFromContent(content, ['attraction']);
-    }
-  } catch (error) {
-    console.error('[Scraping] TripAdvisor fallback failed:', error);
-  }
-
-  return [];
-}
-
-/**
- * Scrape ANY events happening on a specific date (fallback when specific event type not found)
- */
-async function scrapeAnyEventsOnDate(
-  destination: string,
-  date: Date
-): Promise<ScrapedPlace[]> {
-  const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
-  if (!FIRECRAWL_API_KEY || FIRECRAWL_API_KEY === 'your-firecrawl-api-key') {
+    const cleaned = text
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/```\s*$/i, '');
+    const parsed = JSON.parse(cleaned);
+    if (!Array.isArray(parsed)) return [];
+    return parsed as ScrapedPlace[];
+  } catch (err) {
+    console.warn('[Day-regen] Extraction failed:', err);
     return [];
   }
-
-  const places: ScrapedPlace[] = [];
-  const dateStr = date.toLocaleDateString('en-US', { 
-    month: 'long', 
-    day: 'numeric', 
-    year: 'numeric' 
-  });
-  const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
-
-  // Try multiple general event search strategies
-  const searchQueries = [
-    `events in ${destination} ${dayOfWeek}`, // Day of week (more results)
-    `things to do ${destination} ${dayOfWeek}`, // General activities
-    `${destination} events this weekend`, // If it's a weekend
-    `concerts shows ${destination}`, // Entertainment
-    `site:reddit.com ${destination} events ${dayOfWeek}`, // Reddit local insights
-    `${destination} nightlife ${dayOfWeek} reviews`, // Google reviews for nightlife
-  ];
-
-  console.log(`[Scraping] Searching for any events on ${dayOfWeek}, ${dateStr}...`);
-
-  for (const query of searchQueries.slice(0, 3)) { // Limit to 3 queries (includes Reddit/reviews)
-    try {
-      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-      
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-        },
-        body: JSON.stringify({
-          url: searchUrl,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          timeout: 8000,
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const content = result.data?.markdown || '';
-        
-        // Extract any events/activities
-        const extractedPlaces = extractPlacesFromContent(content, ['events', 'entertainment'], date);
-        places.push(...extractedPlaces);
-        
-        console.log(`[Scraping] Found ${extractedPlaces.length} general events for: ${query}`);
-      }
-    } catch (error) {
-      console.error(`[Scraping] Failed for query: ${query}`, error);
-    }
-  }
-
-  // Also try event aggregator sites
-  const eventSites = [
-    `https://www.eventbrite.com/d/${destination.toLowerCase().replace(/\s+/g, '-')}/events`,
-    `https://www.timeout.com/${destination.toLowerCase().replace(/\s+/g, '-')}/things-to-do`,
-  ];
-
-  for (const url of eventSites.slice(0, 1)) { // Just try one
-    try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-        },
-        body: JSON.stringify({
-          url,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          timeout: 8000,
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const content = result.data?.markdown || '';
-        
-        // Look for any events
-        const lines = content.split('\n');
-        for (const line of lines) {
-          // Look for event-like patterns
-          if (line.length > 20 && line.length < 200) {
-            // Common event patterns
-            const eventPatterns = [
-              /^[\*\-]\s*(.+?)\s*[-–]\s*(.+)$/,
-              /^(.+?)\s*\|\s*(.+)$/,
-              /^[\d.]+\.\s*(.+)$/,
-            ];
-            
-            for (const pattern of eventPatterns) {
-              const match = line.match(pattern);
-              if (match) {
-                const name = match[1]?.trim();
-                const description = match[2]?.trim() || 'Event';
-                
-                if (name && name.length > 5 && name.length < 100 && !name.includes('http')) {
-                  places.push({
-                    name,
-                    description: description.substring(0, 200),
-                    type: 'event',
-                    details: `Happening around ${dayOfWeek}`,
-                  });
-                  
-                  if (places.length >= 10) break;
-                }
-              }
-            }
-          }
-          
-          if (places.length >= 10) break;
-        }
-      }
-    } catch (error) {
-      console.error(`[Scraping] Event site failed: ${url}`, error);
-    }
-  }
-
-  // Deduplicate by name
-  const uniquePlaces = Array.from(
-    new Map(places.map(p => [p.name.toLowerCase(), p])).values()
-  );
-
-  return uniquePlaces.slice(0, 10);
-}
-
-/**
- * Scrape event-specific sources for real events on the date
- */
-async function scrapeEventSources(
-  destination: string,
-  date: Date,
-  keywords: string[]
-): Promise<ScrapedPlace[]> {
-  const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
-  if (!FIRECRAWL_API_KEY) return [];
-
-  const places: ScrapedPlace[] = [];
-  const dateStr = date.toLocaleDateString('en-US', { 
-    month: 'long', 
-    day: 'numeric', 
-    year: 'numeric' 
-  });
-
-  // Try multiple event sources
-  const eventSources = [
-    // Eventbrite
-    `https://www.eventbrite.com/d/${destination.toLowerCase().replace(/\s+/g, '-')}/events--${keywords.join('-')}`,
-    // SeatGeek for sports
-    `https://seatgeek.com/${destination.toLowerCase().replace(/\s+/g, '-')}-tickets`,
-  ];
-
-  for (const url of eventSources) {
-    try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-        },
-        body: JSON.stringify({
-          url,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          timeout: 8000,
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const content = result.data?.markdown || '';
-        
-        // Extract events that mention the specific date
-        const lines = content.split('\n');
-        for (const line of lines) {
-          // Look for event patterns with dates
-          if (line.includes(dateStr) || line.includes(date.toLocaleDateString('en-US', { weekday: 'long' }))) {
-            // Extract event name before the date
-            const eventMatch = line.match(/(.+?)\s*[-–]\s*.*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
-            if (eventMatch) {
-              const eventName = eventMatch[1].trim();
-              if (eventName.length > 5 && eventName.length < 100) {
-                places.push({
-                  name: eventName,
-                  description: `Event on ${dateStr}`,
-                  type: 'event',
-                  details: `Verified event on ${dateStr}`,
-                });
-              }
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('[Scraping] Event source failed:', url, error);
-    }
-  }
-
-  return places;
 }
 
 /**
@@ -782,14 +335,6 @@ export async function regenerateDay(
   console.log('[Day Regeneration] Doing additional date-aware event scraping...');
   const eventData = await scrapeTargetedData(destination, intentAnalysis, date);
   console.log(`[Day Regeneration] Found ${eventData.length} date-specific events`);
-
-  // STEP 3.5: If no specific events found, search for ANY events on that date
-  if (eventData.length === 0) {
-    console.log('[Day Regeneration] No specific events found, searching for ANY events on this date...');
-    const anyEvents = await scrapeAnyEventsOnDate(destination, date);
-    console.log(`[Day Regeneration] Found ${anyEvents.length} general events on this date`);
-    eventData.push(...anyEvents);
-  }
 
   // Combine agentic research with targeted event data
   const allPlaces = [

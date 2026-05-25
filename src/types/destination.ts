@@ -1,4 +1,4 @@
-// Types for destination data fetched via Firecrawl
+// Types for destination data fetched via Tavily search
 
 export interface Attraction {
   name: string;

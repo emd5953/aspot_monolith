@@ -49,7 +49,7 @@ User prompt → GPT-4o-mini → Activities (from AI memory)
 
 **Cons:**
 - Slower (2-3x longer than fast mode)
-- Requires Firecrawl API key
+- Requires Tavily API key
 - May fail if web scraping encounters issues (falls back to fast mode)
 
 ## User Interface
@@ -94,11 +94,11 @@ runAgenticResearcher({ destination, preferences })
 
 Credible mode requires:
 ```env
-FIRECRAWL_API_KEY=your-api-key
+TAVILY_API_KEY=your-api-key
 OPENAI_API_KEY=your-api-key
 ```
 
-If Firecrawl is not configured, credible mode automatically falls back to fast mode.
+If Tavily is not configured, credible mode automatically falls back to fast mode.
 
 ## Example Usage
 

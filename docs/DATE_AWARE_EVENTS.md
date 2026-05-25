@@ -271,7 +271,7 @@ CRITICAL RULES:
 
 No additional configuration needed beyond:
 ```env
-FIRECRAWL_API_KEY=your-key
+TAVILY_API_KEY=your-key
 OPENAI_API_KEY=your-key
 ```
 

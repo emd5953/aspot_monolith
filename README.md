@@ -19,7 +19,7 @@ This application showcases **three distinct AI agent architectures** that demons
 Research Agent → Planner Agent → Reviewer Agent
      ↓               ↓                ↓
   Web scraping   Day-by-day      Quality check
-  (Firecrawl)    scheduling      & iteration
+  (Tavily)    scheduling      & iteration
 ```
 
 **Agent Roles**:
@@ -27,7 +27,7 @@ Research Agent → Planner Agent → Reviewer Agent
    - Scrapes web sources (Google, TripAdvisor, blogs)
    - Extracts attractions, restaurants, activities
    - Gathers local insights and tips
-   - Uses Firecrawl for structured data extraction
+   - Uses Tavily for structured data extraction
 
 2. **Planner Agent** (`src/lib/ai/agents/planner.ts`)
    - Creates day-by-day itineraries
@@ -172,7 +172,7 @@ Step 3: [Orchestrator] "Quality score: 75/100"
 - **Backend**: Next.js API Routes, Supabase (PostgreSQL, Auth, Realtime)
 - **AI Core**: OpenAI GPT-4o & GPT-4o-mini
 - **Agent Framework**: Custom multi-agent system with reasoning chains
-- **Web Scraping**: Firecrawl API for structured data extraction
+- **Web Scraping**: Tavily API for structured data extraction
 - **Maps**: Google Maps API with smart routing
 - **Testing**: Vitest, Testing Library, fast-check for property-based testing
 - **Styling**: Custom hand-drawn components, Caveat & Inter fonts
@@ -185,7 +185,7 @@ Step 3: [Orchestrator] "Quality score: 75/100"
 - A Supabase account and project
 - OpenAI API key (required for AI generation)
 - Google Maps API key (required for maps)
-- Firecrawl API key (optional, for web scraping in agentic modes)
+- Tavily API key (optional, for web scraping in agentic modes)
 
 ### Installation
 
@@ -218,8 +218,8 @@ OPENAI_API_KEY=your-openai-api-key
 # Google Maps (Required)
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 
-# Firecrawl (Optional - for agentic modes)
-FIRECRAWL_API_KEY=your-firecrawl-api-key
+# Tavily (Optional - for agentic modes)
+TAVILY_API_KEY=your-tavily-api-key
 
 # Optional Settings
 FAST_MODE=true  # Enable fast mode by default
@@ -282,7 +282,7 @@ src/
 │   ├── ai/               # AI integration
 │   │   ├── agents/       # Multi-agent system (orchestrator, planner, researcher, reviewer)
 │   │   ├── itinerary-generator.ts  # Main generation logic
-│   │   ├── firecrawl-service.ts    # Web scraping
+│   │   ├── tavily-service.ts    # Web scraping
 │   │   └── sim-service.ts          # AI recommendations
 │   ├── itinerary/        # Itinerary management
 │   │   ├── itinerary-service.ts    # CRUD operations
@@ -323,7 +323,7 @@ User Input (destination, dates, preferences)
 ┌─────────────────────────────────────────┐
 │ Research Agent:                         │
 │ - Scrape Google for "best things Paris" │
-│ - Extract structured data via Firecrawl │
+│ - Extract structured data via Tavily │
 │ - Parse attractions, restaurants, tips  │
 │ Result: 15 attractions, 12 restaurants  │
 └─────────────────────────────────────────┘
@@ -506,7 +506,7 @@ Make sure to set all required environment variables in your hosting platform:
 - Supabase credentials
 - OpenAI API key
 - Google Maps API key
-- Firecrawl API key (optional)
+- Tavily API key (optional)
 
 ## 🎯 Performance & Agent Metrics
 
