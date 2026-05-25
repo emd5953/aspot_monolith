@@ -7,7 +7,6 @@ import { ItineraryView } from '@/components/itinerary/itinerary-view';
 import { RegenerateModal } from '@/components/itinerary/regenerate-modal';
 import { EditDayModal } from '@/components/itinerary/edit-day-modal';
 import { KanyeQuotes } from '@/components/itinerary/kanye-quotes';
-import { AppNav } from '@/components/layout/app-nav';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 
@@ -192,91 +191,81 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
 
   if (isLoading) {
     return (
-      <div className="relative min-h-screen">
-        <AppNav />
-        <main className="relative mx-auto max-w-4xl px-6 pt-40 pb-24">
-          <HandDrawnCard className="p-16 text-center">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
-            <p className="mt-4 text-sm text-[color:var(--ink-muted)]">Loading itinerary</p>
-          </HandDrawnCard>
-        </main>
-      </div>
+      <main className="relative mx-auto max-w-4xl px-6 pt-32 pb-24">
+        <HandDrawnCard className="p-16 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
+          <p className="mt-4 text-sm text-[color:var(--ink-muted)]">Loading itinerary</p>
+        </HandDrawnCard>
+      </main>
     );
   }
 
   if (error || !itinerary) {
     return (
-      <div className="relative min-h-screen">
-        <AppNav />
-        <main className="relative mx-auto max-w-xl px-6 pt-40 pb-24">
-          <HandDrawnCard className="p-10 text-center">
-            <p className="text-sm font-medium text-rose-600">Something went wrong</p>
-            <h2 className="mt-3 font-heading text-3xl text-[color:var(--ink)]">
-              {error || 'Itinerary not found'}
-            </h2>
-            <HandDrawnButton
-              onClick={() => router.push('/itinerary')}
-              variant="primary"
-              size="md"
-              className="mt-8"
-            >
-              Back to itineraries
-            </HandDrawnButton>
-          </HandDrawnCard>
-        </main>
-      </div>
+      <main className="relative mx-auto max-w-xl px-6 pt-32 pb-24">
+        <HandDrawnCard className="p-10 text-center">
+          <p className="text-sm font-medium text-rose-600">Something went wrong</p>
+          <h2 className="mt-3 font-heading text-3xl text-[color:var(--ink)]">
+            {error || 'Itinerary not found'}
+          </h2>
+          <HandDrawnButton
+            onClick={() => router.push('/itinerary')}
+            variant="primary"
+            size="md"
+            className="mt-8"
+          >
+            Back to itineraries
+          </HandDrawnButton>
+        </HandDrawnCard>
+      </main>
     );
   }
 
   return (
-    <div className="relative min-h-screen">
-      <AppNav />
+    <main className="relative mx-auto max-w-4xl px-6 pt-32 pb-24">
+      <button
+        onClick={() => router.push('/itinerary')}
+        className="mb-6 inline-flex items-center gap-2 text-sm text-white/85 transition-colors hover:text-white [text-shadow:0_1px_3px_rgba(10,30,60,0.5)]"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
+        Back to itineraries
+      </button>
 
-      <main className="relative mx-auto max-w-4xl px-6 pt-32 pb-24">
-        <button
-          onClick={() => router.push('/itinerary')}
-          className="mb-6 inline-flex items-center gap-2 text-sm text-[color:var(--ink-muted)] transition-colors hover:text-[color:var(--ink)]"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
-          Back to itineraries
-        </button>
+      <ItineraryView
+        itinerary={itinerary}
+        onDeleteActivity={handleDeleteActivity}
+        onReorderActivities={handleReorderActivities}
+        onRegenerate={isRegenerating ? undefined : () => setShowRegenerateModal(true)}
+        onDelete={handleDelete}
+        onStatusChange={handleStatusChange}
+        onEditDay={handleEditDay}
+        onTitleChange={handleTitleChange}
+      />
 
-        <ItineraryView
-          itinerary={itinerary}
-          onDeleteActivity={handleDeleteActivity}
-          onReorderActivities={handleReorderActivities}
-          onRegenerate={isRegenerating ? undefined : () => setShowRegenerateModal(true)}
-          onDelete={handleDelete}
-          onStatusChange={handleStatusChange}
-          onEditDay={handleEditDay}
-          onTitleChange={handleTitleChange}
-        />
+      <RegenerateModal
+        isOpen={showRegenerateModal}
+        onClose={() => setShowRegenerateModal(false)}
+        onRegenerate={handleRegenerate}
+      />
 
-        <RegenerateModal
-          isOpen={showRegenerateModal}
-          onClose={() => setShowRegenerateModal(false)}
-          onRegenerate={handleRegenerate}
-        />
+      <EditDayModal
+        isOpen={showEditDayModal}
+        dayNumber={editingDay?.dayNumber || 1}
+        currentActivities={editingDay?.activities.map((a) => a.title) || []}
+        onClose={() => {
+          setShowEditDayModal(false);
+          setEditingDay(null);
+        }}
+        onSubmit={handleEditDaySubmit}
+      />
 
-        <EditDayModal
-          isOpen={showEditDayModal}
-          dayNumber={editingDay?.dayNumber || 1}
-          currentActivities={editingDay?.activities.map((a) => a.title) || []}
-          onClose={() => {
-            setShowEditDayModal(false);
-            setEditingDay(null);
-          }}
-          onSubmit={handleEditDaySubmit}
-        />
-
-        {isRegenerating && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--ink)]/30 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md">
-              <KanyeQuotes />
-            </div>
+      {isRegenerating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--ink)]/30 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md">
+            <KanyeQuotes />
           </div>
-        )}
-      </main>
-    </div>
+        </div>
+      )}
+    </main>
   );
 }

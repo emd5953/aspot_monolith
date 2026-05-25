@@ -123,7 +123,7 @@ async function buildDayWithReasoning(
 THEME: ${theme}
 USER PERSONALITY:
 - Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
-- Authenticity: ${preferences.authenticityPreference || 'balanced'} (avoid tourist traps if "pure_authentic")
+- Authenticity: ${preferences.authenticityPreference || 'balanced'} (avoid tourist traps if "authentic_local")
 - Time Rhythm: ${preferences.timeRhythm || 'steady_daytime'} (schedule activities for their peak energy)
 - Comfort Zone: ${preferences.comfortZone || 5}/10 (${(preferences.comfortZone || 5) > 7 ? 'push boundaries' : (preferences.comfortZone || 5) < 4 ? 'keep familiar' : 'balanced challenge'})
 - Social: ${preferences.socialPreferences || 'couple'} (consider group dynamics)
@@ -168,17 +168,16 @@ GEOGRAPHIC PROXIMITY RULES (CRITICAL):
 7. **Example bad day**: Morning in Upper East Side, lunch in Brooklyn, afternoon in Midtown, dinner in Queens (too spread out!)
 
 PERSONALITY-DRIVEN CURATION:
-- Authenticity: ${preferences.authenticityPreference === 'pure_authentic' ? 'ONLY local spots, hidden gems, avoid anything touristy' : 
-                 preferences.authenticityPreference === 'mostly_authentic' ? 'Prefer local but 1 popular spot OK' :
-                 preferences.authenticityPreference === 'tourist_friendly' ? 'Popular attractions are fine' :
+- Authenticity: ${preferences.authenticityPreference === 'authentic_local' ? 'ONLY local spots, hidden gems, avoid anything touristy' : 
+                 preferences.authenticityPreference === 'popular_spots' ? 'Popular attractions are fine — they\'re famous for a reason' :
                  'Mix of local and popular'}
 - Challenge Level: ${(preferences.comfortZone || 5) > 7 ? 'Include adventurous/unusual activities' : 
                      (preferences.comfortZone || 5) < 4 ? 'Stick to well-known, comfortable options' :
                      'Balanced mix'}
-- Social Fit: ${preferences.socialPreferences?.includes('solo') ? 'Solo-friendly activities, opportunities to meet people if social' :
-               preferences.socialPreferences === 'family' ? 'Family-friendly, kid-appropriate' :
+- Social Fit: ${preferences.socialPreferences === 'solo' ? 'Solo-friendly activities, opportunities to meet people if social' :
                preferences.socialPreferences === 'couple' ? 'Romantic/intimate experiences' :
-               'Group-friendly activities'}
+               preferences.socialPreferences === 'small_group' ? 'Group-friendly activities suitable for 3-5 people' :
+               'Group-friendly activities for larger crowds'}
 - Motivations: Prioritize activities matching: ${preferences.travelMotivations?.join(', ') || 'general exploration'}
 
 CRITICAL RULES:

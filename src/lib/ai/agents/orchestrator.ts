@@ -17,6 +17,8 @@ import { OrchestrationState, OrchestrationLog, ItineraryPlan, ResearchResult } f
 import { runResearchAgent } from './researcher';
 import { runPlannerAgent } from './planner';
 import { runReviewerAgent } from './reviewer';
+import { getCachedResearch, setCachedResearch } from '../research-cache';
+import { curateResearchByPreferences } from '@/lib/preferences/score-research';
 
 const MAX_ITERATIONS = 3;
 
@@ -92,10 +94,28 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
     state.agents.researcher.progress = 10;
     notify();
 
-    const researchResult = await runResearchAgent({
-      destination,
-      preferences,
-    });
+    // Check cache first — saves 30s-10min on repeat destinations.
+    const cached = getCachedResearch(destination);
+    let researchResult: Awaited<ReturnType<typeof runResearchAgent>>;
+
+    if (cached) {
+      researchResult = {
+        result: cached.result,
+        thoughts: [...cached.thoughts, '⚡ Loaded from cache'],
+      };
+    } else {
+      researchResult = await runResearchAgent({
+        destination,
+        preferences,
+      });
+      setCachedResearch(destination, researchResult.result, researchResult.thoughts);
+    }
+
+    // Pre-filter pool by user preferences (see agentic-orchestrator for rationale).
+    researchResult = {
+      ...researchResult,
+      result: curateResearchByPreferences(researchResult.result, preferences),
+    };
 
     state.research = researchResult.result;
     state.agents.researcher.thoughts = researchResult.thoughts;

@@ -13,6 +13,8 @@ import { OrchestrationState, ItineraryPlan, ResearchResult } from './types';
 import { runAgenticResearcher } from './agentic-researcher';
 import { runAgenticPlanner } from './agentic-planner';
 import { runReviewerAgent } from './reviewer';
+import { getCachedResearch, setCachedResearch } from '../research-cache';
+import { curateResearchByPreferences } from '@/lib/preferences/score-research';
 
 interface ReasoningStep {
   agent: string;
@@ -164,11 +166,40 @@ export async function runAgenticOrchestrator(
   allReasoning.push(researchStep);
 
   // Use extensive or lightweight research based on mode
-  const researchResult = await runAgenticResearcher({
-    destination,
-    preferences,
-    useAdvancedMode: useAdvancedCuration, // Pass flag to researcher
-  });
+  // Check cache first — saves 30s-10min on repeat destinations.
+  const cached = getCachedResearch(destination);
+  let researchResult: Awaited<ReturnType<typeof runAgenticResearcher>>;
+
+  if (cached) {
+    researchResult = {
+      result: cached.result,
+      thoughts: cached.thoughts,
+      reasoningSteps: [{ thought: 'Using cached research', action: 'cache-hit', result: 'Loaded from file cache' }],
+    };
+    allThoughts.push(`⚡ Using cached research for "${destination}" — skipping scraping`);
+  } else {
+    researchResult = await runAgenticResearcher({
+      destination,
+      preferences,
+      useAdvancedMode: useAdvancedCuration,
+    });
+    // Cache for next time
+    setCachedResearch(destination, researchResult.result, researchResult.thoughts);
+  }
+
+  // Pre-filter the pool by user preferences before the planner sees it.
+  // This is what makes output feel curated rather than generic — instead of
+  // hoping gpt-4o-mini will honor "match user prefs" instructions, we rank
+  // candidates against prefs and keep only the top-scored ones.
+  const beforeAttractions = researchResult.result.attractions.length;
+  const beforeRestaurants = researchResult.result.restaurants.length;
+  researchResult = {
+    ...researchResult,
+    result: curateResearchByPreferences(researchResult.result, preferences),
+  };
+  allThoughts.push(
+    `🎯 Curated to user prefs: ${beforeAttractions}→${researchResult.result.attractions.length} attractions, ${beforeRestaurants}→${researchResult.result.restaurants.length} restaurants`
+  );
 
   researchStep.result = `Found ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants`;
   allThoughts.push(useAdvancedCuration

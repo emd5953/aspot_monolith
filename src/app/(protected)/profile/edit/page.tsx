@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { ArrowLeft, Check } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { UserPreferences } from '@/types/quiz';
-import { AppNav } from '@/components/layout/app-nav';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { HandDrawnInput } from '@/components/ui/hand-drawn-input';
@@ -232,29 +231,23 @@ export default function EditProfilePage() {
 
   if (loading) {
     return (
-      <div className="relative min-h-screen">
-        <AppNav />
-        <main className="relative mx-auto max-w-2xl px-6 pt-40 pb-24">
-          <HandDrawnCard className="p-12 text-center">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
-            <p className="mt-4 text-sm text-[color:var(--ink-muted)]">Loading</p>
-          </HandDrawnCard>
-        </main>
-      </div>
+      <main className="relative mx-auto max-w-2xl px-6 pt-16 pb-24">
+        <HandDrawnCard className="p-12 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
+          <p className="mt-4 text-sm text-[color:var(--ink-muted)]">Loading</p>
+        </HandDrawnCard>
+      </main>
     );
   }
 
   if (!preferences) return null;
 
   return (
-    <div className="relative min-h-screen">
-      <AppNav />
-
-      <main className="relative mx-auto max-w-2xl px-6 pt-32 pb-24">
+    <main className="relative mx-auto max-w-2xl px-6 pt-16 pb-24">
         <div className="flex items-center justify-between gap-3">
           <Link
             href="/profile"
-            className="inline-flex items-center gap-2 text-sm text-[color:var(--ink-muted)] transition-colors hover:text-[color:var(--ink)]"
+            className="inline-flex items-center gap-2 text-sm text-white/85 transition-colors hover:text-white [text-shadow:0_1px_3px_rgba(10,30,60,0.6)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
             Back to profile
@@ -263,10 +256,10 @@ export default function EditProfilePage() {
         </div>
 
         <section className="animate-fade-up mt-6">
-          <h1 className="font-heading text-5xl leading-[0.95] text-[color:var(--ink)] md:text-6xl">
+          <h1 className="font-heading text-5xl leading-[0.95] text-white md:text-6xl [text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]">
             Tune your <span className="italic">travel self</span>.
           </h1>
-          <p className="mt-3 max-w-md text-base text-[color:var(--ink-muted)]">
+          <p className="mt-3 max-w-md text-base font-medium text-white [text-shadow:0_1px_4px_rgba(10,30,60,0.6),0_4px_18px_rgba(10,30,60,0.5)]">
             Changes save automatically. Tap chips to toggle — no forms to submit.
           </p>
         </section>
@@ -277,7 +270,7 @@ export default function EditProfilePage() {
           </div>
         )}
 
-        <div className="mt-8 space-y-5">
+        <div className="mt-5 space-y-5">
           {/* Identity */}
           <HandDrawnCard
             className="animate-fade-up p-7"
@@ -480,32 +473,32 @@ export default function EditProfilePage() {
           </Link>
         </div>
       </main>
-    </div>
   );
 }
 
 function SaveIndicator({ state }: { state: SaveState }) {
+  const shadow = '[text-shadow:0_1px_3px_rgba(10,30,60,0.6)]';
   if (state === 'idle') {
-    return <span className="text-xs text-[color:var(--ink-soft)]">All saved</span>;
+    return <span className={`text-xs font-medium text-white/80 ${shadow}`}>All saved</span>;
   }
   if (state === 'saving') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-[color:var(--ink-muted)]">
-        <span className="h-3 w-3 animate-spin rounded-full border border-[color:var(--border)] border-t-[color:var(--accent)]" />
+      <span className={`inline-flex items-center gap-1.5 text-xs font-medium text-white/90 ${shadow}`}>
+        <span className="h-3 w-3 animate-spin rounded-full border border-white/50 border-t-white" />
         Saving…
       </span>
     );
   }
   if (state === 'saved') {
     return (
-      <span className="animate-fade-up inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+      <span className="animate-fade-up inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-emerald-700">
         <Check className="h-3 w-3" strokeWidth={2.5} />
         Saved
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-800">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-rose-700">
       Save failed
     </span>
   );

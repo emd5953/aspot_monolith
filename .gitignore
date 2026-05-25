@@ -43,3 +43,6 @@ next-env.d.ts
 # kiro
 .kiro/
 .vscode
+
+# research cache (dev optimization)
+.cache/

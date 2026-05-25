@@ -98,9 +98,9 @@ export function GenerateForm({ onSubmit, isLoading, onProgress }: GenerateFormPr
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-xl">
-      <div className="animate-fade-up mb-8">
+      <div className="animate-fade-up mb-6">
         <PromoChip>New itinerary</PromoChip>
-        <h2 className="mt-5 font-heading text-5xl leading-[0.95] text-[color:var(--ink)] md:text-6xl">
+        <h2 className="mt-5 font-heading text-5xl leading-[0.95] text-white md:text-6xl [text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]">
           Where <span className="italic">to</span>?
         </h2>
       </div>

@@ -278,11 +278,31 @@ function convertAgentPlanToDayPlans(plan: ItineraryPlan, startDate: Date): DayPl
  * Convert ActivityRecommendation to SimpleActivity for database
  */
 function activityToSimple(activity: ActivityRecommendation, index: number): SimpleActivity {
-  const item = activity.item as any; // Type assertion to handle union type
+  // These three shapes have overlapping fields; narrow to the ones we use.
+  const item = activity.item as {
+    name?: string;
+    description?: string;
+    address?: string;
+    cuisine?: string[];
+    priceRange?: string;
+  };
+
+  // Prefer the real address if Firecrawl returned one. Falls back to the name
+  // so the map still geocodes correctly. Never echo the title verbatim —
+  // that's what was causing "Lunch at Nathan's / Lunch at Nathan's".
+  const locationName = item.address?.trim() || item.name || '';
+
+  // If there's no description (common for restaurants), synthesise a short
+  // one from cuisine + price so the card has something useful under the title.
+  let description = item.description || '';
+  if (!description && item.cuisine && item.cuisine.length > 0) {
+    description = `${item.cuisine.join(', ')} · ${item.priceRange || ''}`.trim();
+  }
+
   return {
     title: item.name || '',
-    description: item.description || '',
-    locationName: item.name || '',
+    description,
+    locationName,
     category: activity.type || 'activity',
     startTime: undefined,
     endTime: undefined,

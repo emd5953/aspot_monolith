@@ -13,13 +13,17 @@ import { saveUserPreferences } from '@/lib/quiz/profile-generator';
 import { validateAnswer } from '@/lib/quiz/validation';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
-import { AppNav } from '@/components/layout/app-nav';
 import { PromoChip } from '@/components/ui/promo-chip';
 
 interface QuizFlowProps {
   initialProgress?: QuizProgress | null;
   userId: string;
 }
+
+const TEXT_SHADOW =
+  '[text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]';
+const TEXT_SHADOW_SM =
+  '[text-shadow:0_1px_4px_rgba(10,30,60,0.6),0_4px_18px_rgba(10,30,60,0.5)]';
 
 export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
   const [currentStep, setCurrentStep] = useState(initialProgress?.currentStep ?? 0);
@@ -72,58 +76,54 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
   if (!currentQuestion) return null;
 
   return (
-    <div className="relative min-h-screen">
-      <AppNav />
+    <main className="relative mx-auto max-w-2xl px-6 pt-16 pb-24">
+      <section className="animate-fade-up">
+        <PromoChip>
+          Question {currentStep + 1} of {quizQuestions.length}
+        </PromoChip>
+        <h1 className={`mt-5 font-heading text-4xl leading-[1] text-white md:text-5xl ${TEXT_SHADOW}`}>
+          Shape your <span className="italic">travel personality</span>.
+        </h1>
+      </section>
 
-      <main className="relative mx-auto max-w-2xl px-6 pt-32 pb-24">
-        <section className="animate-fade-up">
-          <PromoChip>
-            Question {currentStep + 1} of {quizQuestions.length}
-          </PromoChip>
-          <h1 className="mt-5 font-heading text-4xl leading-[1] text-[color:var(--ink)] md:text-5xl">
-            Shape your <span className="italic">travel personality</span>.
-          </h1>
-        </section>
+      <div className="mt-6">
+        <QuizProgressBar currentStep={currentStep} totalSteps={quizQuestions.length} />
+      </div>
 
-        <div className="mt-8">
-          <QuizProgressBar currentStep={currentStep} totalSteps={quizQuestions.length} />
+      <HandDrawnCard
+        key={currentStep}
+        className="animate-fade-up mt-6 p-7"
+        style={{ animationDelay: '0.05s' }}
+      >
+        <QuizQuestionCard
+          question={currentQuestion}
+          currentAnswer={answers[currentQuestion.id]}
+          onAnswer={handleAnswer}
+        />
+
+        <div className="mt-8 flex items-center justify-between border-t border-[color:var(--border)] pt-6">
+          <HandDrawnButton
+            onClick={handleBack}
+            disabled={currentStep === 0}
+            variant="secondary"
+            size="sm"
+            className="gap-2"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
+            Back
+          </HandDrawnButton>
+          <HandDrawnButton
+            onClick={handleNext}
+            disabled={!hasAnswer || isSubmitting}
+            variant="primary"
+            size="sm"
+            className="gap-2"
+          >
+            {isSubmitting ? 'Saving…' : isLastQuestion ? 'Complete' : 'Next'}
+            {!isSubmitting && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />}
+          </HandDrawnButton>
         </div>
-
-        <HandDrawnCard
-          key={currentStep}
-          className="animate-fade-up mt-8 p-7"
-          style={{ animationDelay: '0.05s' }}
-        >
-          <QuizQuestionCard
-            question={currentQuestion}
-            currentAnswer={answers[currentQuestion.id]}
-            onAnswer={handleAnswer}
-          />
-
-          <div className="mt-8 flex items-center justify-between border-t border-[color:var(--border)] pt-6">
-            <HandDrawnButton
-              onClick={handleBack}
-              disabled={currentStep === 0}
-              variant="secondary"
-              size="sm"
-              className="gap-2"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
-              Back
-            </HandDrawnButton>
-            <HandDrawnButton
-              onClick={handleNext}
-              disabled={!hasAnswer || isSubmitting}
-              variant="primary"
-              size="sm"
-              className="gap-2"
-            >
-              {isSubmitting ? 'Saving…' : isLastQuestion ? 'Complete' : 'Next'}
-              {!isSubmitting && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />}
-            </HandDrawnButton>
-          </div>
-        </HandDrawnCard>
-      </main>
-    </div>
+      </HandDrawnCard>
+    </main>
   );
 }

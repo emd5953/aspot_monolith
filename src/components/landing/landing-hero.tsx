@@ -144,7 +144,7 @@ export function LandingHero() {
                 } catch {
                   /* sessionStorage may be unavailable (private mode) */
                 }
-                setAuthMode('signup');
+                setAuthMode('login');
               }}
             />
           </div>

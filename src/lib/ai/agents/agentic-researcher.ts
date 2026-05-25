@@ -322,9 +322,8 @@ USER PREFERENCES:
 - Comfort Zone: ${preferences.comfortZone || 5}/10
 
 Extract the BEST options that match preferences. CRITICAL CURATION RULES:
-1. Authenticity Filter: ${preferences.authenticityPreference === 'pure_authentic' ? 'ONLY include hidden gems, local favorites, off-beaten-path spots. EXCLUDE major tourist attractions.' :
-                         preferences.authenticityPreference === 'mostly_authentic' ? 'Prioritize local spots but 1-2 popular attractions OK.' :
-                         preferences.authenticityPreference === 'tourist_friendly' ? 'Popular tourist spots are fine, they\'re popular for a reason.' :
+1. Authenticity Filter: ${preferences.authenticityPreference === 'authentic_local' ? 'ONLY include hidden gems, local favorites, off-beaten-path spots. EXCLUDE major tourist attractions.' :
+                         preferences.authenticityPreference === 'popular_spots' ? 'Popular tourist spots are fine, they\'re popular for a reason.' :
                          'Mix of well-known and local experiences.'}
 
 2. Challenge Level: ${(preferences.comfortZone || 5) > 7 ? 'Include adventurous, unusual, challenging experiences. Push boundaries.' :
