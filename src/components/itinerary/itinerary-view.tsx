@@ -107,7 +107,7 @@ export function ItineraryView({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-1.5">
       {/* Header */}
       <HandDrawnCard className="animate-fade-up p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">

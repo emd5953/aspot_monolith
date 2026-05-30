@@ -1,13 +1,16 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { createHash } from 'crypto';
 import { ResearchResult } from './agents/types';
 
 /**
  * File-based research cache. Stores the expensive web-research output by
- * destination so subsequent generations for the same city skip scraping
- * entirely.
+ * destination + user-intent so subsequent generations for the same city +
+ * same theme skip scraping entirely.
  *
- * Cache key: lowercase destination name (e.g. "new york city").
+ * Cache key: lowercase destination + 8-char hash of normalized userIntent
+ *   (e.g. "new-york-city" + "__a1b2c3d4" for "R&B bars").
+ *   Empty intent → just the destination key (preserves old generic cache).
  * Storage: `.cache/research/<key>.json` in the project root.
  * TTL: 7 days (travel data doesn't change that fast).
  *
@@ -31,19 +34,34 @@ function ensureCacheDir() {
   }
 }
 
-function cacheKeyToFile(destination: string): string {
-  const key = destination.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
-  return join(CACHE_DIR, `${key}.json`);
+/**
+ * Normalize the intent string before hashing so trivial variations
+ * ("R&B Bars" vs "r&b bars") share the same cache slot.
+ */
+function normalizeIntent(intent?: string): string {
+  if (!intent) return '';
+  return intent.toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function cacheKeyToFile(destination: string, userIntent?: string): string {
+  const destKey = destination.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+  const normIntent = normalizeIntent(userIntent);
+  if (!normIntent) {
+    return join(CACHE_DIR, `${destKey}.json`);
+  }
+  const intentHash = createHash('sha1').update(normIntent).digest('hex').slice(0, 8);
+  return join(CACHE_DIR, `${destKey}__${intentHash}.json`);
 }
 
 /**
- * Look up cached research for a destination. Returns null if not cached
- * or if the cache entry is older than TTL.
+ * Look up cached research for a destination + intent. Returns null if not
+ * cached or if the cache entry is older than TTL.
  */
 export function getCachedResearch(
-  destination: string
+  destination: string,
+  userIntent?: string
 ): { result: ResearchResult; thoughts: string[] } | null {
-  const file = cacheKeyToFile(destination);
+  const file = cacheKeyToFile(destination, userIntent);
   if (!existsSync(file)) return null;
 
   try {
@@ -57,7 +75,7 @@ export function getCachedResearch(
       return null;
     }
 
-    console.log(`[research-cache] ✓ Cache hit for "${destination}" (${Math.round(age / 1000 / 60)}min old)`);
+    console.log(`[research-cache] ✓ Cache hit for "${destination}"${userIntent ? ` (intent: "${userIntent}")` : ''} (${Math.round(age / 1000 / 60)}min old)`);
     return { result: entry.result, thoughts: entry.thoughts };
   } catch (err) {
     console.warn(`[research-cache] Failed to read cache for "${destination}":`, err);
@@ -71,10 +89,11 @@ export function getCachedResearch(
 export function setCachedResearch(
   destination: string,
   result: ResearchResult,
-  thoughts: string[]
+  thoughts: string[],
+  userIntent?: string
 ): void {
   ensureCacheDir();
-  const file = cacheKeyToFile(destination);
+  const file = cacheKeyToFile(destination, userIntent);
 
   const entry: CacheEntry = {
     destination: destination.trim(),
@@ -85,7 +104,7 @@ export function setCachedResearch(
 
   try {
     writeFileSync(file, JSON.stringify(entry, null, 2), 'utf-8');
-    console.log(`[research-cache] ✓ Cached research for "${destination}"`);
+    console.log(`[research-cache] ✓ Cached research for "${destination}"${userIntent ? ` (intent: "${userIntent}")` : ''}`);
   } catch (err) {
     console.warn(`[research-cache] Failed to write cache for "${destination}":`, err);
   }

@@ -38,31 +38,33 @@ export default async function DashboardPage() {
   return (
     <>
       {/* Floating hint bubbles — drift out of the clouds */}
-      <FloatingHint
-        position={{ top: '20%', left: '11%' }}
-        rotate={-2}
-        appearDelay={1200}
-        expandAfter={1600}
-        message={
-          hasCompletedQuiz
-            ? 'Want to update your travel personality?'
-            : 'Psst… want a quick personality quiz so I plan smarter?'
-        }
-        cta={hasCompletedQuiz ? 'Retake the quiz' : 'Take the quiz'}
-        href="/quiz"
-      />
+      <div className="pointer-events-none fixed inset-0 z-20">
+        <FloatingHint
+          position={{ top: '24%', left: '11%' }}
+          rotate={-2}
+          appearDelay={1200}
+          expandAfter={1600}
+          message={
+            hasCompletedQuiz
+              ? 'Want to update your travel personality?'
+              : 'Psst… want a quick personality quiz so I plan smarter?'
+          }
+          cta={hasCompletedQuiz ? 'Retake the quiz' : 'Take the quiz'}
+          href="/quiz"
+        />
 
-      <FloatingHint
-        position={{ bottom: '20%', right: '9%' }}
-        rotate={2}
-        appearDelay={2200}
-        expandAfter={1800}
-        message="Peek at the trips you've already dreamed up."
-        cta="Open my itineraries"
-        href="/itinerary"
-      />
+        <FloatingHint
+          position={{ bottom: '20%', right: '9%' }}
+          rotate={2}
+          appearDelay={2200}
+          expandAfter={1800}
+          message="Peek at the trips you've already dreamed up."
+          cta="Open my itineraries"
+          href="/itinerary"
+        />
+      </div>
 
-      <main className="pointer-events-none relative mx-auto flex min-h-screen flex-col items-center justify-center px-6 pt-16 pb-32 text-center">
+      <main className="pointer-events-none fixed inset-0 z-10 mx-auto flex flex-col items-center justify-center overflow-hidden px-6 text-center">
         <div className="pointer-events-auto flex w-full max-w-xl flex-col items-center">
           <p
             className={`animate-fade-up text-sm font-semibold tracking-wide text-white ${TEXT_SHADOW_BODY}`}

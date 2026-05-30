@@ -11,6 +11,40 @@ import { ResearchResult } from '../ai/agents/types';
  * Inputs are assumed to already be in canonical vocab (see normalize.ts).
  */
 
+/**
+ * Tokenize a free-text intent string into useful keywords for matching against
+ * candidate names/descriptions/categories. Drops stopwords and noise.
+ */
+function intentKeywords(userIntent?: string): string[] {
+  if (!userIntent) return [];
+  const stop = new Set([
+    'and', 'or', 'the', 'a', 'an', 'of', 'in', 'on', 'for', 'to', 'with',
+    'by', 'at', 'from', 'is', 'are', 'be', 'leaning', 'style', 'focused',
+    'big', 'lots', 'lot', 'really', 'very', 'some', 'any', 'kind',
+  ]);
+  return userIntent
+    .toLowerCase()
+    // Split on whitespace + most punctuation, but KEEP & inside tokens like "r&b".
+    .split(/[\s,;:.!?()/\-]+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2 && !stop.has(t));
+}
+
+/**
+ * Count how many intent keywords appear in the candidate's text. Substring
+ * match is intentional so "bar" matches "speakeasy bar" and "r&b" matches
+ * "r&b lounge".
+ */
+function intentMatchCount(text: string, keywords: string[]): number {
+  if (keywords.length === 0) return 0;
+  const haystack = text.toLowerCase();
+  let hits = 0;
+  for (const kw of keywords) {
+    if (haystack.includes(kw)) hits++;
+  }
+  return hits;
+}
+
 const FAMOUS_LANDMARK_HINTS = [
   'eiffel',
   'statue of liberty',
@@ -98,7 +132,8 @@ function looksAdventurous(item: { name: string; description?: string; category?:
 
 export function scoreAttraction(
   attraction: Attraction,
-  prefs: UserPreferences
+  prefs: UserPreferences,
+  intentKw: string[] = []
 ): number {
   let score = 50; // baseline
 
@@ -111,6 +146,14 @@ export function scoreAttraction(
   for (const interest of [...activityTypes, ...motivations]) {
     if (cat.includes(interest) || desc.includes(interest)) score += 8;
   }
+
+  // User-intent match (free-text from prompt). Heavily weighted because this
+  // is the user explicitly asking for a theme, which beats default prefs.
+  const intentHits = intentMatchCount(
+    `${attraction.name} ${attraction.description ?? ''} ${attraction.category ?? ''}`,
+    intentKw
+  );
+  score += intentHits * 18;
 
   // Authenticity
   const famous = looksFamous(attraction.name, attraction.description);
@@ -135,7 +178,8 @@ export function scoreAttraction(
 
 export function scoreRestaurant(
   restaurant: Restaurant,
-  prefs: UserPreferences
+  prefs: UserPreferences,
+  intentKw: string[] = []
 ): number {
   let score = 50;
 
@@ -150,6 +194,14 @@ export function scoreRestaurant(
       }
     }
   }
+
+  // User-intent match — important for restaurants because the prompt often
+  // names a vibe ("ramen", "cocktail", "rooftop") that's not in quiz prefs.
+  const intentHits = intentMatchCount(
+    `${restaurant.name} ${restCuisines.join(' ')}`,
+    intentKw
+  );
+  score += intentHits * 18;
 
   // Special meta-cuisines from edit page (street_food, fine_dining)
   if (userCuisines.includes('street_food')) {
@@ -178,7 +230,8 @@ export function scoreRestaurant(
 
 export function scoreActivity(
   activity: ActivityOption,
-  prefs: UserPreferences
+  prefs: UserPreferences,
+  intentKw: string[] = []
 ): number {
   let score = 50;
 
@@ -190,6 +243,13 @@ export function scoreActivity(
   for (const interest of [...activityTypes, ...motivations]) {
     if (cat.includes(interest) || desc.includes(interest)) score += 8;
   }
+
+  // User-intent match.
+  const intentHits = intentMatchCount(
+    `${activity.name} ${activity.description ?? ''} ${activity.category ?? ''}`,
+    intentKw
+  );
+  score += intentHits * 18;
 
   // Comfort zone vs adventurousness
   const adventurous = looksAdventurous(activity);
@@ -218,11 +278,16 @@ interface FilterOptions {
 /**
  * Score every candidate, sort by score, keep top-N.
  * Returns a new ResearchResult — does not mutate the input.
+ *
+ * `userIntent` is the free-text focus from the original prompt; when present,
+ * candidates whose name/description match its keywords get a heavy bonus, so
+ * the planner sees an on-theme pool first.
  */
 export function curateResearchByPreferences(
   research: ResearchResult,
   prefs: UserPreferences,
-  options: FilterOptions = {}
+  options: FilterOptions = {},
+  userIntent?: string
 ): ResearchResult {
   const {
     attractionLimit = 12,
@@ -230,20 +295,22 @@ export function curateResearchByPreferences(
     activityLimit = 8,
   } = options;
 
+  const intentKw = intentKeywords(userIntent);
+
   const scoredAttractions = (research.attractions || [])
-    .map((a) => ({ item: a, score: scoreAttraction(a, prefs) }))
+    .map((a) => ({ item: a, score: scoreAttraction(a, prefs, intentKw) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, attractionLimit)
     .map((s) => s.item);
 
   const scoredRestaurants = (research.restaurants || [])
-    .map((r) => ({ item: r, score: scoreRestaurant(r, prefs) }))
+    .map((r) => ({ item: r, score: scoreRestaurant(r, prefs, intentKw) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, restaurantLimit)
     .map((s) => s.item);
 
   const scoredActivities = (research.activities || [])
-    .map((a) => ({ item: a, score: scoreActivity(a, prefs) }))
+    .map((a) => ({ item: a, score: scoreActivity(a, prefs, intentKw) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, activityLimit)
     .map((s) => s.item);

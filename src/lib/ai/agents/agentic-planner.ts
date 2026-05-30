@@ -33,13 +33,17 @@ interface ReasoningStep {
 async function createPlanningStrategy(
   request: PlanRequest
 ): Promise<PlanningStrategy> {
-  const { research, preferences, startDate, endDate } = request;
+  const { research, preferences, startDate, endDate, userIntent, rawPrompt } = request;
   const feedback = undefined; // No feedback in initial planning
   
   const tripDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-  const strategyPrompt = `You are a strategic itinerary planner. Create a high-level strategy for a ${tripDays}-day trip to ${research.destination}.
+  const intentBlock = userIntent
+    ? `\n🎯 USER'S CORE FOCUS (top priority — beats generic prefs when they conflict):\nUser said: "${rawPrompt ?? userIntent}"\nFocus: "${userIntent}"\nEvery day theme must clearly serve this focus.\n`
+    : '';
 
+  const strategyPrompt = `You are a strategic itinerary planner. Create a high-level strategy for a ${tripDays}-day trip to ${research.destination}.
+${intentBlock}
 USER PROFILE:
 - Travel Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
 - Planning Style: ${preferences.planningStyle || 'balanced'}
@@ -57,6 +61,7 @@ AVAILABLE OPTIONS:
 - ${research.activities.length} activities
 
 STRATEGIC QUESTIONS:
+${userIntent ? `0. ⚠️ HOW will every day clearly serve "${userIntent}"? Each day's theme should reflect this.` : ''}
 1. How should we pace the trip based on their ${preferences.travelPace} pace and ${preferences.timeRhythm || 'daytime'} energy rhythm?
 2. What theme/focus for each day that matches their motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}?
 3. How to balance activities vs relaxation for their comfort zone (${preferences.comfortZone || 5}/10)?
@@ -107,11 +112,17 @@ async function buildDayWithReasoning(
     activities: ResearchResult['activities'];
   },
   preferences: UserPreferences,
-  usedItems: Set<string>
+  usedItems: Set<string>,
+  userIntent?: string,
+  rawPrompt?: string
 ): Promise<{
   day: DayPlan;
   reasoning: string[];
 }> {
+  const intentBlock = userIntent
+    ? `\n🎯 PRIMARY OBJECTIVE FOR THE WHOLE TRIP — must show up TODAY:\nUser said: "${rawPrompt ?? userIntent}"\nFocus: "${userIntent}"\nThis day MUST include at least one item that obviously serves this focus.\nWhen choosing between candidates, the one that fits this focus wins.\n`
+    : '';
+
   const dayPrompt = `You are planning Day ${dayNumber} of a trip to ${destination.toUpperCase()}.
 
 🚨 CRITICAL: ALL activities MUST be in ${destination.toUpperCase()}
@@ -119,7 +130,7 @@ async function buildDayWithReasoning(
 - DO NOT include activities from other cities (not San Francisco, not Oakland, not San Jose if destination is Berkeley)
 - DO NOT include activities from other states or countries
 - VERIFY each activity is actually located in ${destination}
-
+${intentBlock}
 THEME: ${theme}
 USER PERSONALITY:
 - Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
@@ -189,6 +200,7 @@ CRITICAL RULES:
 6. If you need similar activities, use different locations or variations
 7. **Include specific addresses/locations** in descriptions so they can be mapped
 8. **Variety is key**: Each day should feel different with unique experiences
+${userIntent ? `9. **🎯 OBJECTIVE LOCK**: The user's focus is "${userIntent}". This day MUST contain at least one item that obviously serves this focus, ideally more. A day with zero items serving "${userIntent}" is a failed day — pick a different combination from the pool.` : ''}
 
 REASONING REQUIRED:
 - Why each activity fits the theme
@@ -299,13 +311,16 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
   thoughts: string[];
   reasoningSteps: ReasoningStep[];
 }> {
-  const { research, preferences, startDate, endDate } = request;
+  const { research, preferences, startDate, endDate, userIntent, rawPrompt } = request;
   const thoughts: string[] = [];
   const reasoningSteps: ReasoningStep[] = [];
 
   const tripDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
   thoughts.push(`🤖 AGENTIC PLANNER activated for ${tripDays}-day trip`);
+  if (userIntent) {
+    thoughts.push(`🎯 PRIMARY FOCUS: "${userIntent}"`);
+  }
 
   // STEP 1: Create strategic approach
   thoughts.push('');
@@ -356,7 +371,9 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
         activities: research.activities,
       },
       preferences,
-      usedItems
+      usedItems,
+      userIntent,
+      rawPrompt
     ).then(({ day, reasoning }) => {
       const step: ReasoningStep = {
         thought: `Planning Day ${dayNumber} with theme: ${theme}`,

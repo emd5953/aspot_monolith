@@ -25,7 +25,7 @@ export async function runAgenticResearcher(request: ResearchRequest): Promise<{
   thoughts: string[];
   reasoningSteps: ReasoningStep[];
 }> {
-  const { destination, preferences, useAdvancedMode = false } = request;
+  const { destination, preferences, useAdvancedMode = false, userIntent } = request;
   const thoughts: string[] = [];
   const reasoningSteps: ReasoningStep[] = [];
 
@@ -34,13 +34,18 @@ export async function runAgenticResearcher(request: ResearchRequest): Promise<{
       ? `🔬 Researching ${destination} (Tavily, advanced)`
       : `🤖 Researching ${destination} (Tavily)`
   );
+  if (userIntent) {
+    thoughts.push(`🎯 User focus injected into search: "${userIntent}"`);
+  }
 
   reasoningSteps.push({
-    thought: 'Issue preference-shaped searches via Tavily',
+    thought: userIntent
+      ? `Issue preference-shaped searches via Tavily, biased toward "${userIntent}"`
+      : 'Issue preference-shaped searches via Tavily',
     action: `Querying for attractions, restaurants, and activities in ${destination}`,
   });
 
-  const data = await fetchDestinationDataWithPrefs(destination, preferences);
+  const data = await fetchDestinationDataWithPrefs(destination, preferences, userIntent);
 
   reasoningSteps[0].result = `Found ${data.attractions.length} attractions, ${data.restaurants.length} restaurants, ${data.activities.length} activities`;
 

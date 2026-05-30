@@ -69,6 +69,15 @@ export interface ItineraryInput {
   endDate: Date;
   title?: string;
   activityDensity?: 'relaxed' | 'moderate' | 'packed';
+  /**
+   * Free-text user focus extracted from the original prompt
+   * (e.g. "R&B-leaning bars and live-music nightlife"). Threaded through to
+   * the orchestrator/research/planner/reviewer so the trip is built around
+   * what the user actually asked for, not just their quiz preferences.
+   */
+  userIntent?: string;
+  /** Original prompt text, preserved verbatim for downstream prompts. */
+  rawPrompt?: string;
 }
 
 export interface GeneratedItinerary {
@@ -100,7 +109,7 @@ export async function generateItinerary(
   useAdvancedCuration: boolean = false, // NEW: Use advanced curation (extensive scraping + iterations)
   onProgress?: ProgressCallback // NEW: Progress callback for streaming
 ): Promise<GeneratedItinerary> {
-  const { userId, destination, startDate, endDate, title, activityDensity = 'moderate' } = input;
+  const { userId, destination, startDate, endDate, title, activityDensity = 'moderate', userIntent, rawPrompt } = input;
   
   // Calculate trip duration
   const tripDuration = Math.ceil(
@@ -130,6 +139,8 @@ export async function generateItinerary(
         qualityThreshold: useAdvancedCuration ? 85 : 60, // Higher threshold for advanced mode
         maxIterations: useAdvancedCuration ? 5 : 1, // More iterations for advanced mode
         useAdvancedCuration, // Pass flag to enable extensive scraping
+        userIntent,
+        rawPrompt,
         onProgress: (state) => {
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
           
@@ -187,6 +198,8 @@ export async function generateItinerary(
         startDate,
         endDate,
         preferences,
+        userIntent,
+        rawPrompt,
         onProgress: (state) => {
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
           

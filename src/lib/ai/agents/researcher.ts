@@ -12,10 +12,13 @@ export async function runResearchAgent(request: ResearchRequest): Promise<{
   result: ResearchResult;
   thoughts: string[];
 }> {
-  const { destination, preferences } = request;
+  const { destination, preferences, userIntent } = request;
   const thoughts: string[] = [];
 
   thoughts.push(`🔍 Researching ${destination} via Tavily…`);
+  if (userIntent) {
+    thoughts.push(`🎯 User focus: "${userIntent}"`);
+  }
   thoughts.push(
     `User interests: ${preferences.activityTypes?.join(', ') || 'general activities'}`
   );
@@ -23,7 +26,7 @@ export async function runResearchAgent(request: ResearchRequest): Promise<{
     `Budget: ${preferences.budgetRange}, Comfort: ${preferences.comfortZone}/10`
   );
 
-  const data = await fetchDestinationDataWithPrefs(destination, preferences);
+  const data = await fetchDestinationDataWithPrefs(destination, preferences, userIntent);
 
   thoughts.push(
     `✓ ${data.attractions.length} attractions, ${data.restaurants.length} restaurants, ${data.activities.length} activities`

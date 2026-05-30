@@ -16,14 +16,21 @@ export async function runReviewerAgent(request: ReviewRequest): Promise<{
   review: ReviewResult;
   thoughts: string[];
 }> {
-  const { plan, preferences, research } = request;
+  const { plan, preferences, research, userIntent, rawPrompt } = request;
   const thoughts: string[] = [];
 
   thoughts.push(`Reviewing ${plan.days.length}-day itinerary for ${plan.destination}`);
+  if (userIntent) {
+    thoughts.push(`🎯 Scoring against user focus: "${userIntent}"`);
+  }
 
   // Build review prompt
-  const reviewPrompt = `You are a meticulous travel itinerary reviewer. Analyze this itinerary for quality, feasibility, and alignment with user preferences.
+  const intentBlock = userIntent
+    ? `\n🎯 USER'S CORE FOCUS (PRIMARY EVALUATION CRITERION):\nUser said: "${rawPrompt ?? userIntent}"\nFocus: "${userIntent}"\nA plan that doesn't visibly serve this focus FAILS the review even if everything else is fine. Each day should contain at least one item that obviously serves this focus.\n`
+    : '';
 
+  const reviewPrompt = `You are a meticulous travel itinerary reviewer. Analyze this itinerary for quality, feasibility, and alignment with user preferences.
+${intentBlock}
 ITINERARY TO REVIEW:
 ${JSON.stringify(plan, null, 2)}
 
@@ -39,6 +46,7 @@ Attractions: ${research.attractions.filter(a => !plan.days.some(d => [...d.morni
 Restaurants: ${research.restaurants.filter(r => !plan.days.some(d => [...d.morning, ...d.afternoon, ...d.evening].some(i => i.name.includes(r.name)))).map(r => r.name).join(', ')}
 
 CHECK FOR:
+${userIntent ? `0. ⚠️ FOCUS ALIGNMENT (most important): does each day clearly serve "${userIntent}"? If not, raise a HIGH severity issue.` : ''}
 1. Preference alignment - do activities match user interests?
 2. Budget alignment - are choices within budget?
 3. Pace appropriateness - too rushed or too slow?

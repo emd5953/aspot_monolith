@@ -32,6 +32,10 @@ export interface AgenticOrchestratorInput {
   qualityThreshold?: number; // Stop when score reaches this (default 60)
   maxIterations?: number; // Safety limit (default 1 for speed)
   useAdvancedCuration?: boolean; // Enable extensive scraping + iterations
+  /** Free-text user focus extracted from the original prompt. Optional. */
+  userIntent?: string;
+  /** Original prompt verbatim. Optional. */
+  rawPrompt?: string;
   onProgress?: (state: OrchestrationState & { reasoning: ReasoningStep[] }) => void;
 }
 
@@ -135,6 +139,8 @@ export async function runAgenticOrchestrator(
     qualityThreshold = 75,
     maxIterations = 1,
     useAdvancedCuration = false,
+    userIntent,
+    rawPrompt,
     onProgress,
   } = input;
 
@@ -167,7 +173,9 @@ export async function runAgenticOrchestrator(
 
   // Use extensive or lightweight research based on mode
   // Check cache first — saves 30s-10min on repeat destinations.
-  const cached = getCachedResearch(destination);
+  // Cache is keyed by destination + userIntent so an "R&B bars" pool isn't
+  // served to a generic "NYC" request and vice versa.
+  const cached = getCachedResearch(destination, userIntent);
   let researchResult: Awaited<ReturnType<typeof runAgenticResearcher>>;
 
   if (cached) {
@@ -176,12 +184,14 @@ export async function runAgenticOrchestrator(
       thoughts: cached.thoughts,
       reasoningSteps: [{ thought: 'Using cached research', action: 'cache-hit', result: 'Loaded from file cache' }],
     };
-    allThoughts.push(`⚡ Using cached research for "${destination}" — skipping scraping`);
+    allThoughts.push(`⚡ Using cached research for "${destination}"${userIntent ? ` + "${userIntent}"` : ''} — skipping scraping`);
   } else {
     researchResult = await runAgenticResearcher({
       destination,
       preferences,
       useAdvancedMode: useAdvancedCuration,
+      userIntent,
+      rawPrompt,
     });
     // Only cache real results — don't poison future runs with empty research
     // from a transient Tavily failure.
@@ -189,22 +199,22 @@ export async function runAgenticOrchestrator(
       (researchResult.result.attractions?.length ?? 0) > 0 ||
       (researchResult.result.restaurants?.length ?? 0) > 0;
     if (hasData) {
-      setCachedResearch(destination, researchResult.result, researchResult.thoughts);
+      setCachedResearch(destination, researchResult.result, researchResult.thoughts, userIntent);
     }
   }
 
-  // Pre-filter the pool by user preferences before the planner sees it.
-  // This is what makes output feel curated rather than generic — instead of
-  // hoping gpt-4o-mini will honor "match user prefs" instructions, we rank
-  // candidates against prefs and keep only the top-scored ones.
+  // Pre-filter the pool by user preferences AND user intent before the planner
+  // sees it. This is what makes output feel curated rather than generic —
+  // instead of hoping gpt-4o-mini will honor "match user prefs" instructions,
+  // we rank candidates against prefs + intent keywords and keep only the top.
   const beforeAttractions = researchResult.result.attractions.length;
   const beforeRestaurants = researchResult.result.restaurants.length;
   researchResult = {
     ...researchResult,
-    result: curateResearchByPreferences(researchResult.result, preferences),
+    result: curateResearchByPreferences(researchResult.result, preferences, {}, userIntent),
   };
   allThoughts.push(
-    `🎯 Curated to user prefs: ${beforeAttractions}→${researchResult.result.attractions.length} attractions, ${beforeRestaurants}→${researchResult.result.restaurants.length} restaurants`
+    `🎯 Curated to user prefs${userIntent ? ` + intent ("${userIntent}")` : ''}: ${beforeAttractions}→${researchResult.result.attractions.length} attractions, ${beforeRestaurants}→${researchResult.result.restaurants.length} restaurants`
   );
 
   researchStep.result = `Found ${researchResult.result.attractions.length} attractions, ${researchResult.result.restaurants.length} restaurants`;
@@ -249,6 +259,8 @@ export async function runAgenticOrchestrator(
       preferences,
       startDate,
       endDate,
+      userIntent,
+      rawPrompt,
     });
 
     currentPlan = planResult.plan;
@@ -276,6 +288,8 @@ export async function runAgenticOrchestrator(
       plan: currentPlan,
       preferences,
       research: researchResult.result,
+      userIntent,
+      rawPrompt,
     });
 
     currentScore = reviewResult.review.score;

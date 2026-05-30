@@ -222,10 +222,10 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
   }
 
   return (
-    <main className="relative mx-auto max-w-4xl px-6 pt-32 pb-24">
+    <main className="relative mx-auto max-w-4xl px-6 pt-20 pb-24">
       <button
         onClick={() => router.push('/itinerary')}
-        className="mb-6 inline-flex items-center gap-2 text-sm text-white/85 transition-colors hover:text-white [text-shadow:0_1px_3px_rgba(10,30,60,0.5)]"
+        className="mb-2 inline-flex items-center gap-2 text-sm text-white/85 transition-colors hover:text-white [text-shadow:0_1px_3px_rgba(10,30,60,0.5)]"
       >
         <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
         Back to itineraries

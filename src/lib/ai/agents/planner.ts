@@ -16,7 +16,7 @@ export async function runPlannerAgent(request: PlanRequest & { previousPlan?: It
   plan: ItineraryPlan;
   thoughts: string[];
 }> {
-  const { research, preferences, startDate, endDate, previousPlan, feedback } = request;
+  const { research, preferences, startDate, endDate, previousPlan, feedback, userIntent, rawPrompt } = request;
   const thoughts: string[] = [];
 
   const tripDuration = Math.ceil(
@@ -25,7 +25,11 @@ export async function runPlannerAgent(request: PlanRequest & { previousPlan?: It
 
   thoughts.push(`Planning ${tripDuration}-day trip to ${research.destination}`);
   thoughts.push(`Available: ${research.attractions.length} attractions, ${research.restaurants.length} restaurants, ${research.activities.length} activities`);
-  
+
+  if (userIntent) {
+    thoughts.push(`🎯 PRIMARY FOCUS: "${userIntent}"`);
+  }
+
   if (previousPlan && feedback) {
     thoughts.push(`Revising previous plan based on ${feedback.length} issues`);
   }
@@ -50,11 +54,28 @@ ${feedback.map(f => `- ${f.issue}: ${f.suggestion}`).join('\n')}
 Please create an IMPROVED version that addresses all the issues above.
 ` : '';
 
+  // The user's free-text focus is THE most important signal we have. It came
+  // straight from their prompt and beats any quiz preference when they
+  // conflict. We surface it loudly at the top of the prompt and again in the
+  // rules so the model can't ignore it.
+  const intentBlock = userIntent
+    ? `
+🎯 PRIMARY OBJECTIVE — THE USER'S OWN WORDS:
+The user said: "${rawPrompt ?? userIntent}"
+Their core focus for this trip: "${userIntent}"
+
+Every day MUST clearly serve this focus. If you have to choose between an item
+that matches this focus and one that matches their generic quiz preferences,
+ALWAYS pick the one that matches the focus. The trip should feel like it was
+built FOR this focus, not a generic trip with one or two themed stops.
+`
+    : '';
+
   const planningPrompt = `You are an expert travel planner creating a ${tripDuration}-day itinerary for ${research.destination}.
 
 CRITICAL: ALL activities, attractions, and restaurants MUST be located in ${research.destination}. 
 DO NOT include locations from other cities or countries. Verify each location is actually in ${research.destination}.
-
+${intentBlock}
 ${revisionContext}
 
 AVAILABLE OPTIONS:
@@ -89,6 +110,7 @@ RULES:
 9. Group nearby attractions together
 10. Leave free time for spontaneous exploration
 11. Consider opening hours (museums morning, nightlife evening)
+${userIntent ? `12. **PRIMARY OBJECTIVE LOCK**: The trip is FOR "${userIntent}". Each day must include AT LEAST ONE item that obviously serves this focus. If multiple items in the pool serve it, use multiple. A day with zero items serving this focus is a failed day.` : ''}
 
 Create a detailed ${tripDuration}-day itinerary for ${research.destination}. For each day, provide:
 - A theme for the day

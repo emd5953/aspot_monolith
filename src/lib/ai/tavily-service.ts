@@ -46,13 +46,18 @@ function getTavilyClient() {
 }
 
 /**
- * Build search queries shaped by user preferences. The query is what Tavily
- * uses to decide which pages to surface and summarize, so encoding prefs here
- * does meaningful curation.
+ * Build search queries shaped by user preferences and (optionally) free-text
+ * intent from the original prompt. The query is what Tavily uses to decide
+ * which pages to surface and summarize, so encoding intent here does the
+ * heaviest lifting toward an on-theme research pool.
+ *
+ * Intent goes FIRST in each query because the leading tokens carry the most
+ * weight in Tavily's relevance scoring.
  */
 function buildSearchQueries(
   destination: string,
-  prefs: UserPreferences
+  prefs: UserPreferences,
+  userIntent?: string
 ): { attractions: string; restaurants: string; activities: string } {
   const authenticity =
     prefs.authenticityPreference === 'authentic_local'
@@ -73,16 +78,21 @@ function buildSearchQueries(
         ? 'luxury upscale'
         : '';
 
+  const intent = (userIntent || '').trim();
+
   return {
-    attractions: `best ${authenticity} ${motivations} ${interests} ${adventurous} things to do attractions in ${destination}`
-      .replace(/\s+/g, ' ')
-      .trim(),
-    restaurants: `best ${authenticity} ${cuisines} ${budget} restaurants where to eat in ${destination}`
-      .replace(/\s+/g, ' ')
-      .trim(),
-    activities: `best ${authenticity} ${motivations} ${adventurous} activities experiences tours in ${destination}`
-      .replace(/\s+/g, ' ')
-      .trim(),
+    attractions:
+      `${intent} best ${authenticity} ${motivations} ${interests} ${adventurous} things to do attractions in ${destination}`
+        .replace(/\s+/g, ' ')
+        .trim(),
+    restaurants:
+      `${intent} best ${authenticity} ${cuisines} ${budget} restaurants where to eat in ${destination}`
+        .replace(/\s+/g, ' ')
+        .trim(),
+    activities:
+      `${intent} best ${authenticity} ${motivations} ${adventurous} activities experiences tours in ${destination}`
+        .replace(/\s+/g, ' ')
+        .trim(),
   };
 }
 
@@ -198,12 +208,18 @@ const ACTIVITY_SCHEMA = `{
 /**
  * Main entry point. Returns the same DestinationData shape the rest of the
  * pipeline expects, populated from Tavily search + LLM extraction.
+ *
+ * `userIntent` is an optional free-text focus from the user's prompt
+ * (e.g. "R&B-leaning bars and live-music nightlife"). When supplied, it's
+ * mixed into every Tavily query so the resulting pool actually contains
+ * on-theme places.
  */
 export async function fetchDestinationDataWithPrefs(
   destination: string,
-  preferences: UserPreferences
+  preferences: UserPreferences,
+  userIntent?: string
 ): Promise<DestinationData> {
-  const queries = buildSearchQueries(destination, preferences);
+  const queries = buildSearchQueries(destination, preferences, userIntent);
 
   // Run all three searches in parallel — Tavily handles concurrent fine.
   const [attractionHits, restaurantHits, activityHits] = await Promise.all([
@@ -260,7 +276,8 @@ export async function fetchDestinationDataWithPrefs(
  */
 export async function fetchDestinationData(
   destination: string,
-  preferences?: UserPreferences
+  preferences?: UserPreferences,
+  userIntent?: string
 ): Promise<DestinationData> {
   const fallbackPrefs: UserPreferences = {
     id: '',
@@ -279,5 +296,5 @@ export async function fetchDestinationData(
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  return fetchDestinationDataWithPrefs(destination, preferences ?? fallbackPrefs);
+  return fetchDestinationDataWithPrefs(destination, preferences ?? fallbackPrefs, userIntent);
 }

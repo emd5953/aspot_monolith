@@ -32,6 +32,15 @@ export interface ResearchRequest {
   preferences: UserPreferences;
   focusAreas?: string[];
   useAdvancedMode?: boolean; // Enable extensive scraping
+  /**
+   * The user's free-text focus extracted from their prompt
+   * (e.g. "R&B-leaning bars and live-music nightlife"). Used to bias
+   * search queries so the research pool actually contains on-theme places.
+   * Empty string when the user gave no theme.
+   */
+  userIntent?: string;
+  /** Original prompt verbatim — used as-is in some search/extraction prompts. */
+  rawPrompt?: string;
 }
 
 export interface ResearchResult {
@@ -81,6 +90,10 @@ export interface PlanRequest {
   preferences: UserPreferences;
   startDate: Date;
   endDate: Date;
+  /** User focus / theme to optimize the plan around. Empty if none. */
+  userIntent?: string;
+  /** Original prompt verbatim. */
+  rawPrompt?: string;
 }
 
 export interface DayPlan {
@@ -119,6 +132,10 @@ export interface ReviewRequest {
   plan: ItineraryPlan;
   preferences: UserPreferences;
   research: ResearchResult;
+  /** User focus / theme. Reviewer scores intent alignment when present. */
+  userIntent?: string;
+  /** Original prompt verbatim. */
+  rawPrompt?: string;
 }
 
 export interface ReviewResult {

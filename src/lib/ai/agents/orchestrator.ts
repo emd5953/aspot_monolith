@@ -27,6 +27,10 @@ export interface OrchestratorInput {
   startDate: Date;
   endDate: Date;
   preferences: UserPreferences;
+  /** Free-text user focus extracted from the original prompt. Optional. */
+  userIntent?: string;
+  /** Original prompt verbatim. Optional. */
+  rawPrompt?: string;
   onProgress?: (state: OrchestrationState) => void;
 }
 
@@ -74,7 +78,7 @@ function log(state: OrchestrationState, agent: keyof OrchestrationState['agents'
  * Run the multi-agent orchestration
  */
 export async function runOrchestrator(input: OrchestratorInput): Promise<OrchestratorOutput> {
-  const { destination, startDate, endDate, preferences, onProgress } = input;
+  const { destination, startDate, endDate, preferences, userIntent, rawPrompt, onProgress } = input;
   const sessionId = `session_${Date.now()}`;
   const state = createInitialState(sessionId);
 
@@ -95,7 +99,9 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
     notify();
 
     // Check cache first — saves 30s-10min on repeat destinations.
-    const cached = getCachedResearch(destination);
+    // Cache key includes userIntent so an "R&B bars" pool isn't served to a
+    // generic "NYC" request and vice versa.
+    const cached = getCachedResearch(destination, userIntent);
     let researchResult: Awaited<ReturnType<typeof runResearchAgent>>;
 
     if (cached) {
@@ -107,6 +113,8 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
       researchResult = await runResearchAgent({
         destination,
         preferences,
+        userIntent,
+        rawPrompt,
       });
       // Only cache if we actually got data — empty results are usually a
       // transient API failure and shouldn't poison future runs.
@@ -114,14 +122,14 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
         (researchResult.result.attractions?.length ?? 0) > 0 ||
         (researchResult.result.restaurants?.length ?? 0) > 0;
       if (hasData) {
-        setCachedResearch(destination, researchResult.result, researchResult.thoughts);
+        setCachedResearch(destination, researchResult.result, researchResult.thoughts, userIntent);
       }
     }
 
     // Pre-filter pool by user preferences (see agentic-orchestrator for rationale).
     researchResult = {
       ...researchResult,
-      result: curateResearchByPreferences(researchResult.result, preferences),
+      result: curateResearchByPreferences(researchResult.result, preferences, {}, userIntent),
     };
 
     state.research = researchResult.result;
@@ -155,6 +163,8 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
         endDate,
         previousPlan: currentPlan,
         feedback: state.review?.issues,
+        userIntent,
+        rawPrompt,
       });
 
       currentPlan = planResult.plan;
@@ -176,6 +186,8 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
         plan: currentPlan,
         preferences,
         research: state.research,
+        userIntent,
+        rawPrompt,
       });
 
       state.review = reviewResult.review;

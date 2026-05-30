@@ -1,104 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { Search, MapPin, UtensilsCrossed, CalendarDays, Sparkles } from 'lucide-react';
 
-const PROGRESS_STEPS = [
-  'Researching top attractions and hidden gems',
-  'Finding the best local restaurants',
-  'Mapping optimal routes and neighborhoods',
-  'Checking opening hours and availability',
-  'Optimizing your daily schedule',
-  'Personalizing based on your preferences',
+/**
+ * Steps shown to the user while their itinerary is being built.
+ * Each step has an icon, a verb-y label, and an estimated cumulative time.
+ * The component cycles through them on a timer (since we don't yet stream
+ * real progress from the agent pipeline).
+ */
+const STEPS = [
+  { icon: Search, label: 'Researching your destination', accent: 'text-sky-600' },
+  { icon: MapPin, label: 'Mapping neighborhoods and routes', accent: 'text-violet-600' },
+  { icon: UtensilsCrossed, label: 'Picking restaurants for your taste', accent: 'text-rose-600' },
+  { icon: CalendarDays, label: 'Pacing each day to your rhythm', accent: 'text-emerald-600' },
+  { icon: Sparkles, label: 'Adding the personal touches', accent: 'text-amber-600' },
 ];
 
-const DESTINATION_FACTS: Record<string, string[]> = {
-  default: [
-    'Every destination has its own story to tell',
-    'The best adventures often come from unexpected discoveries',
-    'Local experiences create the most memorable moments',
-    'Immersing yourself in local culture enriches any journey',
-    'Food is the universal language of travel',
-    'The best photos are the memories you make along the way',
-  ],
-  paris: [
-    'The Eiffel Tower was only meant to stand for 20 years',
-    'Paris has only one stop sign in the entire city',
-    'The croissant was actually invented in Austria, not France',
-    "The Louvre is the world's largest art museum with 380,000 objects",
-    'There are 20,000 light bulbs on the Eiffel Tower',
-  ],
-  london: [
-    'London has been a major settlement for over 2,000 years',
-    'London has over 3,000 pubs, many centuries old',
-    "The London Underground is the world's oldest metro system (1863)",
-    'Buckingham Palace has 775 rooms and 78 bathrooms',
-    'Tower Bridge opens about 800 times a year',
-  ],
-  rome: [
-    'Rome has more fountains than any other city in the world (2,000+)',
-    'Romans have been making pasta for over 2,000 years',
-    'The Colosseum could hold up to 80,000 spectators',
-    "Vatican City, within Rome, is the world's smallest country",
-    'Tourists throw €3,000 into the Trevi Fountain daily',
-  ],
-  barcelona: [
-    'Sagrada Familia has been under construction since 1882',
-    'Barcelona has 9 UNESCO World Heritage Sites',
-    'The city has 4.5km of beaches within city limits',
-    "FC Barcelona's Camp Nou is Europe's largest stadium",
-  ],
-  amsterdam: [
-    'Amsterdam has more bicycles than residents (880,000 bikes)',
-    'Amsterdam has 165 canals and 1,281 bridges',
-    'There are 2,500 houseboats in Amsterdam',
-  ],
-  berlin: [
-    'The Berlin Wall stood for 28 years (1961-1989)',
-    'Berlin has more museums than rainy days (175+ museums)',
-    'Berlin is 9 times larger than Paris',
-  ],
-  tokyo: [
-    "Tokyo is the world's most populous metropolitan area (37M+)",
-    'Tokyo has more Michelin-starred restaurants than any other city',
-    'Shibuya Crossing sees up to 3,000 people cross at once',
-    'There are over 160,000 restaurants in Tokyo',
-  ],
-  bangkok: [
-    "Bangkok's full ceremonial name has 169 characters",
-    'The city has over 400 Buddhist temples',
-    'Bangkok was once called the Venice of the East',
-  ],
-  singapore: [
-    "Marina Bay Sands has the world's largest rooftop infinity pool",
-    'The city has over 2 million trees',
-    'Singapore has 4 official languages',
-  ],
-  seoul: [
-    'Seoul has 5 UNESCO World Heritage Sites',
-    'Seoul Metro is one of the busiest in the world (8M+ daily riders)',
-  ],
-  dubai: [
-    "Burj Khalifa is the world's tallest building at 828m",
-    "Dubai Metro is the world's longest driverless metro",
-  ],
-  'new york': [
-    'The Statue of Liberty was a gift from France in 1886',
-    'Central Park is larger than Monaco (341 hectares)',
-    'NYC subway runs 24/7, one of few in the world',
-    'New Yorkers consume 200 million pounds of pizza annually',
-  ],
-  'los angeles': [
-    'Hollywood sign originally said "Hollywoodland"',
-    'LA has 75 miles of coastline',
-    'LA has sunshine 284 days a year',
-  ],
-  'san francisco': [
-    'The Golden Gate Bridge is 2.7km long',
-    'Cable cars are the only moving National Historic Landmark',
-    'San Francisco has 43 hills',
-  ],
-};
+const STEP_INTERVAL_MS = 4500;
+// Total expected duration (cosmetic, drives the progress bar). Real generation
+// can finish faster or slower; this is just a friendly visual proxy.
+const ESTIMATED_TOTAL_MS = 22_000;
 
 interface KanyeQuotesProps {
   destination?: string;
@@ -107,100 +29,105 @@ interface KanyeQuotesProps {
 
 export function KanyeQuotes({ destination, realProgress }: KanyeQuotesProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [currentFact, setCurrentFact] = useState('');
-  const [elapsedTime, setElapsedTime] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
 
-  const getFacts = (dest?: string): string[] => {
-    if (!dest) return DESTINATION_FACTS.default;
-    const normalized = dest.toLowerCase().trim();
-    const cleaned = normalized
-      .replace(/\b(city|state|province|region|area)\b/g, '')
-      .replace(/[,.-]/g, ' ')
-      .trim();
-
-    if (DESTINATION_FACTS[normalized]) return DESTINATION_FACTS[normalized];
-    if (DESTINATION_FACTS[cleaned]) return DESTINATION_FACTS[cleaned];
-
-    for (const key in DESTINATION_FACTS) {
-      if (key === 'default') continue;
-      if (normalized.includes(key) || key.includes(cleaned)) {
-        return DESTINATION_FACTS[key];
-      }
-    }
-    return DESTINATION_FACTS.default;
-  };
-
+  // Cycle through the step labels.
   useEffect(() => {
-    const facts = getFacts(destination);
-    setCurrentFact(facts[Math.floor(Math.random() * facts.length)]);
+    if (realProgress) return;
+    const id = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % STEPS.length);
+    }, STEP_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [realProgress]);
 
-    let stepInterval: NodeJS.Timeout | undefined;
-    if (!realProgress) {
-      stepInterval = setInterval(() => {
-        setCurrentStep((prev) => (prev + 1) % PROGRESS_STEPS.length);
-      }, 8000);
+  // Drive the progress bar with an easing curve — it climbs fast at first,
+  // then slows down as it approaches the end. Caps at 92% so it doesn't sit
+  // at "done" for ages.
+  useEffect(() => {
+    if (realProgress?.progress !== undefined) {
+      setProgress(realProgress.progress);
+      return;
     }
+    const startedAt = Date.now();
+    const id = setInterval(() => {
+      const ms = Date.now() - startedAt;
+      setElapsed(ms);
+      // Asymptotic curve: ratio = 1 - 1/(1 + ms/total). At ms == total, ratio = 0.5.
+      // Then we map it through a softer cap.
+      const r = ms / ESTIMATED_TOTAL_MS;
+      const next = Math.min(92, Math.round(100 * (1 - 1 / (1 + r * 1.4))));
+      setProgress(next);
+    }, 250);
+    return () => clearInterval(id);
+  }, [realProgress]);
 
-    const factInterval = setInterval(() => {
-      setCurrentFact(facts[Math.floor(Math.random() * facts.length)]);
-    }, 12000);
+  const currentLabel =
+    realProgress?.message ?? STEPS[currentStep]?.label ?? 'Working on it';
+  const StepIcon = STEPS[currentStep]?.icon ?? Sparkles;
+  const accent = STEPS[currentStep]?.accent ?? 'text-[color:var(--accent)]';
 
-    const timeInterval = setInterval(() => {
-      setElapsedTime((prev) => prev + 1);
-    }, 1000);
-
-    return () => {
-      if (stepInterval) clearInterval(stepInterval);
-      clearInterval(factInterval);
-      clearInterval(timeInterval);
-    };
-  }, [destination, realProgress]);
-
-  const statusText = realProgress ? realProgress.message : PROGRESS_STEPS[currentStep];
+  // Long-trip reassurance copy.
+  const longHint =
+    elapsed > 60_000
+      ? 'Hang tight — bigger trips take a moment longer.'
+      : elapsed > 30_000
+        ? 'Almost there.'
+        : null;
 
   return (
-    <HandDrawnCard className="p-8 text-center">
-      <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
-
-      <p className="mt-5 text-sm font-medium text-[color:var(--ink-muted)]">
-        Building your itinerary
-      </p>
-
-      <div className="mt-5 flex animate-pulse items-center justify-center gap-2 text-sm text-[color:var(--ink)]">
-        <span>{statusText}</span>
+    <div className="relative overflow-hidden rounded-3xl bg-white shadow-[0_32px_80px_-20px_rgba(10,25,55,0.5)]">
+      {/* Top progress bar */}
+      <div className="h-1 w-full bg-[color:var(--surface-soft)]">
+        <div
+          className="h-full bg-[color:var(--ink)] transition-[width] duration-300 ease-out"
+          style={{ width: `${progress}%` }}
+        />
       </div>
 
-      {realProgress?.progress !== undefined && (
-        <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-[color:var(--surface-soft)]">
-          <div
-            className="h-full bg-[color:var(--accent)] transition-[width] duration-500 ease-out"
-            style={{ width: `${realProgress.progress}%` }}
-          />
+      <div className="px-7 py-8">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[color:var(--ink-soft)]">
+          {destination ? `Building ${destination}` : 'Building your trip'}
+        </p>
+
+        {/* Currently doing */}
+        <div className="mt-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[color:var(--surface-soft)]">
+            <StepIcon className={`h-5 w-5 ${accent}`} strokeWidth={2} />
+          </div>
+          <h3 className="font-heading text-2xl leading-tight text-[color:var(--ink)]">
+            {currentLabel}
+          </h3>
         </div>
-      )}
 
-      {elapsedTime > 50 && elapsedTime <= 90 && (
-        <p className="mt-6 animate-pulse text-xs text-[color:var(--ink-muted)]">Almost there.</p>
-      )}
-      {elapsedTime > 90 && elapsedTime <= 150 && (
-        <p className="mt-6 animate-pulse text-xs text-[color:var(--ink-muted)]">
-          Still working on it.
-        </p>
-      )}
-      {elapsedTime > 150 && (
-        <p className="mt-6 animate-pulse text-xs text-[color:var(--ink-muted)]">
-          Wrapping up the last few details.
-        </p>
-      )}
+        {/* Step rail — small dots showing where we are in the sequence */}
+        {!realProgress && (
+          <div className="mt-6 flex items-center gap-1.5">
+            {STEPS.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 flex-1 rounded-full transition-colors duration-500 ${
+                  i <= currentStep
+                    ? 'bg-[color:var(--ink)]'
+                    : 'bg-[color:var(--surface-soft)]'
+                }`}
+              />
+            ))}
+          </div>
+        )}
 
-      <div className="mt-8 border-t border-[color:var(--border)] pt-6">
-        <p className="mb-3 text-xs font-medium text-[color:var(--ink-soft)]">
-          {destination ? `About ${destination}` : 'Travel note'}
-        </p>
-        <p className="font-heading text-xl italic leading-snug text-[color:var(--ink)] transition-all duration-500">
-          {currentFact}
+        {/* Reassurance line if it's been a while */}
+        {longHint && (
+          <p className="animate-fade-up mt-6 text-center text-sm text-[color:var(--ink-muted)]">
+            {longHint}
+          </p>
+        )}
+
+        {/* Soft footer */}
+        <p className="mt-7 text-center text-xs text-[color:var(--ink-soft)]">
+          You can leave this open. It usually takes 10–30 seconds.
         </p>
       </div>
-    </HandDrawnCard>
+    </div>
   );
 }
