@@ -45,8 +45,9 @@ export function KanyeQuotes({ destination, realProgress }: KanyeQuotesProps) {
   // then slows down as it approaches the end. Caps at 92% so it doesn't sit
   // at "done" for ages.
   useEffect(() => {
+    // When real progress is supplied we read it straight from the prop in
+    // render (see displayedProgress) — no need to mirror it into state.
     if (realProgress?.progress !== undefined) {
-      setProgress(realProgress.progress);
       return;
     }
     const startedAt = Date.now();
@@ -61,6 +62,9 @@ export function KanyeQuotes({ destination, realProgress }: KanyeQuotesProps) {
     }, 250);
     return () => clearInterval(id);
   }, [realProgress]);
+
+  // Real progress (from the stream) wins; otherwise use the timer-driven value.
+  const displayedProgress = realProgress?.progress ?? progress;
 
   const currentLabel =
     realProgress?.message ?? STEPS[currentStep]?.label ?? 'Working on it';
@@ -81,7 +85,7 @@ export function KanyeQuotes({ destination, realProgress }: KanyeQuotesProps) {
       <div className="h-1 w-full bg-[color:var(--surface-soft)]">
         <div
           className="h-full bg-[color:var(--ink)] transition-[width] duration-300 ease-out"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${displayedProgress}%` }}
         />
       </div>
 

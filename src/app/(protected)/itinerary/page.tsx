@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Plus, Trash2, MapPin, Calendar } from 'lucide-react';
-import { GenerateForm } from '@/components/itinerary/generate-form';
+import { GenerateForm, GenerationProgress } from '@/components/itinerary/generate-form';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { PromoChip } from '@/components/ui/promo-chip';
@@ -38,6 +38,7 @@ function ItineraryInner() {
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState<GenerationProgress | null>(null);
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
@@ -68,25 +69,62 @@ function ItineraryInner() {
     startDate: string;
     endDate: string;
     title?: string;
-    useAgenticMode?: boolean;
+    generationMode?: 'standard' | 'advanced';
+    activityDensity?: 'relaxed' | 'moderate' | 'packed';
   }) => {
     setIsGenerating(true);
+    setProgress({ status: 'starting', message: 'Starting…', progress: 0 });
     try {
-      const res = await fetch('/api/itinerary/generate', {
+      const res = await fetch('/api/itinerary/generate-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to generate');
+      if (!res.ok || !res.body) {
+        const message = await res.text().catch(() => '');
+        throw new Error(message || 'Failed to generate');
       }
 
-      const { itinerary } = await res.json();
-      router.push(`/itinerary/${itinerary.id}`);
+      // Read the Server-Sent Events stream: each `data: {...}` line is a
+      // progress update, a final `done` payload, or an `error`.
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE events are separated by a blank line.
+        const events = buffer.split('\n\n');
+        buffer = events.pop() ?? '';
+
+        for (const event of events) {
+          const line = event.split('\n').find((l) => l.startsWith('data:'));
+          if (!line) continue;
+          const payload = JSON.parse(line.slice(5).trim());
+
+          if (payload.status === 'done') {
+            router.push(`/itinerary/${payload.itinerary.id}`);
+            return;
+          }
+          if (payload.status === 'error') {
+            throw new Error(payload.message || 'Failed to generate');
+          }
+          setProgress({
+            status: payload.status,
+            message: payload.message,
+            progress: payload.progress,
+          });
+        }
+      }
+
+      throw new Error('Generation ended without producing an itinerary');
     } finally {
       setIsGenerating(false);
+      setProgress(null);
     }
   };
 
@@ -123,7 +161,11 @@ function ItineraryInner() {
           <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
           Back to itineraries
         </button>
-        <GenerateForm onSubmit={handleGenerate} isLoading={isGenerating} />
+        <GenerateForm
+          onSubmit={handleGenerate}
+          isLoading={isGenerating}
+          realProgress={progress}
+        />
       </main>
     );
   }

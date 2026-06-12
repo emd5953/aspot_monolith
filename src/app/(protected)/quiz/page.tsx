@@ -21,6 +21,13 @@ export default async function QuizPage() {
     timestamp: new Date().toISOString()
   });
 
-  // Use timestamp as key to force remount and reset state
-  return <QuizFlow key={Date.now()} initialProgress={progress} userId={user.id} />;
+  // Key off the fresh-start timestamp so each new quiz session remounts
+  // QuizFlow and resets its state. (Computed by startQuiz, not during render.)
+  return (
+    <QuizFlow
+      key={progress.startedAt.getTime()}
+      initialProgress={progress}
+      userId={user.id}
+    />
+  );
 }

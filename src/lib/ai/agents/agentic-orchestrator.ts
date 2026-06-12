@@ -57,8 +57,7 @@ async function decideNextAction(
   iteration: number,
   maxIterations: number,
   qualityThreshold: number,
-  issues: Array<{ severity: string; issue: string }>,
-  reasoning: ReasoningStep[]
+  issues: Array<{ severity: string; issue: string }>
 ): Promise<{
   action: 'continue' | 'stop' | 'research_more' | 'revise';
   reasoning: string;
@@ -311,8 +310,7 @@ export async function runAgenticOrchestrator(
       iteration,
       maxIterations,
       qualityThreshold,
-      reviewIssues,
-      allReasoning
+      reviewIssues
     );
 
     decisionStep.result = `Decision: ${decision.action} - ${decision.reasoning}`;

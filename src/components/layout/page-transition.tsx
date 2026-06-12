@@ -11,31 +11,33 @@ import { usePathname } from 'next/navigation';
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [displayed, setDisplayed] = useState({ pathname, children });
-  const [fadedOut, setFadedOut] = useState(false);
+
+  // The transition state is *derived*, not stored: whenever the live route
+  // differs from the one we've committed to `displayed`, we're mid-swap —
+  // fade out. Once the timeout below commits the new route they match again,
+  // and the same element's opacity animates back to 1 (the fade-in).
+  const transitioning = pathname !== displayed.pathname;
 
   useEffect(() => {
-    if (pathname === displayed.pathname) {
-      // Same path — just refresh the children reference (data updates, etc.)
-      setDisplayed({ pathname, children });
-      return;
-    }
-
-    // Route changed: fade out the old content, swap, fade in.
-    setFadedOut(true);
+    if (!transitioning) return;
+    // Hold the old content through the fade-out, then commit the new route.
+    // (setState here is inside a timeout, not synchronous in the effect.)
     const t = setTimeout(() => {
       setDisplayed({ pathname, children });
-      // Next paint, fade in
-      requestAnimationFrame(() => setFadedOut(false));
     }, 180);
     return () => clearTimeout(t);
-  }, [pathname, children, displayed.pathname]);
+  }, [transitioning, pathname, children]);
+
+  // Same route (in-place data updates): show the live children immediately.
+  // Mid-transition: hold the previous children until the swap lands.
+  const content = transitioning ? displayed.children : children;
 
   return (
     <div
       className="transition-opacity duration-300 ease-out"
-      style={{ opacity: fadedOut ? 0 : 1 }}
+      style={{ opacity: transitioning ? 0 : 1 }}
     >
-      {displayed.children}
+      {content}
     </div>
   );
 }

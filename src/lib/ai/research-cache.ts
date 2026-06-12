@@ -1,4 +1,11 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  unlinkSync,
+} from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
 import { ResearchResult } from './agents/types';
@@ -114,7 +121,6 @@ export function setCachedResearch(
  * Clear all cached research (useful for dev).
  */
 export function clearResearchCache(): void {
-  const { readdirSync, unlinkSync } = require('fs');
   if (!existsSync(CACHE_DIR)) return;
   const files = readdirSync(CACHE_DIR) as string[];
   for (const f of files) {

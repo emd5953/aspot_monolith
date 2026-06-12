@@ -32,7 +32,6 @@ interface RunOptions {
  * Used both in the awaited fast path and the fire-and-forget deep path.
  */
 async function runGenerationPipeline(opts: RunOptions): Promise<GeneratedItinerary> {
-  const useAgenticMode = true;
   const useTrulyAgentic = opts.mode === 'deep';
   const useAdvancedCuration = opts.mode === 'deep';
 
@@ -49,7 +48,6 @@ async function runGenerationPipeline(opts: RunOptions): Promise<GeneratedItinera
       rawPrompt: opts.rawPrompt,
     },
     opts.preferences,
-    useAgenticMode,
     useTrulyAgentic,
     useAdvancedCuration
   );

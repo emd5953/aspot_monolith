@@ -8,7 +8,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { getItineraryDays, ItineraryDay } from './itinerary-service';
+import { getItineraryDays } from './itinerary-service';
 
 export interface ItineraryVersion {
   id: string;

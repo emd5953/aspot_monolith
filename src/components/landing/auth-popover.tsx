@@ -55,10 +55,15 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  useEffect(() => {
+  // Clear transient feedback when the user flips between login/signup.
+  // Done during render (React's supported "reset state on prop change"
+  // pattern) so email/password are preserved across the switch.
+  const [prevMode, setPrevMode] = useState(mode);
+  if (mode !== prevMode) {
+    setPrevMode(mode);
     setError(null);
     setVerificationSent(false);
-  }, [mode]);
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

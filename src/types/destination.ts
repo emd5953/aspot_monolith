@@ -51,5 +51,7 @@ export interface DestinationData {
   activities: ActivityOption[];
   localTips: string[];
   weatherInfo?: WeatherInfo;
+  /** Unique source URLs the research was extracted from (Tavily search hits). */
+  sources: string[];
   fetchedAt: Date;
 }

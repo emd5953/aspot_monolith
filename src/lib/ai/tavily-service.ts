@@ -258,6 +258,15 @@ export async function fetchDestinationDataWithPrefs(
     `[tavily] Extracted — attractions:${attractions.length} restaurants:${restaurants.length} activities:${activities.length}`
   );
 
+  // Unique source URLs across all three searches, for citations downstream.
+  const sources = Array.from(
+    new Set(
+      [...attractionHits, ...restaurantHits, ...activityHits]
+        .map((h) => h.url)
+        .filter((u): u is string => Boolean(u))
+    )
+  );
+
   return {
     name: destination,
     country: '', // Tavily doesn't reliably give us this; not used downstream
@@ -266,6 +275,7 @@ export async function fetchDestinationDataWithPrefs(
     restaurants,
     activities,
     localTips: [],
+    sources,
     fetchedAt: new Date(),
   };
 }

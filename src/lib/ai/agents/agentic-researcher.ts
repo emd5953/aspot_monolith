@@ -63,7 +63,7 @@ export async function runAgenticResearcher(request: ResearchRequest): Promise<{
     restaurants: data.restaurants,
     activities: data.activities,
     localInsights: data.localTips,
-    sources: [],
+    sources: data.sources,
   };
 
   return { result, thoughts, reasoningSteps };

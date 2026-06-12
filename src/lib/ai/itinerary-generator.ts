@@ -104,12 +104,11 @@ export async function generateItinerary(
   supabase: SupabaseClient,
   input: ItineraryInput,
   preferences: UserPreferences,
-  useAgenticMode: boolean = false,
-  useTrulyAgentic: boolean = false, // NEW: Use the truly agentic system
-  useAdvancedCuration: boolean = false, // NEW: Use advanced curation (extensive scraping + iterations)
-  onProgress?: ProgressCallback // NEW: Progress callback for streaming
+  useTrulyAgentic: boolean = false, // Use the truly agentic, multi-iteration system
+  useAdvancedCuration: boolean = false, // Use advanced curation (extensive scraping + iterations)
+  onProgress?: ProgressCallback // Progress callback for streaming
 ): Promise<GeneratedItinerary> {
-  const { userId, destination, startDate, endDate, title, activityDensity = 'moderate', userIntent, rawPrompt } = input;
+  const { userId, destination, startDate, endDate, title, userIntent, rawPrompt } = input;
   
   // Calculate trip duration
   const tripDuration = Math.ceil(
@@ -266,11 +265,16 @@ function convertAgentPlanToDayPlans(plan: ItineraryPlan, startDate: Date): DayPl
     // Convert to ActivityRecommendation format
     const activities: ActivityRecommendation[] = allItems.map((item, i) => ({
       type: (item.type === 'restaurant' ? 'restaurant' : item.type === 'attraction' ? 'attraction' : 'activity') as 'attraction' | 'restaurant' | 'activity',
+      // ScheduledItem only carries name/type/description; fill the rest of the
+      // Attraction shape with sane defaults so downstream stays well-typed.
       item: {
         name: item.name,
         description: item.description || '',
         category: item.type || 'activity',
-      } as any, // Type assertion to avoid complex type issues
+        address: '',
+        estimatedDuration: item.duration || 90,
+        priceRange: 'moderate',
+      } satisfies Attraction,
       matchScore: 80,
       matchReasons: item.matchReasons || [],
       suggestedTimeSlot: i < allItems.length / 3 ? 'morning' : i < (2 * allItems.length) / 3 ? 'afternoon' : 'evening',
@@ -324,13 +328,6 @@ function activityToSimple(activity: ActivityRecommendation, index: number): Simp
     sortOrder: index + 1,
     notes: activity.matchReasons?.join(', ') || '',
   };
-}
-
-function getTimeSlot(time: string): 'morning' | 'afternoon' | 'evening' {
-  const hour = parseInt(time.split(':')[0], 10);
-  if (hour < 12) return 'morning';
-  if (hour < 17) return 'afternoon';
-  return 'evening';
 }
 
 /**

@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
         try {
           // Map generation mode to flags
           const mode = generationMode || 'standard';
-          const useAgenticMode = true;
           const useTrulyAgentic = true;
           const useAdvancedCuration = mode === 'advanced';
 
@@ -56,7 +55,6 @@ export async function POST(request: NextRequest) {
               activityDensity: activityDensity || 'moderate',
             },
             preferences,
-            useAgenticMode,
             useTrulyAgentic,
             useAdvancedCuration,
             // Progress callback

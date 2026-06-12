@@ -43,7 +43,7 @@ export async function runResearchAgent(request: ResearchRequest): Promise<{
       restaurants: data.restaurants,
       activities: data.activities,
       localInsights: data.localTips,
-      sources: [],
+      sources: data.sources,
     },
     thoughts,
   };

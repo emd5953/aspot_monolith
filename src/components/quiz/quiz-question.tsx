@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { QuizQuestion, QuizAnswer } from '@/types/quiz';
 
@@ -28,14 +28,9 @@ export function QuizQuestionCard({
       : question.scaleMin ?? 5
   );
 
-  useEffect(() => {
-    const newValues = currentAnswer
-      ? Array.isArray(currentAnswer.value)
-        ? currentAnswer.value
-        : [currentAnswer.value as string]
-      : [];
-    setSelectedValues(newValues);
-  }, [currentAnswer, question.id]);
+  // State is seeded from `currentAnswer` in the useState initializers above.
+  // The parent remounts this card via `key={question.id}` when navigating
+  // between questions, so there's no need to resync state in an effect.
 
   const handleSingleSelect = (value: string) => {
     setSelectedValues([value]);

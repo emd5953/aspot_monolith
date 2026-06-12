@@ -22,8 +22,6 @@ interface QuizFlowProps {
 
 const TEXT_SHADOW =
   '[text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]';
-const TEXT_SHADOW_SM =
-  '[text-shadow:0_1px_4px_rgba(10,30,60,0.6),0_4px_18px_rgba(10,30,60,0.5)]';
 
 export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
   const [currentStep, setCurrentStep] = useState(initialProgress?.currentStep ?? 0);
@@ -96,6 +94,7 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
         style={{ animationDelay: '0.05s' }}
       >
         <QuizQuestionCard
+          key={currentQuestion.id}
           question={currentQuestion}
           currentAnswer={answers[currentQuestion.id]}
           onAnswer={handleAnswer}

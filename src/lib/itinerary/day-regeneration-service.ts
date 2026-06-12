@@ -25,6 +25,29 @@ interface Activity {
   notes?: string;
 }
 
+/** Raw `activities` row as it comes back from Supabase (snake_case columns). */
+interface RawActivityRow {
+  id: string;
+  title: string;
+  description: string;
+  location_name?: string;
+  category: string;
+  estimated_cost?: number | null;
+  booking_url?: string | null;
+  sort_order: number;
+  notes?: string;
+}
+
+/** Shape of an activity object the LLM emits when adding to a day. */
+interface GeneratedActivity {
+  name?: string;
+  description?: string;
+  locationName?: string;
+  category?: string;
+  estimatedCost?: number | null;
+  bookingUrl?: string | null;
+}
+
 interface UserIntent {
   keywords: string[];
   categories: string[];
@@ -532,12 +555,12 @@ async function addActivitiesToDay(
     dayNumber: number;
     date: Date;
     destination: string;
-    currentActivities: any[];
+    currentActivities: RawActivityRow[];
     intentAnalysis: UserIntent & { action: string };
     preferences: UserPreferences;
   }
 ): Promise<Activity[]> {
-  const { itineraryId, dayId, dayNumber, date, destination, currentActivities, intentAnalysis, preferences } = input;
+  const { itineraryId, dayId, dayNumber, date, destination, currentActivities, intentAnalysis } = input;
 
   // Scrape data for the new activities
   const scrapedData = await scrapeTargetedData(destination, intentAnalysis, date);
@@ -597,7 +620,7 @@ Return ONLY valid JSON:
   // Insert new activities at the end
   const maxSortOrder = Math.max(...currentActivities.map(a => a.sort_order), 0);
   
-  const activitiesToInsert = newActivities.map((act: any, index: number) => ({
+  const activitiesToInsert = newActivities.map((act: GeneratedActivity, index: number) => ({
     day_id: dayId,
     title: act.name || 'Activity',
     description: act.description || '',
@@ -654,7 +677,7 @@ async function removeActivitiesFromDay(
   input: {
     itineraryId: string;
     dayId: string;
-    currentActivities: any[];
+    currentActivities: RawActivityRow[];
     intentAnalysis: UserIntent & { action: string };
   }
 ): Promise<Activity[]> {
@@ -682,7 +705,7 @@ async function removeActivitiesFromDay(
       description: act.description,
       locationName: act.location_name,
       category: act.category,
-      estimatedCost: act.estimated_cost,
+      estimatedCost: act.estimated_cost ?? undefined,
       sortOrder: act.sort_order,
       notes: act.notes,
     }));

@@ -80,7 +80,7 @@ export function scheduleActivities(
   const target = targetCounts[activityDensity];
   
   // Filter activities to match density (keep most important ones)
-  let filteredActivities = activities.slice(0, target.max);
+  const filteredActivities = activities.slice(0, target.max);
   
   // Insert meal activities at appropriate times
   const activitiesWithMeals = insertMealActivities(filteredActivities, options);

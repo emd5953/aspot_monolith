@@ -9,6 +9,12 @@ import { HandDrawnInput } from '@/components/ui/hand-drawn-input';
 import { PromoChip } from '@/components/ui/promo-chip';
 import { KanyeQuotes } from './kanye-quotes';
 
+export interface GenerationProgress {
+  status: string;
+  message: string;
+  progress?: number;
+}
+
 interface GenerateFormProps {
   onSubmit: (data: {
     destination: string;
@@ -19,11 +25,11 @@ interface GenerateFormProps {
     activityDensity?: 'relaxed' | 'moderate' | 'packed';
   }) => Promise<void>;
   isLoading?: boolean;
-  useStreaming?: boolean;
-  onProgress?: (progress: { status: string; message: string; progress?: number }) => void;
+  /** Live progress from the streaming generate endpoint, owned by the parent. */
+  realProgress?: GenerationProgress | null;
 }
 
-export function GenerateForm({ onSubmit, isLoading, onProgress }: GenerateFormProps) {
+export function GenerateForm({ onSubmit, isLoading, realProgress }: GenerateFormProps) {
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -33,15 +39,6 @@ export function GenerateForm({ onSubmit, isLoading, onProgress }: GenerateFormPr
     'moderate'
   );
   const [error, setError] = useState('');
-  const [realProgress, setRealProgress] = useState<{
-    status: string;
-    message: string;
-    progress?: number;
-  } | null>(null);
-
-  useEffect(() => {
-    if (realProgress && onProgress) onProgress(realProgress);
-  }, [realProgress, onProgress]);
 
   // Pre-fill from landing/dashboard prompt if present
   useEffect(() => {

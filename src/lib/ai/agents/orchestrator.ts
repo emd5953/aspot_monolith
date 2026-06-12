@@ -13,7 +13,7 @@
  */
 
 import { UserPreferences } from '@/types/quiz';
-import { OrchestrationState, OrchestrationLog, ItineraryPlan, ResearchResult } from './types';
+import { OrchestrationState, ItineraryPlan, ResearchResult } from './types';
 import { runResearchAgent } from './researcher';
 import { runPlannerAgent } from './planner';
 import { runReviewerAgent } from './reviewer';
