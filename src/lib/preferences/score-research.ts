@@ -1,6 +1,10 @@
 import { UserPreferences } from '@/types/quiz';
-import { Attraction, Restaurant, ActivityOption } from '@/types/destination';
-import { ResearchResult } from '../ai/agents/types';
+import {
+  ResearchResult,
+  AttractionData,
+  RestaurantData,
+  ActivityData,
+} from '../ai/agents/types';
 
 /**
  * Pre-filter the research pool by user preferences before the planner sees it.
@@ -131,7 +135,7 @@ function looksAdventurous(item: { name: string; description?: string; category?:
 // ——— Scorers ———
 
 export function scoreAttraction(
-  attraction: Attraction,
+  attraction: AttractionData,
   prefs: UserPreferences,
   intentKw: string[] = []
 ): number {
@@ -177,7 +181,7 @@ export function scoreAttraction(
 }
 
 export function scoreRestaurant(
-  restaurant: Restaurant,
+  restaurant: RestaurantData,
   prefs: UserPreferences,
   intentKw: string[] = []
 ): number {
@@ -229,7 +233,7 @@ export function scoreRestaurant(
 }
 
 export function scoreActivity(
-  activity: ActivityOption,
+  activity: ActivityData,
   prefs: UserPreferences,
   intentKw: string[] = []
 ): number {

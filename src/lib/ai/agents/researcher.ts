@@ -42,8 +42,8 @@ export async function runResearchAgent(request: ResearchRequest): Promise<{
       attractions: data.attractions,
       restaurants: data.restaurants,
       activities: data.activities,
-      localTips: data.localTips,
-      weatherInfo: data.weatherInfo,
+      localInsights: data.localTips,
+      sources: [],
     },
     thoughts,
   };

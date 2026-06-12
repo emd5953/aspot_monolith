@@ -59,7 +59,12 @@ export interface AttractionData {
   description: string;
   category: string;
   estimatedDuration: number;
-  priceRange: 'free' | 'budget' | 'moderate' | 'expensive' | 'luxury';
+  /**
+   * Free-form price marker as it comes out of research — Tavily emits
+   * "$"/"$$"/"free", the LLM extractor sometimes emits "budget"/"moderate".
+   * `priceTier` in score-research.ts normalizes both forms.
+   */
+  priceRange: string;
   rating?: number;
   location?: string;
   tips?: string;
@@ -68,7 +73,8 @@ export interface AttractionData {
 export interface RestaurantData {
   name: string;
   cuisine: string[];
-  priceRange: 'budget' | 'moderate' | 'expensive' | 'luxury';
+  /** Free-form price marker; see AttractionData.priceRange. */
+  priceRange: string;
   rating?: number;
   location?: string;
   mustTry?: string;
@@ -80,7 +86,8 @@ export interface ActivityData {
   category: string;
   duration: number;
   adventureLevel: number; // 1-10
-  priceRange: 'free' | 'budget' | 'moderate' | 'expensive';
+  /** Free-form price marker; see AttractionData.priceRange. */
+  priceRange: string;
   bestTime?: 'morning' | 'afternoon' | 'evening' | 'anytime';
 }
 
