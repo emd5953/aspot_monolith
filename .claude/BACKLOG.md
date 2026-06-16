@@ -23,6 +23,13 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Audit cycle 8 — internals clean (no fix). Audited the Google Maps service
+      and the agentic planner: the maps wrappers are correct (live-verified
+      `getPlaceAutocomplete`), and the planner uses generateObject+Zod (no
+      fragile parsing). No break found. Observation (left for human judgment,
+      NOT auto-deleted): `getPlaceDetails`/`geocodeAddress`/`getDistanceMatrix`
+      in google-maps-service.ts are currently unused — likely roadmap stubs for
+      geocoding/travel-time; wire up or remove later.
 - [x] Remove dead `smart-scheduler.ts`: 277-line module with zero importers
       (pipeline schedules via time-of-day buckets instead). Deleted after
       confirming no references; gate stays green. — `0cff324`
