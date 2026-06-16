@@ -23,6 +23,12 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Audit cycle 4 → activity coords mapped to a nonexistent column:
+      itinerary-service wrote/read `location_coords`, but the schema has
+      `location_lat`/`location_lng`. Add/edit-activity with coords would 500 and
+      every read silently dropped coords. Fixed with a shared `coordsColumns`
+      helper (write) + `mapActivityFromDb` reading lat/lng with decimal-string
+      coercion (read). 5 unit tests. — `d0b8d7c`
 - [x] Audit cycle 3 → silent empty-itinerary on missing `source` column: the
       provenance insert (9a9a5e2) included `activities.source`; without
       migration 013 applied, Postgres rejected each row and the save loop only
