@@ -50,6 +50,22 @@ export interface ActivityInput {
 }
 
 /**
+ * Map a {lat,lng} (or undefined) to the actual activities columns.
+ * The table stores coordinates as separate `location_lat` / `location_lng`
+ * DECIMALs — there is no `location_coords` column — so every read/write must
+ * go through this to stay consistent with the schema.
+ */
+export function coordsColumns(coords?: { lat: number; lng: number }): {
+  location_lat: number | null;
+  location_lng: number | null;
+} {
+  return {
+    location_lat: coords?.lat ?? null,
+    location_lng: coords?.lng ?? null,
+  };
+}
+
+/**
  * Add a new activity to a day
  */
 export async function addActivity(
@@ -76,7 +92,7 @@ export async function addActivity(
       title: activity.title,
       description: activity.description || '',
       location_name: activity.locationName,
-      location_coords: activity.locationCoords,
+      ...coordsColumns(activity.locationCoords),
       start_time: activity.startTime,
       end_time: activity.endTime,
       category: activity.category || 'activity',
@@ -109,7 +125,7 @@ export async function updateActivity(
   if (updates.title !== undefined) updateData.title = updates.title;
   if (updates.description !== undefined) updateData.description = updates.description;
   if (updates.locationName !== undefined) updateData.location_name = updates.locationName;
-  if (updates.locationCoords !== undefined) updateData.location_coords = updates.locationCoords;
+  if (updates.locationCoords !== undefined) Object.assign(updateData, coordsColumns(updates.locationCoords));
   if (updates.startTime !== undefined) updateData.start_time = updates.startTime;
   if (updates.endTime !== undefined) updateData.end_time = updates.endTime;
   if (updates.category !== undefined) updateData.category = updates.category;
@@ -374,14 +390,21 @@ export async function updateDayNotes(
 /**
  * Map database activity to Activity type
  */
-function mapActivityFromDb(data: Record<string, unknown>): Activity {
+export function mapActivityFromDb(data: Record<string, unknown>): Activity {
+  // Coordinates live in separate DECIMAL columns; PostgREST returns DECIMALs as
+  // strings, so coerce. Only surface coords when both are present.
+  const lat = data.location_lat;
+  const lng = data.location_lng;
+  const locationCoords =
+    lat != null && lng != null ? { lat: Number(lat), lng: Number(lng) } : undefined;
+
   return {
     id: data.id as string,
     dayId: data.day_id as string,
     title: data.title as string,
     description: data.description as string,
     locationName: data.location_name as string | undefined,
-    locationCoords: data.location_coords as { lat: number; lng: number } | undefined,
+    locationCoords,
     startTime: data.start_time as string | undefined,
     endTime: data.end_time as string | undefined,
     category: data.category as string,
