@@ -8,6 +8,11 @@ import {
   DestinationData,
 } from '@/types/destination';
 import { UserPreferences } from '@/types/quiz';
+import {
+  isPlaceVerificationEnabled,
+  verifyAndFilter,
+  findPlaceFromText,
+} from '@/lib/maps/place-verification';
 
 /**
  * Tavily-backed destination research.
@@ -334,6 +339,24 @@ export async function fetchDestinationDataWithPrefs(
     `[tavily] Extracted — attractions:${attractions.length} restaurants:${restaurants.length} activities:${activities.length}`
   );
 
+  // Google Places verification (flag-gated, default off): drop any candidate
+  // that can't be confirmed as a real place at a real address. Hard structural
+  // defense against hallucinated places reaching the planner.
+  let verifiedAttractions = taggedAttractions;
+  let verifiedRestaurants = taggedRestaurants;
+  let verifiedActivities = taggedActivities;
+  if (isPlaceVerificationEnabled()) {
+    [verifiedAttractions, verifiedRestaurants, verifiedActivities] =
+      await Promise.all([
+        verifyAndFilter(taggedAttractions, destination, findPlaceFromText),
+        verifyAndFilter(taggedRestaurants, destination, findPlaceFromText),
+        verifyAndFilter(taggedActivities, destination, findPlaceFromText),
+      ]);
+    console.log(
+      `[tavily] Places-verified — attractions:${verifiedAttractions.length}/${taggedAttractions.length} restaurants:${verifiedRestaurants.length}/${taggedRestaurants.length} activities:${verifiedActivities.length}/${taggedActivities.length}`
+    );
+  }
+
   // Unique source URLs across every search, for citations downstream.
   const sources = Array.from(
     new Set(
@@ -354,9 +377,9 @@ export async function fetchDestinationDataWithPrefs(
     name: destination,
     country: '', // Tavily doesn't reliably give us this; not used downstream
     description: '',
-    attractions: taggedAttractions,
-    restaurants: taggedRestaurants,
-    activities: taggedActivities,
+    attractions: verifiedAttractions,
+    restaurants: verifiedRestaurants,
+    activities: verifiedActivities,
     localTips: [],
     sources,
     fetchedAt: new Date(),
