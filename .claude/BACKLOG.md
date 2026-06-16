@@ -12,14 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] Generation: per-activity cost estimates. estimatedCost is never set, so the
-      cost rollup has no data. Derive a rough numeric estimate per activity from
-      the research candidate's price tier ($/$$/$$$ or budget/moderate/luxury)
-      and category (meals vs attractions vs free activities) in a pure helper
-      (e.g. src/lib/ai/estimate-cost.ts), set it in activityToSimple, and persist
-      to estimated_cost. Unit-test the tier→dollar mapping; the existing cost
-      rollup then lights up. No paid API.
-
 - [ ] Generation: fix the getItinerary activity type-lie. getItinerary returns
       flat activity objects but types day.activities as ActivityRecommendation[],
       forcing `as unknown as` casts at call sites (e.g. the calendar route).
@@ -54,6 +46,10 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Generation: per-activity cost estimates. New pure `estimate-cost.ts` maps
+      price tier ($/$$/$$$/words) + category → ballpark USD; wired into
+      activityToSimple so the cost rollup + budget-fit finally have data (7
+      tests). — `8e54c8c`
 - [x] Generation: restore activity schedule times. The planner's per-item "HH:MM"
       schedule was dropped (convertAgentPlanToDayPlans + activityToSimple), so
       every itinerary had timeless activities. New pure `schedule-times.ts`
