@@ -21,7 +21,10 @@ export async function GET(request: Request) {
     }
   }
 
-  // Return the user to an error page with instructions
-  console.log('Auth failed, redirecting to login');
-  return NextResponse.redirect(`${origin}/login?error=Could not authenticate user`);
+  // Auth failed (missing/expired/invalid code). Send the user back to the
+  // landing page — which hosts the login/signup popover — with an error flag
+  // it surfaces so they can retry. There is no standalone /login route, so
+  // redirecting there would 404 and dead-end the onboarding flow.
+  console.log('Auth failed, redirecting to landing');
+  return NextResponse.redirect(`${origin}/?authError=1`);
 }

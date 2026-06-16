@@ -13,14 +13,23 @@ const TEXT_SHADOW_BODY =
 type AuthMode = 'login' | 'signup' | null;
 
 /**
- * Reads the `?verify=1` query param (set by signup) and renders a small
- * confirmation banner. Wrapped in its own component so useSearchParams gets
- * a Suspense boundary in Next 15+.
+ * Reads landing query params and renders a small banner:
+ *   - `?verify=1`     → signup confirmation ("check your inbox")
+ *   - `?authError=1`  → the auth callback couldn't sign the user in
+ *                       (expired/invalid email link or failed OAuth)
+ * Wrapped in its own component so useSearchParams gets a Suspense boundary in
+ * Next 15+.
  */
-function VerifyBanner() {
+function HeroBanner() {
   const params = useSearchParams();
   const [dismissed, setDismissed] = useState(false);
-  const show = params.get('verify') === '1' && !dismissed;
+
+  const kind = params.get('verify') === '1'
+    ? 'verify'
+    : params.get('authError') === '1'
+      ? 'authError'
+      : null;
+  const show = kind !== null && !dismissed;
 
   // Auto-dismiss after 8 seconds so the landing stays clean.
   useEffect(() => {
@@ -31,14 +40,20 @@ function VerifyBanner() {
 
   if (!show) return null;
 
+  const isError = kind === 'authError';
+
   return (
     <div
       className="animate-fade-up fixed left-1/2 top-24 z-30 w-[min(360px,calc(100vw-32px))] -translate-x-1/2 rounded-2xl border border-white/60 bg-white/95 px-4 py-3 text-center shadow-[0_24px_60px_-20px_rgba(10,25,55,0.55)] backdrop-blur-md"
-      role="status"
+      role={isError ? 'alert' : 'status'}
     >
-      <p className="text-sm font-semibold text-slate-900">Check your inbox</p>
+      <p className={`text-sm font-semibold ${isError ? 'text-rose-700' : 'text-slate-900'}`}>
+        {isError ? "We couldn't sign you in" : 'Check your inbox'}
+      </p>
       <p className="mt-1 text-xs text-slate-600">
-        We sent a confirmation link. Tap it to finish signing up.
+        {isError
+          ? 'That sign-in link may have expired. Tap Log in to try again.'
+          : 'We sent a confirmation link. Tap it to finish signing up.'}
       </p>
     </div>
   );
@@ -55,7 +70,7 @@ export function LandingHero() {
   return (
     <>
       <Suspense fallback={null}>
-        <VerifyBanner />
+        <HeroBanner />
       </Suspense>
 
       {/* Top nav */}
