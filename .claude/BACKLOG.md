@@ -15,9 +15,6 @@ add, or remove tasks. One task = one self-contained, shippable unit of work.
       below with a one-line repro, then fix the highest-severity break in THIS
       cycle. (This task stays in the backlog — re-run it whenever the app
       changes; only the specific bug-fix tasks it spawns get checked off.)
-- [ ] Google Places verification: before candidates reach the planner, confirm
-      each named place against a real Places address; drop anything that can't
-      be verified. Add a feature flag so it can be turned off. Test the filter.
 - [ ] Carry provenance through every pipeline step: extend the schemas so each
       ScheduledItem keeps its source (`tavily` / `reddit` / `places`) and the
       "why I picked this" reason, and surface it in the itinerary view.
@@ -38,3 +35,7 @@ add, or remove tasks. One task = one self-contained, shippable unit of work.
       profile/edit, [id] pages) rendered while signed out. Fixed by enforcing
       the session check once in `(protected)/layout.tsx`; verified live (all
       307 → / when unauthenticated). — `da4aaf7`
+- [x] Google Places verification: candidates confirmed against Google "Find
+      Place From Text" before reaching the planner; unresolvable/mismatched
+      places dropped, survivors enriched with real address + coords. Gated by
+      `PLACES_VERIFICATION_ENABLED` (default off). 14 tests. — `087d1f2`
