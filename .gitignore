@@ -46,3 +46,6 @@ next-env.d.ts
 
 # research cache (dev optimization)
 .cache/
+
+# machine-local Claude Code config (bypass mode, personal allowlist)
+.claude/settings.local.json

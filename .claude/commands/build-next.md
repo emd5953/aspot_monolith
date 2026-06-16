@@ -29,7 +29,9 @@ outbound `curl`/`ssh`; those are blocked and you don't need them.
 1. **Pick the task.** Read `.claude/BACKLOG.md`. Take the FIRST unchecked
    `- [ ]` task. If none remain, stop and report "Backlog empty."
 
-2. **Branch.** From `main`, create/checkout `auto/<short-slug>`.
+2. **Sync.** Work on `main` with a clean tree (commit or stash stray changes
+   first). Every finished task lands on `main` so the app accumulates toward
+   "entirely built." Push stays blocked, so nothing leaves this machine.
 
 3. **Implement** the task end to end with the standard above. Add/update Vitest
    tests for the logic you wrote.
