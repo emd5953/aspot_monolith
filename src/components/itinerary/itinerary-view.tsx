@@ -22,6 +22,7 @@ import {
   BUDGET_STATUS_LABEL,
   type BudgetStatus,
 } from '@/lib/itinerary/cost';
+import { isDaySpreadOut } from '@/lib/itinerary/geo';
 
 interface Activity {
   id: string;
@@ -36,6 +37,7 @@ interface Activity {
   sortOrder: number;
   notes?: string;
   source?: ItemSource;
+  locationCoords?: { lat: number; lng: number };
 }
 
 interface Day {
@@ -257,6 +259,16 @@ export function ItineraryView({
             </p>
           )}
         </div>
+        {isDaySpreadOut(
+          (itinerary.days[activeTab]?.activities || []).map((a) => ({
+            coordinates: a.locationCoords,
+          }))
+        ) && (
+          <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+            🗺️ This day covers a lot of ground — consider grouping nearby stops to
+            cut down on travel.
+          </p>
+        )}
         <ItineraryMap
           destination={itinerary.destination}
           activities={itinerary.days[activeTab]?.activities || []}

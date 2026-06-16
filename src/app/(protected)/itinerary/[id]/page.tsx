@@ -23,6 +23,7 @@ interface Activity {
   sortOrder: number;
   notes?: string;
   source?: ItemSource;
+  locationCoords?: { lat: number; lng: number };
 }
 
 interface Day {

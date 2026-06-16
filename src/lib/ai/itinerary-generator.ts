@@ -27,6 +27,7 @@ import {
   lookupSource,
   type ProvenanceCandidate,
 } from './provenance';
+import { coordsColumns } from '@/lib/itinerary/itinerary-service';
 
 // ---------------------------------------------------------------------------
 // Local shape used by this service and the persistence layer.
@@ -74,6 +75,7 @@ interface SimpleActivity {
   sortOrder: number;
   notes: string;
   source?: ItemSource;
+  coordinates?: { lat: number; lng: number };
 }
 
 export interface ItineraryInput {
@@ -391,6 +393,9 @@ function activityToSimple(activity: ActivityRecommendation, index: number): Simp
     sortOrder: index + 1,
     notes: activity.matchReasons?.join(', ') || '',
     source,
+    // Real coords when research resolved them (e.g. Places verification) so the
+    // map + per-day proximity have something to work with.
+    coordinates: item.coordinates,
   };
 }
 
@@ -646,6 +651,7 @@ async function saveItineraryToDatabase(
         sort_order: simpleActivity.sortOrder,
         notes: simpleActivity.notes,
         source: simpleActivity.source ?? null,
+        ...coordsColumns(simpleActivity.coordinates),
       };
 
       await insertActivityRow(supabase, activityData);
@@ -699,7 +705,7 @@ export async function getItinerary(
       notes: day.notes || '',
       activities: day.activities
         .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
-        .map((act: { id: string; title: string; description: string; category: string; start_time?: string; end_time?: string; duration?: number; sort_order: number; notes: string; location_name?: string; estimated_cost?: number; source?: ItemSource }) => ({
+        .map((act: { id: string; title: string; description: string; category: string; start_time?: string; end_time?: string; duration?: number; sort_order: number; notes: string; location_name?: string; estimated_cost?: number; source?: ItemSource; location_lat?: number | string | null; location_lng?: number | string | null }) => ({
           id: act.id,
           title: act.title,
           description: act.description,
@@ -712,6 +718,10 @@ export async function getItinerary(
           sortOrder: act.sort_order,
           notes: act.notes,
           source: act.source,
+          locationCoords:
+            act.location_lat != null && act.location_lng != null
+              ? { lat: Number(act.location_lat), lng: Number(act.location_lng) }
+              : undefined,
         })),
     }));
 
@@ -993,6 +1003,7 @@ export async function regenerateItinerary(
         sort_order: simpleActivity.sortOrder,
         notes: simpleActivity.notes,
         source: simpleActivity.source ?? null,
+        ...coordsColumns(simpleActivity.coordinates),
       };
 
       await insertActivityRow(supabase, activityData);
