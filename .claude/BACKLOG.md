@@ -34,3 +34,7 @@ add, or remove tasks. One task = one self-contained, shippable unit of work.
 - [x] Reddit-targeted research: Reddit-biased Tavily query pass merged into the
       candidate pool, candidates tagged with a `redditMentions` provenance
       count, query builder + mention-counter unit-tested. — `9a604db`
+- [x] Audit cycle 1 → auth hole: `(protected)` routes (itinerary, trips,
+      profile/edit, [id] pages) rendered while signed out. Fixed by enforcing
+      the session check once in `(protected)/layout.tsx`; verified live (all
+      307 → / when unauthenticated). — `da4aaf7`
