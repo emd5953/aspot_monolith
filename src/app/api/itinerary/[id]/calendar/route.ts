@@ -30,24 +30,14 @@ export async function GET(
       return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
 
-    // getItinerary returns a non-null itinerary here (guard.ok). Its declared
-    // activity type (ActivityRecommendation) doesn't match the flat shape it
-    // actually returns from the DB, so narrow to the runtime fields we use.
-    type FlatActivity = {
-      id: string;
-      title: string;
-      locationName?: string;
-      notes?: string;
-      startTime?: string;
-      endTime?: string;
-    };
-
+    // getItinerary returns a non-null StoredItinerary here (guard.ok) with flat,
+    // properly-typed activities — no cast needed.
     const data: IcsItinerary = {
       id: itinerary!.id,
       title: itinerary!.title,
       days: itinerary!.days.map((day) => ({
         date: day.date,
-        activities: (day.activities as unknown as FlatActivity[]).map((act) => ({
+        activities: day.activities.map((act) => ({
           id: act.id,
           title: act.title,
           locationName: act.locationName,

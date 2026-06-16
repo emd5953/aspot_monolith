@@ -122,6 +122,52 @@ export interface ProgressCallback {
   (data: { status: string; message: string; progress?: number }): void;
 }
 
+// ---------------------------------------------------------------------------
+// Stored shapes: what `getItinerary` actually returns after reading the DB.
+// (The flat activity row — NOT the in-memory ActivityRecommendation that the
+// generator/persistence layer uses. Keeping them distinct is what lets call
+// sites read activities without casts.)
+// ---------------------------------------------------------------------------
+
+export interface StoredActivity {
+  id: string;
+  title: string;
+  description: string;
+  locationName?: string;
+  category: string;
+  startTime?: string;
+  endTime?: string;
+  duration?: number;
+  estimatedCost?: number;
+  sortOrder: number;
+  notes?: string;
+  source?: ItemSource;
+  locationCoords?: { lat: number; lng: number };
+}
+
+export interface StoredDay {
+  id: string;
+  dayNumber: number;
+  date: Date;
+  notes: string;
+  activities: StoredActivity[];
+}
+
+export interface StoredItinerary {
+  id: string;
+  userId: string;
+  title: string;
+  destination: string;
+  startDate: Date;
+  endDate: Date;
+  days: StoredDay[];
+  status: GeneratedItinerary['status'];
+  createdAt: Date;
+  packingTips?: string[];
+  importantNotes?: string[];
+  budgetRange?: string;
+}
+
 /**
  * Generate a complete personalized itinerary
  * Uses Sim Studio workflow if configured, otherwise falls back to local pipeline
@@ -704,7 +750,7 @@ async function saveItineraryToDatabase(
 export async function getItinerary(
   supabase: SupabaseClient,
   itineraryId: string
-): Promise<GeneratedItinerary | null> {
+): Promise<StoredItinerary | null> {
   const { data: itinerary, error } = await supabase
     .from('itineraries')
     .select(`
@@ -721,16 +767,16 @@ export async function getItinerary(
     return null;
   }
 
-  const days: DayPlan[] = itinerary.itinerary_days
+  const days: StoredDay[] = itinerary.itinerary_days
     .sort((a: { day_number: number }, b: { day_number: number }) => a.day_number - b.day_number)
-    .map((day: { id: string; day_number: number; date: string; activities: Array<{ id: string; title: string; description: string; category: string; sort_order: number; notes: string; location_name?: string; estimated_cost?: number }>; notes: string }) => ({
+    .map((day: { id: string; day_number: number; date: string; activities: Array<{ id: string; title: string; description: string; category: string; sort_order: number; notes: string; location_name?: string; estimated_cost?: number; start_time?: string; end_time?: string; duration?: number; source?: ItemSource; location_lat?: number | string | null; location_lng?: number | string | null }>; notes: string }): StoredDay => ({
       id: day.id,
       dayNumber: day.day_number,
       date: new Date(day.date),
       notes: day.notes || '',
       activities: day.activities
         .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
-        .map((act: { id: string; title: string; description: string; category: string; start_time?: string; end_time?: string; duration?: number; sort_order: number; notes: string; location_name?: string; estimated_cost?: number; source?: ItemSource; location_lat?: number | string | null; location_lng?: number | string | null }) => ({
+        .map((act: { id: string; title: string; description: string; category: string; start_time?: string; end_time?: string; duration?: number; sort_order: number; notes: string; location_name?: string; estimated_cost?: number; source?: ItemSource; location_lat?: number | string | null; location_lng?: number | string | null }): StoredActivity => ({
           id: act.id,
           title: act.title,
           description: act.description,
