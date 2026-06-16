@@ -12,9 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] Date-aware events: when trip dates fall in a window, add an events search
-      (Eventbrite/Resy/Ticketmaster style) and let the planner slot a
-      date-specific event when it's the obvious right answer.
 - [ ] End-to-end "does the whole app actually work" audit. Boot the app and walk
       the real user journey: home → prompt → onboarding quiz → itinerary
       generate (fast mode) → view → drag/regenerate a day → trips/share. For
@@ -26,6 +23,13 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Date-aware events: research layer runs a gated Tavily events pass for
+      upcoming trips within a 180-day horizon (festivals/concerts/exhibitions),
+      merged into the activity pool (category `event`, date in the name) so the
+      planner can slot date-specific events. Pure `events-search.ts`
+      (shouldSearchEvents + buildEventsQuery + formatDateWindow, 11 tests); trip
+      dates threaded ResearchRequest → researchers → tavily-service; no spend
+      when gated off. Live fetch/extraction not exercised (paid+authed). — `16f03d4`
 - [x] AI-driven orchestrator decisions: `decideNextAction` in
       agentic-orchestrator.ts is now an LLM call (generateObject + Zod) that
       reasons over score + issues → continue/stop/research_more/revise.
