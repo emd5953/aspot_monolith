@@ -191,6 +191,14 @@ export function ItineraryView({
                 Regenerate
               </HandDrawnButton>
             )}
+            <a
+              href={`/api/itinerary/${itinerary.id}/calendar`}
+              download
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white bg-white/80 px-4 py-1.5 text-sm font-medium text-[color:var(--ink)] shadow-[0_8px_20px_-12px_rgba(20,50,100,0.25)] backdrop-blur-md transition-all hover:-translate-y-[1px] hover:bg-white active:translate-y-0"
+            >
+              <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
+              Add to calendar
+            </a>
             {onDelete && (
               <HandDrawnButton onClick={onDelete} variant="secondary" size="sm" className="gap-2">
                 <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
