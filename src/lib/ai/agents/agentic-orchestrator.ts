@@ -239,6 +239,8 @@ export async function runAgenticOrchestrator(
       useAdvancedMode: useAdvancedCuration,
       userIntent,
       rawPrompt,
+      startDate,
+      endDate,
     });
     // Only cache real results — don't poison future runs with empty research
     // from a transient Tavily failure.

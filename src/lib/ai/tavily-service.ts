@@ -13,6 +13,13 @@ import {
   verifyAndFilter,
   findPlaceFromText,
 } from '@/lib/maps/place-verification';
+import { shouldSearchEvents, buildEventsQuery } from './events-search';
+
+/** Trip dates, used only to gate + shape the date-aware events search. */
+export interface TripDates {
+  startDate: Date;
+  endDate: Date;
+}
 
 /**
  * Tavily-backed destination research.
@@ -191,7 +198,7 @@ async function tavilySearch(
 async function extractStructured<T>(
   hits: SearchHit[],
   destination: string,
-  itemType: 'attraction' | 'restaurant' | 'activity',
+  itemType: 'attraction' | 'restaurant' | 'activity' | 'event',
   schemaHint: string
 ): Promise<T[]> {
   if (hits.length === 0) return [];
@@ -265,6 +272,19 @@ const ACTIVITY_SCHEMA = `{
   "adventureLevel": number (1-10)
 }`;
 
+// Events are date-specific: a festival, concert, exhibition happening during the
+// trip. They extract into the ActivityOption shape (so they merge into the
+// activity pool) but with category "event" and the date embedded in the name so
+// the planner can recognise and slot them on the right day.
+const EVENT_SCHEMA = `{
+  "name": string (the event name WITH its date, e.g. "NYC Jazz Festival (June 14)"),
+  "description": string (1-2 sentences: what it is and where),
+  "category": "event",
+  "duration": number (minutes, 60-360),
+  "priceRange": string ("free" | "$" | "$$" | "$$$"),
+  "adventureLevel": number (1-10)
+}`;
+
 /**
  * Main entry point. Returns the same DestinationData shape the rest of the
  * pipeline expects, populated from Tavily search + LLM extraction.
@@ -277,10 +297,24 @@ const ACTIVITY_SCHEMA = `{
 export async function fetchDestinationDataWithPrefs(
   destination: string,
   preferences: UserPreferences,
-  userIntent?: string
+  userIntent?: string,
+  tripDates?: TripDates
 ): Promise<DestinationData> {
   const queries = buildSearchQueries(destination, preferences, userIntent);
   const redditQueries = buildRedditSearchQueries(destination, preferences, userIntent);
+
+  // Date-aware events: only worth a (paid) search when the trip is actually
+  // upcoming and close enough that schedules exist. When it's not, we resolve
+  // an empty hit list so the rest of the fan-out is unchanged.
+  const runEvents = tripDates
+    ? shouldSearchEvents(tripDates.startDate, tripDates.endDate)
+    : false;
+  const eventsSearch = runEvents
+    ? tavilySearch(
+        buildEventsQuery(destination, tripDates!.startDate, tripDates!.endDate, userIntent),
+        6
+      )
+    : Promise.resolve([] as SearchHit[]);
 
   // Run the general + Reddit-targeted searches in parallel — Tavily handles
   // concurrent requests fine. The Reddit pass surfaces local-favorite truth
@@ -293,6 +327,7 @@ export async function fetchDestinationDataWithPrefs(
     redditAttractionHits,
     redditRestaurantHits,
     redditActivityHits,
+    eventHits,
   ] = await Promise.all([
     tavilySearch(queries.attractions, 10),
     tavilySearch(queries.restaurants, 10),
@@ -300,15 +335,17 @@ export async function fetchDestinationDataWithPrefs(
     tavilySearch(redditQueries.attractions, 6),
     tavilySearch(redditQueries.restaurants, 6),
     tavilySearch(redditQueries.activities, 6),
+    eventsSearch,
   ]);
 
   console.log(
-    `[tavily] Search hits — attractions:${attractionHits.length} restaurants:${restaurantHits.length} activities:${activityHits.length} | reddit:${redditAttractionHits.length}/${redditRestaurantHits.length}/${redditActivityHits.length}`
+    `[tavily] Search hits — attractions:${attractionHits.length} restaurants:${restaurantHits.length} activities:${activityHits.length} | reddit:${redditAttractionHits.length}/${redditRestaurantHits.length}/${redditActivityHits.length} | events:${eventHits.length}${runEvents ? '' : ' (skipped)'}`
   );
 
   // Extract structured data in parallel too. Reddit hits join the corpus so
-  // places only Redditors mention can still surface as candidates.
-  const [attractions, restaurants, activities] = await Promise.all([
+  // places only Redditors mention can still surface as candidates. Events get
+  // their own extraction pass (different schema) and only when we searched.
+  const [attractions, restaurants, activities, events] = await Promise.all([
     extractStructured<Attraction>(
       [...attractionHits, ...redditAttractionHits],
       destination,
@@ -327,16 +364,23 @@ export async function fetchDestinationDataWithPrefs(
       'activity',
       ACTIVITY_SCHEMA
     ),
+    eventHits.length > 0
+      ? extractStructured<ActivityOption>(eventHits, destination, 'event', EVENT_SCHEMA)
+      : Promise.resolve([] as ActivityOption[]),
   ]);
 
   // Tag each candidate with how many Reddit threads named it — provenance the
   // scorer/planner can lean on ("three Reddit threads call this a local fave").
+  // Date-specific events join the activity pool so the planner can slot them.
   const taggedAttractions = tagRedditMentions(attractions, redditAttractionHits);
   const taggedRestaurants = tagRedditMentions(restaurants, redditRestaurantHits);
-  const taggedActivities = tagRedditMentions(activities, redditActivityHits);
+  const taggedActivities = [
+    ...tagRedditMentions(activities, redditActivityHits),
+    ...events,
+  ];
 
   console.log(
-    `[tavily] Extracted — attractions:${attractions.length} restaurants:${restaurants.length} activities:${activities.length}`
+    `[tavily] Extracted — attractions:${attractions.length} restaurants:${restaurants.length} activities:${activities.length} events:${events.length}`
   );
 
   // Google Places verification (flag-gated, default off): drop any candidate
@@ -367,6 +411,7 @@ export async function fetchDestinationDataWithPrefs(
         ...redditAttractionHits,
         ...redditRestaurantHits,
         ...redditActivityHits,
+        ...eventHits,
       ]
         .map((h) => h.url)
         .filter((u): u is string => Boolean(u))
@@ -393,7 +438,8 @@ export async function fetchDestinationDataWithPrefs(
 export async function fetchDestinationData(
   destination: string,
   preferences?: UserPreferences,
-  userIntent?: string
+  userIntent?: string,
+  tripDates?: TripDates
 ): Promise<DestinationData> {
   const fallbackPrefs: UserPreferences = {
     id: '',
@@ -412,5 +458,5 @@ export async function fetchDestinationData(
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  return fetchDestinationDataWithPrefs(destination, preferences ?? fallbackPrefs, userIntent);
+  return fetchDestinationDataWithPrefs(destination, preferences ?? fallbackPrefs, userIntent, tripDates);
 }

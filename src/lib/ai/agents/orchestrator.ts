@@ -115,6 +115,8 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
         preferences,
         userIntent,
         rawPrompt,
+        startDate,
+        endDate,
       });
       // Only cache if we actually got data — empty results are usually a
       // transient API failure and shouldn't poison future runs.

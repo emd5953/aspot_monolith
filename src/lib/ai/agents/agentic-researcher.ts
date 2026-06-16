@@ -25,7 +25,7 @@ export async function runAgenticResearcher(request: ResearchRequest): Promise<{
   thoughts: string[];
   reasoningSteps: ReasoningStep[];
 }> {
-  const { destination, preferences, useAdvancedMode = false, userIntent } = request;
+  const { destination, preferences, useAdvancedMode = false, userIntent, startDate, endDate } = request;
   const thoughts: string[] = [];
   const reasoningSteps: ReasoningStep[] = [];
 
@@ -45,7 +45,12 @@ export async function runAgenticResearcher(request: ResearchRequest): Promise<{
     action: `Querying for attractions, restaurants, and activities in ${destination}`,
   });
 
-  const data = await fetchDestinationDataWithPrefs(destination, preferences, userIntent);
+  const data = await fetchDestinationDataWithPrefs(
+    destination,
+    preferences,
+    userIntent,
+    startDate && endDate ? { startDate, endDate } : undefined
+  );
 
   reasoningSteps[0].result = `Found ${data.attractions.length} attractions, ${data.restaurants.length} restaurants, ${data.activities.length} activities`;
 

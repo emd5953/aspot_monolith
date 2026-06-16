@@ -42,6 +42,12 @@ export interface ResearchRequest {
   userIntent?: string;
   /** Original prompt verbatim — used as-is in some search/extraction prompts. */
   rawPrompt?: string;
+  /**
+   * Trip dates. Optional — when present they gate + shape the date-aware events
+   * search (only run for upcoming trips inside the horizon). See events-search.ts.
+   */
+  startDate?: Date;
+  endDate?: Date;
 }
 
 export interface ResearchResult {

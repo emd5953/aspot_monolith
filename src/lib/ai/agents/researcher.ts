@@ -12,7 +12,7 @@ export async function runResearchAgent(request: ResearchRequest): Promise<{
   result: ResearchResult;
   thoughts: string[];
 }> {
-  const { destination, preferences, userIntent } = request;
+  const { destination, preferences, userIntent, startDate, endDate } = request;
   const thoughts: string[] = [];
 
   thoughts.push(`🔍 Researching ${destination} via Tavily…`);
@@ -26,7 +26,12 @@ export async function runResearchAgent(request: ResearchRequest): Promise<{
     `Budget: ${preferences.budgetRange}, Comfort: ${preferences.comfortZone}/10`
   );
 
-  const data = await fetchDestinationDataWithPrefs(destination, preferences, userIntent);
+  const data = await fetchDestinationDataWithPrefs(
+    destination,
+    preferences,
+    userIntent,
+    startDate && endDate ? { startDate, endDate } : undefined
+  );
 
   thoughts.push(
     `✓ ${data.attractions.length} attractions, ${data.restaurants.length} restaurants, ${data.activities.length} activities`
