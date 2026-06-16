@@ -12,11 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] Remove dead `smart-scheduler.ts`. `src/lib/ai/smart-scheduler.ts` (277
-      lines: scheduleActivities/validateSchedule/etc.) has zero importers — the
-      pipeline schedules via the morning/afternoon/evening buckets instead.
-      Confirm nothing references it and delete it (or wire it in if it's
-      actually wanted). Spawned by audit cycle 7.
 - [ ] End-to-end "does the whole app actually work" audit. Boot the app and walk
       the real user journey: home → prompt → onboarding quiz → itinerary
       generate (fast mode) → view → drag/regenerate a day → trips/share. For
@@ -28,6 +23,9 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Remove dead `smart-scheduler.ts`: 277-line module with zero importers
+      (pipeline schedules via time-of-day buckets instead). Deleted after
+      confirming no references; gate stays green. — `0cff324`
 - [x] Audit cycle 7 → HTML injection in itinerary emails: title/destination/
       dates/activity names + view URL were interpolated into the email HTML
       unescaped, so user/AI content with `<`/`&`/`"` broke the layout or
