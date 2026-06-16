@@ -12,17 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] Calendar export (.ics). Add a "Add to calendar" action on the itinerary
-      view that downloads a valid iCalendar file: one VEVENT per activity that
-      has a date + start/end time (fall back to an all-day event for the day
-      when an activity has no time), with SUMMARY = activity title, LOCATION =
-      locationName, DESCRIPTION = notes, and a stable UID per activity. Build
-      the ICS string in a pure module (`src/lib/calendar/ics.ts`) — RFC-5545
-      line folding + escaping of `,`/`;`/`\\`/newlines — and serve it from
-      `GET /api/itinerary/[id]/calendar` (owner-checked via ownerGuard) with
-      `Content-Type: text/calendar`. No paid APIs — unit-test the ICS builder
-      (escaping, folding, all-day vs timed) and probe the route.
-
 - [ ] Surface packing tips + important notes. The planner already emits
       `packingTips` and `importantNotes` (ItineraryPlanSchema) but they're
       dropped after generation. Persist them on the itinerary (new nullable
@@ -66,6 +55,11 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Calendar export (.ics): "Add to calendar" on the itinerary view downloads
+      an RFC-5545 iCalendar (timed VEVENT when start+end present, else all-day).
+      Pure builder `src/lib/calendar/ics.ts` (escaping/folding/UTC dates, 10
+      tests) + owner-checked `GET /api/itinerary/[id]/calendar` returning
+      text/calendar. No paid APIs. — `33199d3`
 - [x] Audit cycle 8 — internals clean (no fix). Audited the Google Maps service
       and the agentic planner: the maps wrappers are correct (live-verified
       `getPlaceAutocomplete`), and the planner uses generateObject+Zod (no
