@@ -12,6 +12,16 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
+- [ ] "Tidy this day" — reorder a day's stops by proximity. Build on geo.ts +
+      the now-persisted activity coords: a pure nearest-neighbor ordering that,
+      starting from the first stop, visits the closest un-visited located stop
+      next (stops without coords keep their relative order at the end). Add a
+      "Tidy route" action on the day view that reorders via the existing
+      activities/reorder endpoint, and only offer it when the day has >=3
+      located stops and is currently flagged "spread out". Pure orderer
+      unit-tested with known coordinates (shorter total path than the input);
+      no paid API.
+
 - [ ] End-to-end "does the whole app actually work" audit. Boot the app and walk
       the real user journey: home → prompt → onboarding quiz → itinerary
       generate (fast mode) → view → drag/regenerate a day → trips/share. For
@@ -23,6 +33,12 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Audit cycle 9 — new feature batch integrated clean (no fix). Broad smoke
+      test after the 5-feature batch: home 200, dashboard/protected 307/401,
+      new calendar route 401, autocomplete 200 live, no 500s / broken imports /
+      log errors. The calendar/tips/cost/coords/rate-limit wiring all degrade
+      gracefully when their migrations (013-015) aren't applied. Queued a
+      proximity-reorder follow-up above.
 - [x] Rate-limit itinerary generation: both generate routes enforce 10/rolling-
       hour per user before any paid call, returning 429 + Retry-After. Pure
       `checkRateLimit` (5 tests) + `checkGenerationRateLimit` over a new
