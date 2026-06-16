@@ -15,9 +15,6 @@ add, or remove tasks. One task = one self-contained, shippable unit of work.
       below with a one-line repro, then fix the highest-severity break in THIS
       cycle. (This task stays in the backlog — re-run it whenever the app
       changes; only the specific bug-fix tasks it spawns get checked off.)
-- [ ] Carry provenance through every pipeline step: extend the schemas so each
-      ScheduledItem keeps its source (`tavily` / `reddit` / `places`) and the
-      "why I picked this" reason, and surface it in the itinerary view.
 - [ ] AI-driven orchestrator decisions: replace the rule-based
       `decideNextAction` in agentic-orchestrator.ts with an LLM call that
       reasons over current score + issues and returns
@@ -28,6 +25,14 @@ add, or remove tasks. One task = one self-contained, shippable unit of work.
 
 ## Done
 
+- [x] Provenance through the pipeline: each pick carries its `source`
+      (`reddit`/`places`/`tavily`/`ai`) + the "why" (matchReasons → notes),
+      surfaced as a badge in the itinerary view. New pure `provenance.ts`
+      (deriveSource + name→source index, 10 tests); `ScheduledItem.source` in
+      types + Zod; threaded through both generation paths; persisted via
+      `activities.source` (migration 013) and read back; `ActivityCard` badge
+      with 4 render tests. Live authed generation→DB round-trip not exercised
+      (needs migration 013 applied; paid+authed path). — `9a9a5e2`
 - [x] Audit cycle 2 → auth-callback 404 dead-end: a failed code exchange
       (expired/invalid email link or failed Google OAuth) redirected to
       `/login`, which doesn't exist (auth lives in the landing popover) → hard
