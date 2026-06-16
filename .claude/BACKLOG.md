@@ -23,6 +23,13 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Audit cycle 3 → silent empty-itinerary on missing `source` column: the
+      provenance insert (9a9a5e2) included `activities.source`; without
+      migration 013 applied, Postgres rejected each row and the save loop only
+      logged → itineraries saved with zero activities. Fixed via
+      `insertActivityRow`, which retries the insert without `source` on error so
+      activities always persist (badge waits for the migration). Both insert
+      sites use the shared helper; 4 unit tests. — `0d93904`
 - [x] Date-aware events: research layer runs a gated Tavily events pass for
       upcoming trips within a 180-day horizon (festivals/concerts/exhibitions),
       merged into the activity pool (category `event`, date in the name) so the
