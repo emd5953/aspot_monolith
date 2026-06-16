@@ -5,6 +5,7 @@
  */
 
 import { UserPreferences } from '@/types/quiz';
+import type { ItemSource } from '@/lib/ai/provenance';
 
 // Agent message types for inter-agent communication
 export interface AgentMessage {
@@ -54,7 +55,18 @@ export interface ResearchResult {
   sources: string[];
 }
 
-export interface AttractionData {
+/**
+ * Provenance signals shared by every research candidate. Stamped upstream by
+ * the research layer: `redditMentions` by the Reddit search pass, `coordinates`
+ * only when Google Places verification resolves the place. Both optional —
+ * absent when that pass didn't run. Consumed by `deriveSource` in provenance.ts.
+ */
+interface ResearchProvenance {
+  redditMentions?: number;
+  coordinates?: { lat: number; lng: number };
+}
+
+export interface AttractionData extends ResearchProvenance {
   name: string;
   description: string;
   category: string;
@@ -70,7 +82,7 @@ export interface AttractionData {
   tips?: string;
 }
 
-export interface RestaurantData {
+export interface RestaurantData extends ResearchProvenance {
   name: string;
   cuisine: string[];
   /** Free-form price marker; see AttractionData.priceRange. */
@@ -80,7 +92,7 @@ export interface RestaurantData {
   mustTry?: string;
 }
 
-export interface ActivityData {
+export interface ActivityData extends ResearchProvenance {
   name: string;
   description: string;
   category: string;
@@ -123,6 +135,12 @@ export interface ScheduledItem {
   tips?: string;
   matchScore?: number;
   matchReasons?: string[];
+  /**
+   * Where this pick came from — `reddit` / `places` / `tavily` / `ai`. Stamped
+   * post-planning by matching the item name back to the research pool (see
+   * provenance.ts). The `matchReasons` carry the "why we picked this".
+   */
+  source?: ItemSource;
 }
 
 export interface ItineraryPlan {

@@ -6,6 +6,7 @@ import { ActivityCard } from './activity-card';
 import { TimelineView } from './timeline-view';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import type { ItemSource } from '@/lib/ai/provenance';
 
 interface Activity {
   id: string;
@@ -19,6 +20,7 @@ interface Activity {
   estimatedCost?: number;
   sortOrder: number;
   notes?: string;
+  source?: ItemSource;
 }
 
 interface DayScheduleProps {

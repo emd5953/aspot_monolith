@@ -59,6 +59,13 @@ export const ScheduledItemSchema = z.object({
     .array(z.string())
     .optional()
     .describe('Short bullet reasons this item fits the user.'),
+  /**
+   * Provenance, stamped post-planning by the orchestrator (not the LLM) by
+   * matching the name back to the research pool. Optional in the schema so the
+   * planner needn't emit it; included so the field survives any schema-validated
+   * round-trip of a plan.
+   */
+  source: z.enum(['reddit', 'places', 'tavily', 'ai']).optional(),
 });
 
 /**

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Edit2, Trash2, MapPin, Clock, Ticket } from 'lucide-react';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { SOURCE_LABELS, type ItemSource } from '@/lib/ai/provenance';
 
 interface Activity {
   id: string;
@@ -17,7 +18,17 @@ interface Activity {
   bookingUrl?: string;
   sortOrder: number;
   notes?: string;
+  /** Provenance of this pick — drives the source badge. See provenance.ts. */
+  source?: ItemSource;
 }
+
+/** Pill tone per provenance source. Labels come from SOURCE_LABELS. */
+const SOURCE_CHIP_TONES: Record<ItemSource, string> = {
+  reddit: 'bg-orange-50 text-orange-800 border-orange-200',
+  places: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  tavily: 'bg-sky-50 text-sky-800 border-sky-200',
+  ai: 'bg-violet-50 text-violet-800 border-violet-200',
+};
 
 interface ActivityCardProps {
   activity: Activity;
@@ -101,6 +112,14 @@ export function ActivityCard({ activity, onEdit, onDelete, isDragging }: Activit
               <span aria-hidden>{emoji}</span>
               {activity.category}
             </span>
+            {activity.source && (
+              <span
+                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${SOURCE_CHIP_TONES[activity.source]}`}
+                title="Where we found this pick"
+              >
+                {SOURCE_LABELS[activity.source]}
+              </span>
+            )}
             {activity.startTime && activity.endTime && (
               <span className="inline-flex items-center gap-1.5 text-xs text-[color:var(--ink-muted)]">
                 <Clock className="h-3 w-3" strokeWidth={2} />

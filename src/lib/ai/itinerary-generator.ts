@@ -18,8 +18,15 @@ import { UserPreferences } from '@/types/quiz';
 import { fetchDestinationData } from './tavily-service';
 import { runOrchestrator, OrchestratorOutput } from './agents/orchestrator';
 import { runAgenticOrchestrator, AgenticOrchestratorOutput } from './agents/agentic-orchestrator';
-import { ItineraryPlan, ScheduledItem } from './agents/types';
+import { ItineraryPlan, ScheduledItem, ResearchResult } from './agents/types';
 import type { Attraction, Restaurant, ActivityOption } from '@/types/destination';
+import {
+  type ItemSource,
+  deriveSource,
+  buildProvenanceIndex,
+  lookupSource,
+  type ProvenanceCandidate,
+} from './provenance';
 
 // ---------------------------------------------------------------------------
 // Local shape used by this service and the persistence layer.
@@ -35,6 +42,12 @@ export interface ActivityRecommendation {
   matchReasons: string[];
   suggestedTimeSlot: 'morning' | 'afternoon' | 'evening';
   suggestedDuration: number;
+  /**
+   * Provenance for this pick. Set explicitly on the agentic path (where the
+   * `item` is a name-only stub); on the local path it's left undefined and
+   * derived from the candidate's own signals at persistence time.
+   */
+  source?: ItemSource;
 }
 
 /** Normalised per-day plan used throughout this service. */
@@ -60,6 +73,7 @@ interface SimpleActivity {
   estimatedCost?: number;
   sortOrder: number;
   notes: string;
+  source?: ItemSource;
 }
 
 export interface ItineraryInput {
@@ -164,7 +178,7 @@ export async function generateItinerary(
       console.log(`[TIMING] Truly Agentic System completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
 
       if (agenticResult.success && agenticResult.plan) {
-        dayPlans = convertAgentPlanToDayPlans(agenticResult.plan, startDate);
+        dayPlans = convertAgentPlanToDayPlans(agenticResult.plan, startDate, agenticResult.research);
         
         console.log('Truly Agentic orchestration complete');
         console.log(`Final score: ${agenticResult.finalScore}/100`);
@@ -218,7 +232,7 @@ export async function generateItinerary(
       console.log(`[TIMING] Multi-Agent System completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
 
       if (orchestratorResult.success && orchestratorResult.plan) {
-        dayPlans = convertAgentPlanToDayPlans(orchestratorResult.plan, startDate);
+        dayPlans = convertAgentPlanToDayPlans(orchestratorResult.plan, startDate, orchestratorResult.research);
         
         console.log('Multi-Agent orchestration complete!');
         console.log(`Final score: ${orchestratorResult.state.review?.score || 'N/A'}/100`);
@@ -249,9 +263,35 @@ export async function generateItinerary(
 }
 
 /**
- * Convert multi-agent ItineraryPlan to our DayPlan format
+ * Flatten the research pool into the name → source index used to trace each
+ * planned item back to where it came from. The planner emits items by name and
+ * drops the candidate's signals, so this is how provenance survives planning.
  */
-function convertAgentPlanToDayPlans(plan: ItineraryPlan, startDate: Date): DayPlan[] {
+function buildResearchProvenanceIndex(research?: ResearchResult) {
+  if (!research) return new Map<string, ItemSource>();
+  const candidates: ProvenanceCandidate[] = [
+    ...(research.attractions ?? []),
+    ...(research.restaurants ?? []),
+    ...(research.activities ?? []),
+  ];
+  return buildProvenanceIndex(candidates);
+}
+
+/**
+ * Convert multi-agent ItineraryPlan to our DayPlan format.
+ *
+ * `research` is the pool the plan was built from; we use it to stamp each
+ * item's provenance (reddit/places/tavily, or `ai` when the planner named
+ * something we can't trace back). A plan may already carry `source` on its
+ * items — honor that first.
+ */
+function convertAgentPlanToDayPlans(
+  plan: ItineraryPlan,
+  startDate: Date,
+  research?: ResearchResult
+): DayPlan[] {
+  const provenanceIndex = buildResearchProvenanceIndex(research);
+
   return plan.days.map((day, index) => {
     const allItems: ScheduledItem[] = [
       ...day.morning,
@@ -279,6 +319,7 @@ function convertAgentPlanToDayPlans(plan: ItineraryPlan, startDate: Date): DayPl
       matchReasons: item.matchReasons || [],
       suggestedTimeSlot: i < allItems.length / 3 ? 'morning' : i < (2 * allItems.length) / 3 ? 'afternoon' : 'evening',
       suggestedDuration: item.duration || 90,
+      source: item.source ?? lookupSource(item.name, provenanceIndex),
     }));
 
     return {
@@ -302,7 +343,14 @@ function activityToSimple(activity: ActivityRecommendation, index: number): Simp
     address?: string;
     cuisine?: string[];
     priceRange?: string;
+    redditMentions?: number;
+    coordinates?: { lat: number; lng: number };
   };
+
+  // Provenance: the agentic path stamps `activity.source` explicitly (its item
+  // is a name-only stub); the local path leaves it unset, so derive from the
+  // real candidate's own signals.
+  const source: ItemSource = activity.source ?? deriveSource(item);
 
   // Prefer the real address if research returned one. Falls back to the name
   // so the map still geocodes correctly. Never echo the title verbatim —
@@ -327,6 +375,7 @@ function activityToSimple(activity: ActivityRecommendation, index: number): Simp
     estimatedCost: undefined,
     sortOrder: index + 1,
     notes: activity.matchReasons?.join(', ') || '',
+    source,
   };
 }
 
@@ -525,6 +574,7 @@ async function saveItineraryToDatabase(
         estimated_cost: simpleActivity.estimatedCost || null,
         sort_order: simpleActivity.sortOrder,
         notes: simpleActivity.notes,
+        source: simpleActivity.source ?? null,
       };
 
       const { error: activityError } = await supabase
@@ -582,7 +632,7 @@ export async function getItinerary(
       notes: day.notes || '',
       activities: day.activities
         .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
-        .map((act: { id: string; title: string; description: string; category: string; start_time?: string; end_time?: string; duration?: number; sort_order: number; notes: string; location_name?: string; estimated_cost?: number }) => ({
+        .map((act: { id: string; title: string; description: string; category: string; start_time?: string; end_time?: string; duration?: number; sort_order: number; notes: string; location_name?: string; estimated_cost?: number; source?: ItemSource }) => ({
           id: act.id,
           title: act.title,
           description: act.description,
@@ -594,6 +644,7 @@ export async function getItinerary(
           estimatedCost: act.estimated_cost,
           sortOrder: act.sort_order,
           notes: act.notes,
+          source: act.source,
         })),
     }));
 
@@ -871,6 +922,7 @@ export async function regenerateItinerary(
         estimated_cost: simpleActivity.estimatedCost || null,
         sort_order: simpleActivity.sortOrder,
         notes: simpleActivity.notes,
+        source: simpleActivity.source ?? null,
       };
 
       const { error: activityError } = await supabase
