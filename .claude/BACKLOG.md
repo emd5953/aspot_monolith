@@ -12,14 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] Per-day and trip cost rollup with budget fit. Compute the sum of activity
-      `estimatedCost` per day and for the whole trip in a pure helper, format as
-      currency, and show it in the itinerary view (per-day subtotal + a trip
-      total chip). Add a budget-fit indicator comparing the trip total against
-      the user's `budgetRange` (map the enum to a rough per-day ceiling). Pure
-      logic — unit-test the rollup + the over/under-budget classification; then
-      surface in the view.
-
 - [ ] Proximity sanity per day (no paid API). Using the `location_lat`/
       `location_lng` now stored on activities, compute haversine distance
       between consecutive activities in a day and flag a day as "spread out"
@@ -47,6 +39,11 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Per-day & trip cost rollup + budget fit: pure `cost.ts` (sum estimatedCost
+      with decimal-string coercion, USD format, budget tier → ceiling →
+      under/within/over, 9 tests). getItinerary exposes budgetRange from the
+      snapshot; view shows trip total + budget-fit chip + per-day subtotal,
+      gated on hasData. — `42e7eae`
 - [x] Surface packing tips + important notes: planner-generated
       `packingTips`/`importantNotes` (previously dropped) now persisted
       (migration 014, best-effort UPDATE after the itinerary insert so a missing
