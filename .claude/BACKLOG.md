@@ -12,14 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] Surface packing tips + important notes. The planner already emits
-      `packingTips` and `importantNotes` (ItineraryPlanSchema) but they're
-      dropped after generation. Persist them on the itinerary (new nullable
-      JSONB/text columns via a migration, written through resiliently like
-      `activities.source`) and render them in the itinerary view (a "Before you
-      go" card) and the email. Unit-test the persistence mapping + view render;
-      keep it non-breaking if the migration isn't applied yet.
-
 - [ ] Per-day and trip cost rollup with budget fit. Compute the sum of activity
       `estimatedCost` per day and for the whole trip in a pure helper, format as
       currency, and show it in the itinerary view (per-day subtotal + a trip
@@ -55,6 +47,12 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Surface packing tips + important notes: planner-generated
+      `packingTips`/`importantNotes` (previously dropped) now persisted
+      (migration 014, best-effort UPDATE after the itinerary insert so a missing
+      column never breaks generation), read back in getItinerary, rendered as a
+      "Before you go" card in the view, and an escaped section in the email
+      (threaded through both senders). 2 email tests. — `80200b7`
 - [x] Calendar export (.ics): "Add to calendar" on the itinerary view downloads
       an RFC-5545 iCalendar (timed VEVENT when start+end present, else all-day).
       Pure builder `src/lib/calendar/ics.ts` (escaping/folding/UTC dates, 10
