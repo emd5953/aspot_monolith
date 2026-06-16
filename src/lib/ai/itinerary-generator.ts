@@ -28,6 +28,7 @@ import {
   type ProvenanceCandidate,
 } from './provenance';
 import { coordsColumns } from '@/lib/itinerary/itinerary-service';
+import { assignDayTimes } from './schedule-times';
 
 // ---------------------------------------------------------------------------
 // Local shape used by this service and the persistence layer.
@@ -49,6 +50,9 @@ export interface ActivityRecommendation {
    * derived from the candidate's own signals at persistence time.
    */
   source?: ItemSource;
+  /** Assigned schedule times ("HH:MM"), computed per day by assignDayTimes. */
+  startTime?: string;
+  endTime?: string;
 }
 
 /** Normalised per-day plan used throughout this service. */
@@ -302,7 +306,7 @@ function buildResearchProvenanceIndex(research?: ResearchResult) {
  * something we can't trace back). A plan may already carry `source` on its
  * items — honor that first.
  */
-function convertAgentPlanToDayPlans(
+export function convertAgentPlanToDayPlans(
   plan: ItineraryPlan,
   startDate: Date,
   research?: ResearchResult
@@ -338,6 +342,16 @@ function convertAgentPlanToDayPlans(
       suggestedDuration: item.duration || 90,
       source: item.source ?? lookupSource(item.name, provenanceIndex),
     }));
+
+    // Restore the planner's schedule: honor each item's "HH:MM" and fill any
+    // gaps so every activity gets a concrete start/end time.
+    const times = assignDayTimes(
+      allItems.map((it) => ({ time: it.time, durationMin: it.duration }))
+    );
+    activities.forEach((activity, i) => {
+      activity.startTime = times[i].startTime;
+      activity.endTime = times[i].endTime;
+    });
 
     return {
       dayNumber: day.dayNumber,
@@ -386,8 +400,8 @@ function activityToSimple(activity: ActivityRecommendation, index: number): Simp
     description,
     locationName,
     category: activity.type || 'activity',
-    startTime: undefined,
-    endTime: undefined,
+    startTime: activity.startTime,
+    endTime: activity.endTime,
     duration: activity.suggestedDuration || undefined,
     estimatedCost: undefined,
     sortOrder: index + 1,
@@ -511,6 +525,14 @@ async function generateLocalItinerary(
     attractionIdx = attractionRef.i;
     restaurantIdx = restaurantRef.i;
     activityIdx = activityRef.i;
+
+    // No planner times on the local path — lay activities out sequentially so
+    // the day still has a real timeline.
+    const times = assignDayTimes(activities.map((a) => ({ durationMin: a.suggestedDuration })));
+    activities.forEach((activity, i) => {
+      activity.startTime = times[i].startTime;
+      activity.endTime = times[i].endTime;
+    });
 
     days.push({
       dayNumber: d + 1,
