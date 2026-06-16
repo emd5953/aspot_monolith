@@ -66,6 +66,56 @@ export function coordsColumns(coords?: { lat: number; lng: number }): {
 }
 
 /**
+ * Replace all of a day's activities, preserving the originals if the write
+ * fails.
+ *
+ * Supabase JS can't run a multi-statement transaction from the client, so we
+ * can't truly delete+insert atomically. The safe ordering is: insert the new
+ * rows FIRST, and only delete the old ones once the insert succeeds. A failed
+ * insert then leaves the day's original activities intact — far better than the
+ * delete-first approach, which wipes the day on any insert error.
+ *
+ * Returns the freshly inserted rows. Exported for unit testing.
+ */
+export async function swapDayActivities(
+  supabase: SupabaseClient,
+  dayId: string,
+  rows: Array<Record<string, unknown>>
+): Promise<Array<Record<string, unknown>>> {
+  // Snapshot the existing activity ids so we delete exactly them (and not any
+  // rows we're about to insert) after a successful insert.
+  const { data: existing } = await supabase
+    .from('activities')
+    .select('id')
+    .eq('day_id', dayId);
+  const oldIds = ((existing as { id: string }[] | null) ?? []).map((a) => a.id);
+
+  const { data: inserted, error: insertError } = await supabase
+    .from('activities')
+    .insert(rows)
+    .select();
+
+  if (insertError) {
+    // Originals are untouched — surface the failure without data loss.
+    throw new Error(`Failed to save activities: ${insertError.message}`);
+  }
+
+  if (oldIds.length > 0) {
+    const { error: deleteError } = await supabase
+      .from('activities')
+      .delete()
+      .in('id', oldIds);
+    if (deleteError) {
+      // New rows are in; old ones lingering is recoverable and beats losing the
+      // day. Log rather than fail the request.
+      console.error('[itinerary] failed to remove replaced activities:', deleteError);
+    }
+  }
+
+  return (inserted as Array<Record<string, unknown>> | null) ?? [];
+}
+
+/**
  * Add a new activity to a day
  */
 export async function addActivity(

@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { UserPreferences } from '@/types/quiz';
+import { swapDayActivities } from './itinerary-service';
 
 interface RegenerateDayInput {
   itineraryId: string;
@@ -498,10 +499,8 @@ EXAMPLE when user wants sports but concert available:
 
   console.log(`[Day Regeneration] Completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s total`);
 
-  // Delete old activities
-  await supabase.from('activities').delete().eq('day_id', dayId);
-
-  // Insert new activities
+  // Replace the day's activities. Insert-then-delete (see swapDayActivities) so
+  // a failed insert preserves the originals instead of wiping the day.
   const activitiesToInsert = newActivities.map((act, index) => ({
     day_id: dayId,
     title: act.name || 'Activity',
@@ -514,14 +513,7 @@ EXAMPLE when user wants sports but concert available:
     notes: `Regenerated: "${userPrompt}"`,
   }));
 
-  const { data: insertedActivities, error: insertError } = await supabase
-    .from('activities')
-    .insert(activitiesToInsert)
-    .select();
-
-  if (insertError) {
-    throw new Error(`Failed to save activities: ${insertError.message}`);
-  }
+  const insertedActivities = await swapDayActivities(supabase, dayId, activitiesToInsert);
 
   // Update itinerary's updated_at timestamp
   await supabase
@@ -531,14 +523,14 @@ EXAMPLE when user wants sports but concert available:
 
   console.log(`[Day Regeneration] Successfully regenerated ${insertedActivities.length} activities`);
 
-  return insertedActivities.map(act => ({
+  return (insertedActivities as unknown as RawActivityRow[]).map(act => ({
     id: act.id,
     title: act.title,
     description: act.description,
     locationName: act.location_name,
     category: act.category,
-    estimatedCost: act.estimated_cost,
-    bookingUrl: act.booking_url,
+    estimatedCost: act.estimated_cost ?? undefined,
+    bookingUrl: act.booking_url ?? undefined,
     sortOrder: act.sort_order,
     notes: act.notes,
   }));
