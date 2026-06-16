@@ -12,14 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] Proximity sanity per day (no paid API). Using the `location_lat`/
-      `location_lng` now stored on activities, compute haversine distance
-      between consecutive activities in a day and flag a day as "spread out"
-      when the total hop distance exceeds a threshold (e.g. > 15 km of
-      back-and-forth). Surface a gentle "this day covers a lot of ground" hint
-      in the view. Pure logic — unit-test haversine + the per-day flag with
-      known coordinates. (Lays groundwork for travel-time ordering later.)
-
 - [ ] Rate-limit itinerary generation (protect paid spend). `POST
       /api/itinerary/generate` and `/generate-stream` trigger paid OpenAI/Tavily
       work with no per-user cap. Add a simple limiter (e.g. N generations per
@@ -39,6 +31,12 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Per-day proximity sanity (haversine) + persist activity coords: generation
+      now writes research coordinates to activities (activityToSimple →
+      location_lat/lng via coordsColumns; getItinerary reads them back), and a
+      pure `geo.ts` (haversine + isDaySpreadOut, 8 tests) drives a "covers a lot
+      of ground" hint in the view. Only active when coords exist (Places
+      verification). — `a86956d`
 - [x] Per-day & trip cost rollup + budget fit: pure `cost.ts` (sum estimatedCost
       with decimal-string coercion, USD format, budget tier → ceiling →
       under/within/over, 9 tests). getItinerary exposes budgetRange from the
