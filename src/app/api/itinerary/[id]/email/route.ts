@@ -25,7 +25,7 @@ export async function POST(
     // Fetch the itinerary with days + activities
     const { data: itinerary, error: itinError } = await supabase
       .from('itineraries')
-      .select('id, title, destination, start_date, end_date')
+      .select('id, title, destination, start_date, end_date, packing_tips, important_notes')
       .eq('id', id)
       .eq('user_id', user.id)
       .single();
@@ -70,6 +70,8 @@ export async function POST(
       startDate: itinerary.start_date,
       endDate: itinerary.end_date,
       days: daysWithActivities,
+      packingTips: itinerary.packing_tips ?? undefined,
+      importantNotes: itinerary.important_notes ?? undefined,
     });
 
     if (!result.success) {

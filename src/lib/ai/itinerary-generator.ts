@@ -104,6 +104,9 @@ export interface GeneratedItinerary {
   days: DayPlan[];
   status: 'draft' | 'active' | 'completed' | 'archived';
   createdAt: Date;
+  /** "Before you go" content from the planner. Empty on the local fallback path. */
+  packingTips?: string[];
+  importantNotes?: string[];
 }
 
 export interface ProgressCallback {
@@ -134,6 +137,10 @@ export async function generateItinerary(
   }
 
   let dayPlans: DayPlan[];
+  // Plan-level "before you go" content. Only the agentic plans produce these;
+  // the local fallback leaves them empty.
+  let packingTips: string[] = [];
+  let importantNotes: string[] = [];
   let orchestratorResult: OrchestratorOutput | AgenticOrchestratorOutput | undefined;
 
   if (useTrulyAgentic) {
@@ -179,6 +186,8 @@ export async function generateItinerary(
 
       if (agenticResult.success && agenticResult.plan) {
         dayPlans = convertAgentPlanToDayPlans(agenticResult.plan, startDate, agenticResult.research);
+        packingTips = agenticResult.plan.packingTips ?? [];
+        importantNotes = agenticResult.plan.importantNotes ?? [];
         
         console.log('Truly Agentic orchestration complete');
         console.log(`Final score: ${agenticResult.finalScore}/100`);
@@ -233,6 +242,8 @@ export async function generateItinerary(
 
       if (orchestratorResult.success && orchestratorResult.plan) {
         dayPlans = convertAgentPlanToDayPlans(orchestratorResult.plan, startDate, orchestratorResult.research);
+        packingTips = orchestratorResult.plan.packingTips ?? [];
+        importantNotes = orchestratorResult.plan.importantNotes ?? [];
         
         console.log('Multi-Agent orchestration complete!');
         console.log(`Final score: ${orchestratorResult.state.review?.score || 'N/A'}/100`);
@@ -259,6 +270,8 @@ export async function generateItinerary(
     endDate,
     dayPlans,
     preferences,
+    packingTips,
+    importantNotes,
   });
 }
 
@@ -553,9 +566,13 @@ async function saveItineraryToDatabase(
     endDate: Date;
     dayPlans: DayPlan[];
     preferences: UserPreferences;
+    packingTips?: string[];
+    importantNotes?: string[];
   }
 ): Promise<GeneratedItinerary> {
   const { userId, title, destination, startDate, endDate, dayPlans, preferences } = data;
+  const packingTips = data.packingTips ?? [];
+  const importantNotes = data.importantNotes ?? [];
 
   // Create itinerary record
   const { data: itinerary, error: itineraryError } = await supabase
@@ -574,6 +591,22 @@ async function saveItineraryToDatabase(
 
   if (itineraryError) {
     throw new Error(`Failed to create itinerary: ${itineraryError.message}`);
+  }
+
+  // Persist "before you go" content as a best-effort follow-up UPDATE rather
+  // than in the insert above: the columns (migration 014) may not be applied
+  // yet, and we must never let that fail the critical itinerary insert.
+  if (packingTips.length > 0 || importantNotes.length > 0) {
+    const { error: tipsError } = await supabase
+      .from('itineraries')
+      .update({ packing_tips: packingTips, important_notes: importantNotes })
+      .eq('id', itinerary.id);
+    if (tipsError) {
+      console.warn(
+        '[itinerary] packing_tips/important_notes not persisted (apply migration 014):',
+        tipsError.message
+      );
+    }
   }
 
   // Create day records
@@ -627,6 +660,8 @@ async function saveItineraryToDatabase(
     days: dayPlans,
     status: itinerary.status,
     createdAt: new Date(itinerary.created_at),
+    packingTips,
+    importantNotes,
   };
 }
 
@@ -688,6 +723,8 @@ export async function getItinerary(
     days,
     status: itinerary.status,
     createdAt: new Date(itinerary.created_at),
+    packingTips: itinerary.packing_tips ?? [],
+    importantNotes: itinerary.important_notes ?? [],
   };
 }
 

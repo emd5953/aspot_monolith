@@ -26,6 +26,8 @@ interface SendItineraryEmailInput {
   startDate: Date | string;
   endDate: Date | string;
   days: Day[];
+  packingTips?: string[];
+  importantNotes?: string[];
 }
 
 /**
@@ -72,6 +74,8 @@ export async function sendItineraryEmail(
       })),
     })),
     viewUrl: `${baseUrl}/itinerary/${input.itineraryId}`,
+    packingTips: input.packingTips ?? [],
+    importantNotes: input.importantNotes ?? [],
   };
 
   try {

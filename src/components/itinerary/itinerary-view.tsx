@@ -47,6 +47,8 @@ interface Itinerary {
   endDate: Date;
   status: string;
   days: Day[];
+  packingTips?: string[];
+  importantNotes?: string[];
 }
 
 interface ItineraryViewProps {
@@ -221,6 +223,42 @@ export function ItineraryView({
           activities={itinerary.days[activeTab]?.activities || []}
         />
       </HandDrawnCard>
+
+      {/* Before you go — packing tips + important notes from the planner */}
+      {((itinerary.packingTips?.length ?? 0) > 0 ||
+        (itinerary.importantNotes?.length ?? 0) > 0) && (
+        <HandDrawnCard
+          className="animate-fade-up grid gap-6 p-6 md:grid-cols-2"
+          style={{ animationDelay: '0.08s' }}
+        >
+          {(itinerary.packingTips?.length ?? 0) > 0 && (
+            <div>
+              <h3 className="font-heading text-lg text-[color:var(--ink)]">Packing tips</h3>
+              <ul className="mt-3 space-y-1.5 text-sm text-[color:var(--ink-muted)]">
+                {itinerary.packingTips!.map((tip, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span aria-hidden>🧳</span>
+                    <span>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {(itinerary.importantNotes?.length ?? 0) > 0 && (
+            <div>
+              <h3 className="font-heading text-lg text-[color:var(--ink)]">Good to know</h3>
+              <ul className="mt-3 space-y-1.5 text-sm text-[color:var(--ink-muted)]">
+                {itinerary.importantNotes!.map((note, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span aria-hidden>📌</span>
+                    <span>{note}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </HandDrawnCard>
+      )}
 
       {/* Day Tabs */}
       <HandDrawnCard

@@ -75,6 +75,8 @@ async function runGenerationPipeline(opts: RunOptions): Promise<GeneratedItinera
             category: (act as unknown as { type?: string }).type || 'activity',
           })),
         })),
+        packingTips: itinerary.packingTips,
+        importantNotes: itinerary.importantNotes,
       });
     } catch (err) {
       console.error('[email] Background send failed:', err);
