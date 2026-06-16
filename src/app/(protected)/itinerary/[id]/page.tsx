@@ -43,6 +43,7 @@ interface Itinerary {
   days: Day[];
   packingTips?: string[];
   importantNotes?: string[];
+  budgetRange?: string;
 }
 
 export default function ItineraryDetailPage({ params }: { params: Promise<{ id: string }> }) {

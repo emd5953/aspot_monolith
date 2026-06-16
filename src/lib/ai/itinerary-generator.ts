@@ -107,6 +107,8 @@ export interface GeneratedItinerary {
   /** "Before you go" content from the planner. Empty on the local fallback path. */
   packingTips?: string[];
   importantNotes?: string[];
+  /** Traveler budget tier (from the preferences snapshot) — drives budget-fit. */
+  budgetRange?: string;
 }
 
 export interface ProgressCallback {
@@ -725,6 +727,7 @@ export async function getItinerary(
     createdAt: new Date(itinerary.created_at),
     packingTips: itinerary.packing_tips ?? [],
     importantNotes: itinerary.important_notes ?? [],
+    budgetRange: itinerary.preferences_snapshot?.budgetRange,
   };
 }
 

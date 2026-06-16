@@ -15,6 +15,13 @@ import { ItineraryMap } from './itinerary-map';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import type { ItemSource } from '@/lib/ai/provenance';
+import {
+  rollUpCost,
+  classifyBudget,
+  formatUsd,
+  BUDGET_STATUS_LABEL,
+  type BudgetStatus,
+} from '@/lib/itinerary/cost';
 
 interface Activity {
   id: string;
@@ -49,6 +56,7 @@ interface Itinerary {
   days: Day[];
   packingTips?: string[];
   importantNotes?: string[];
+  budgetRange?: string;
 }
 
 interface ItineraryViewProps {
@@ -91,6 +99,18 @@ export function ItineraryView({
   const formatDateRange = (start: Date, end: Date) => {
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
     return `${start.toLocaleDateString('en-US', options)} – ${end.toLocaleDateString('en-US', options)}`;
+  };
+
+  // Estimated cost rollup + budget fit (only meaningful when activities carry
+  // cost estimates — many don't, so guard on hasData).
+  const cost = rollUpCost(itinerary.days);
+  const budgetFit = cost.hasData
+    ? classifyBudget(cost.total, itinerary.budgetRange, itinerary.days.length)
+    : null;
+  const BUDGET_TONE: Record<BudgetStatus, string> = {
+    under: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    within: 'bg-sky-50 text-sky-800 border-sky-200',
+    over: 'bg-amber-50 text-amber-800 border-amber-200',
   };
 
   const handleTitleSave = () => {
@@ -149,6 +169,20 @@ export function ItineraryView({
                 <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
                 {formatDateRange(itinerary.startDate, itinerary.endDate)}
               </span>
+              {cost.hasData && (
+                <span className="inline-flex items-center gap-2">
+                  <span className="font-medium text-[color:var(--ink)]">
+                    Est. {formatUsd(cost.total)}
+                  </span>
+                  {budgetFit && (
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${BUDGET_TONE[budgetFit.status]}`}
+                    >
+                      {BUDGET_STATUS_LABEL[budgetFit.status]}
+                    </span>
+                  )}
+                </span>
+              )}
               <span className="text-xs text-[color:var(--ink-soft)]">Auto-saved</span>
             </div>
           </div>
@@ -217,6 +251,11 @@ export function ItineraryView({
           <p className="text-sm font-medium text-[color:var(--ink-muted)]">
             Day {itinerary.days[activeTab]?.dayNumber} route
           </p>
+          {cost.hasData && cost.perDay[activeTab] > 0 && (
+            <p className="text-sm font-medium text-[color:var(--ink)]">
+              Est. {formatUsd(cost.perDay[activeTab])}
+            </p>
+          )}
         </div>
         <ItineraryMap
           destination={itinerary.destination}
