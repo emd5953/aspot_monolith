@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { regenerateItinerary } from '@/lib/ai/itinerary-generator';
+import { regenerateItinerary, getItinerary } from '@/lib/ai/itinerary-generator';
+import { ownerGuard } from '@/lib/itinerary/ownership';
 
 export async function POST(
   request: NextRequest,
@@ -13,6 +14,13 @@ export async function POST(
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Owner-only: regeneration is destructive and spends on paid AI, so verify
+    // ownership before doing any work (RLS alone still lets a trip member in).
+    const guard = ownerGuard(await getItinerary(supabase, id), user.id);
+    if (!guard.ok) {
+      return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
 
     const body = await request.json().catch(() => ({}));

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { revertToVersion } from '@/lib/itinerary/version-service';
+import { getItinerary } from '@/lib/ai/itinerary-generator';
+import { ownerGuard } from '@/lib/itinerary/ownership';
 
 export async function POST(
   request: NextRequest,
@@ -13,6 +15,13 @@ export async function POST(
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Owner-only: revert overwrites the entire itinerary, so don't rely on RLS
+    // alone — match the explicit ownership check the sibling routes use.
+    const guard = ownerGuard(await getItinerary(supabase, id), user.id);
+    if (!guard.ok) {
+      return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
 
     const body = await request.json();
