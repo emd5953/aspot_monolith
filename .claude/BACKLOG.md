@@ -12,10 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] AI-driven orchestrator decisions: replace the rule-based
-      `decideNextAction` in agentic-orchestrator.ts with an LLM call that
-      reasons over current score + issues and returns
-      continue/stop/research_more/revise. Keep the rule-based path as fallback.
 - [ ] Date-aware events: when trip dates fall in a window, add an events search
       (Eventbrite/Resy/Ticketmaster style) and let the planner slot a
       date-specific event when it's the obvious right answer.
@@ -30,6 +26,13 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] AI-driven orchestrator decisions: `decideNextAction` in
+      agentic-orchestrator.ts is now an LLM call (generateObject + Zod) that
+      reasons over score + issues → continue/stop/research_more/revise.
+      Deterministic hard guards (threshold / iteration ceiling) run first to
+      bound cost; the original heuristic is kept as `decideNextActionRuleBased`
+      and used as fallback on any model error. Decider is injectable; 8 tests
+      cover guards/primary/fallback without a paid call. — `2b836be`
 - [x] Provenance through the pipeline: each pick carries its `source`
       (`reddit`/`places`/`tavily`/`ai`) + the "why" (matchReasons → notes),
       surfaced as a badge in the itinerary view. New pure `provenance.ts`
