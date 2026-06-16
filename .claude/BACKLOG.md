@@ -5,8 +5,20 @@ first unchecked `[ ]` task, implements it on a feature branch, runs lint + tests
 + typecheck + build, commits, then checks it off here. Edit freely — reorder,
 add, or remove tasks. One task = one self-contained, shippable unit of work.
 
+The recurring end-to-end audit lives LAST on purpose: it never gets checked off,
+so keeping it at the top would trap the loop and starve the feature work. With
+it last, the loop ships the concrete features first, then settles into
+perpetually auditing the app (filing + fixing breaks) once they're done.
+
 ## Tasks
 
+- [ ] AI-driven orchestrator decisions: replace the rule-based
+      `decideNextAction` in agentic-orchestrator.ts with an LLM call that
+      reasons over current score + issues and returns
+      continue/stop/research_more/revise. Keep the rule-based path as fallback.
+- [ ] Date-aware events: when trip dates fall in a window, add an events search
+      (Eventbrite/Resy/Ticketmaster style) and let the planner slot a
+      date-specific event when it's the obvious right answer.
 - [ ] End-to-end "does the whole app actually work" audit. Boot the app and walk
       the real user journey: home → prompt → onboarding quiz → itinerary
       generate (fast mode) → view → drag/regenerate a day → trips/share. For
@@ -15,13 +27,6 @@ add, or remove tasks. One task = one self-contained, shippable unit of work.
       below with a one-line repro, then fix the highest-severity break in THIS
       cycle. (This task stays in the backlog — re-run it whenever the app
       changes; only the specific bug-fix tasks it spawns get checked off.)
-- [ ] AI-driven orchestrator decisions: replace the rule-based
-      `decideNextAction` in agentic-orchestrator.ts with an LLM call that
-      reasons over current score + issues and returns
-      continue/stop/research_more/revise. Keep the rule-based path as fallback.
-- [ ] Date-aware events: when trip dates fall in a window, add an events search
-      (Eventbrite/Resy/Ticketmaster style) and let the planner slot a
-      date-specific event when it's the obvious right answer.
 
 ## Done
 
