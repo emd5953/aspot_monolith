@@ -505,6 +505,42 @@ async function generateLocalItinerary(
 }
 
 /**
+ * Insert one activity row, resilient to the `source` column (migration 013)
+ * not yet being applied.
+ *
+ * `source` is provenance — nice to have, never load-bearing. But if the column
+ * is missing, a plain insert that includes it fails the WHOLE row, and the
+ * caller only logs the error, so the itinerary would silently save with zero
+ * activities. So: on any insert error where we sent a `source`, retry once
+ * without it. The activity still persists; the badge just won't show until the
+ * migration runs. Returns true if the row landed.
+ */
+export async function insertActivityRow(
+  supabase: SupabaseClient,
+  row: Record<string, unknown>
+): Promise<boolean> {
+  const { error } = await supabase.from('activities').insert(row);
+  if (!error) return true;
+
+  if ('source' in row) {
+    const withoutSource = { ...row };
+    delete withoutSource.source;
+    const retry = await supabase.from('activities').insert(withoutSource);
+    if (!retry.error) {
+      console.warn(
+        '[itinerary] activities.source missing — saved activity without provenance (apply migration 013)'
+      );
+      return true;
+    }
+    console.error('Failed to create activity:', retry.error);
+    return false;
+  }
+
+  console.error('Failed to create activity:', error);
+  return false;
+}
+
+/**
  * Save itinerary and activities to database
  */
 async function saveItineraryToDatabase(
@@ -577,13 +613,7 @@ async function saveItineraryToDatabase(
         source: simpleActivity.source ?? null,
       };
 
-      const { error: activityError } = await supabase
-        .from('activities')
-        .insert(activityData);
-
-      if (activityError) {
-        console.error('Failed to create activity:', activityError);
-      }
+      await insertActivityRow(supabase, activityData);
     }
   }
 
@@ -925,13 +955,7 @@ export async function regenerateItinerary(
         source: simpleActivity.source ?? null,
       };
 
-      const { error: activityError } = await supabase
-        .from('activities')
-        .insert(activityData);
-
-      if (activityError) {
-        console.error('Failed to create activity:', activityError);
-      }
+      await insertActivityRow(supabase, activityData);
     }
   }
 
