@@ -1,5 +1,12 @@
 // Types for destination data fetched via Tavily search
 
+/**
+ * Provenance signal shared by every candidate type: how many Reddit search
+ * hits named this place. A place with several Reddit threads vouching for it
+ * is local-favorite evidence the scorer/planner can lean on. 0 (or undefined)
+ * when no Reddit research pass ran.
+ */
+
 export interface Attraction {
   name: string;
   description: string;
@@ -11,6 +18,7 @@ export interface Attraction {
   rating?: number;
   url?: string;
   imageUrl?: string;
+  redditMentions?: number;
 }
 
 export interface Restaurant {
@@ -22,6 +30,7 @@ export interface Restaurant {
   rating?: number;
   url?: string;
   imageUrl?: string;
+  redditMentions?: number;
 }
 
 export interface ActivityOption {
@@ -33,6 +42,7 @@ export interface ActivityOption {
   adventureLevel: number; // 1-10
   url?: string;
   imageUrl?: string;
+  redditMentions?: number;
 }
 
 export interface WeatherInfo {

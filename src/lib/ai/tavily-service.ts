@@ -25,7 +25,7 @@ import { UserPreferences } from '@/types/quiz';
  *  3. Return a `DestinationData` for the existing pipeline to consume.
  */
 
-interface SearchHit {
+export interface SearchHit {
   title: string;
   url: string;
   content: string; // Tavily-summarized snippet
@@ -94,6 +94,61 @@ function buildSearchQueries(
         .replace(/\s+/g, ' ')
         .trim(),
   };
+}
+
+/**
+ * Build Reddit-biased search queries. Travel SEO buries the long-tail local
+ * truth that Redditors post in earnest ("where do locals actually drink in
+ * X?"), so we issue a parallel pass scoped to reddit.com. The `site:reddit.com`
+ * operator keeps Tavily on Reddit threads; intent still leads for relevance.
+ *
+ * Exported for unit testing — it's a pure function of its inputs.
+ */
+export function buildRedditSearchQueries(
+  destination: string,
+  prefs: UserPreferences,
+  userIntent?: string
+): { attractions: string; restaurants: string; activities: string } {
+  const interests = (prefs.activityTypes || []).slice(0, 3).join(' ');
+  const cuisines = (prefs.cuisinePreferences || []).slice(0, 3).join(' ');
+  const intent = (userIntent || '').trim();
+
+  const build = (focus: string) =>
+    `site:reddit.com ${intent} ${focus} in ${destination} recommendations`
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  return {
+    attractions: build(`best ${interests} things to do`),
+    restaurants: build(`best ${cuisines} restaurants where locals eat`),
+    activities: build(`favorite ${interests} activities and experiences`),
+  };
+}
+
+/**
+ * Count how many Reddit hits name a given place. Case-insensitive substring
+ * match against each hit's title+content; one hit counts at most once even if
+ * it names the place repeatedly. Pure and exported for unit testing.
+ */
+export function countRedditMentions(name: string, redditHits: SearchHit[]): number {
+  const needle = name.trim().toLowerCase();
+  if (!needle) return 0;
+  return redditHits.reduce((count, hit) => {
+    const haystack = `${hit.title} ${hit.content}`.toLowerCase();
+    return haystack.includes(needle) ? count + 1 : count;
+  }, 0);
+}
+
+/** Stamp each candidate with how many Reddit hits mentioned it. */
+function tagRedditMentions<T extends { name: string; redditMentions?: number }>(
+  items: T[],
+  redditHits: SearchHit[]
+): T[] {
+  if (redditHits.length === 0) return items;
+  return items.map((item) => ({
+    ...item,
+    redditMentions: countRedditMentions(item.name, redditHits),
+  }));
 }
 
 async function tavilySearch(
@@ -220,48 +275,76 @@ export async function fetchDestinationDataWithPrefs(
   userIntent?: string
 ): Promise<DestinationData> {
   const queries = buildSearchQueries(destination, preferences, userIntent);
+  const redditQueries = buildRedditSearchQueries(destination, preferences, userIntent);
 
-  // Run all three searches in parallel — Tavily handles concurrent fine.
-  const [attractionHits, restaurantHits, activityHits] = await Promise.all([
+  // Run the general + Reddit-targeted searches in parallel — Tavily handles
+  // concurrent requests fine. The Reddit pass surfaces local-favorite truth
+  // that travel SEO buries; its hits both feed extraction and become the
+  // provenance signal for `redditMentions`.
+  const [
+    attractionHits,
+    restaurantHits,
+    activityHits,
+    redditAttractionHits,
+    redditRestaurantHits,
+    redditActivityHits,
+  ] = await Promise.all([
     tavilySearch(queries.attractions, 10),
     tavilySearch(queries.restaurants, 10),
     tavilySearch(queries.activities, 8),
+    tavilySearch(redditQueries.attractions, 6),
+    tavilySearch(redditQueries.restaurants, 6),
+    tavilySearch(redditQueries.activities, 6),
   ]);
 
   console.log(
-    `[tavily] Search hits — attractions:${attractionHits.length} restaurants:${restaurantHits.length} activities:${activityHits.length}`
+    `[tavily] Search hits — attractions:${attractionHits.length} restaurants:${restaurantHits.length} activities:${activityHits.length} | reddit:${redditAttractionHits.length}/${redditRestaurantHits.length}/${redditActivityHits.length}`
   );
 
-  // Extract structured data in parallel too.
+  // Extract structured data in parallel too. Reddit hits join the corpus so
+  // places only Redditors mention can still surface as candidates.
   const [attractions, restaurants, activities] = await Promise.all([
     extractStructured<Attraction>(
-      attractionHits,
+      [...attractionHits, ...redditAttractionHits],
       destination,
       'attraction',
       ATTRACTION_SCHEMA
     ),
     extractStructured<Restaurant>(
-      restaurantHits,
+      [...restaurantHits, ...redditRestaurantHits],
       destination,
       'restaurant',
       RESTAURANT_SCHEMA
     ),
     extractStructured<ActivityOption>(
-      activityHits,
+      [...activityHits, ...redditActivityHits],
       destination,
       'activity',
       ACTIVITY_SCHEMA
     ),
   ]);
 
+  // Tag each candidate with how many Reddit threads named it — provenance the
+  // scorer/planner can lean on ("three Reddit threads call this a local fave").
+  const taggedAttractions = tagRedditMentions(attractions, redditAttractionHits);
+  const taggedRestaurants = tagRedditMentions(restaurants, redditRestaurantHits);
+  const taggedActivities = tagRedditMentions(activities, redditActivityHits);
+
   console.log(
     `[tavily] Extracted — attractions:${attractions.length} restaurants:${restaurants.length} activities:${activities.length}`
   );
 
-  // Unique source URLs across all three searches, for citations downstream.
+  // Unique source URLs across every search, for citations downstream.
   const sources = Array.from(
     new Set(
-      [...attractionHits, ...restaurantHits, ...activityHits]
+      [
+        ...attractionHits,
+        ...restaurantHits,
+        ...activityHits,
+        ...redditAttractionHits,
+        ...redditRestaurantHits,
+        ...redditActivityHits,
+      ]
         .map((h) => h.url)
         .filter((u): u is string => Boolean(u))
     )
@@ -271,9 +354,9 @@ export async function fetchDestinationDataWithPrefs(
     name: destination,
     country: '', // Tavily doesn't reliably give us this; not used downstream
     description: '',
-    attractions,
-    restaurants,
-    activities,
+    attractions: taggedAttractions,
+    restaurants: taggedRestaurants,
+    activities: taggedActivities,
     localTips: [],
     sources,
     fetchedAt: new Date(),
