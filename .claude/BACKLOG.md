@@ -12,12 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] Generation: single-day regen should keep times (+ coords). regenerateDay
-      (day-regeneration-service.ts) inserts replacement activities without
-      start_time/end_time, so regenerating a day strips its schedule. Run
-      assignDayTimes over the new activities (and carry coords when available)
-      so a regenerated day stays timed like the main path. Unit-test the mapping.
-
 - [ ] "Tidy this day" — reorder a day's stops by proximity. Build on geo.ts +
       the now-persisted activity coords: a pure nearest-neighbor ordering that,
       starting from the first stop, visits the closest un-visited located stop
@@ -39,6 +33,10 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Generation: single-day regen keeps a schedule. regenerateDay was inserting
+      activities with no start/end time; `buildReplacementActivityRows` now runs
+      assignDayTimes over them (sequential from 09:00) like the main path. 4
+      tests. (Coords not carried — the regen AI output has none.) — `dda1605`
 - [x] Generation: fix getItinerary activity type-lie. Added StoredActivity/
       StoredDay/StoredItinerary for the flat shape getItinerary really returns
       (was typed GeneratedItinerary → ActivityRecommendation), removing the
