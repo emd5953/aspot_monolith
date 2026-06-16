@@ -12,14 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] Atomic destructive rewrites (data-loss risk). `regenerateDay`
-      (day-regeneration-service.ts ~L502) and `revertToVersion`
-      (version-service.ts ~L210) both DELETE a day/itinerary's activities and
-      then INSERT replacements non-atomically. Repro: if the insert fails after
-      the delete (transient DB error, constraint violation), the day/itinerary
-      is left empty with no recovery. Fix properly — a Postgres RPC/transaction
-      that swaps activities atomically, or insert-then-delete-old so a failed
-      insert preserves the originals. Spawned by audit cycle 6.
 - [ ] End-to-end "does the whole app actually work" audit. Boot the app and walk
       the real user journey: home → prompt → onboarding quiz → itinerary
       generate (fast mode) → view → drag/regenerate a day → trips/share. For
@@ -31,6 +23,11 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Atomic-safe day regeneration: `regenerateDay` now inserts replacement
+      activities before deleting the originals (`swapDayActivities`), so a
+      failed insert no longer wipes the day. `revertToVersion` left as-is — it
+      already auto-snapshots before reverting, so failures are recoverable. 3
+      unit tests. — `10100be`
 - [x] Audit cycle 5 → missing ownership checks on revert/regenerate/versions:
       these routes relied on RLS alone, letting a trip member trigger owner-only
       ops (destructive revert, paid regenerate) on another user's itinerary, and
