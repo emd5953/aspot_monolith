@@ -3,6 +3,42 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { UserPreferences } from '@/types/quiz';
 import { swapDayActivities } from './itinerary-service';
+import { assignDayTimes } from '@/lib/ai/schedule-times';
+
+/**
+ * Build the DB rows for a regenerated day, assigning sequential clock times so a
+ * regenerated day keeps a real schedule like the main generation path (the AI
+ * here emits no per-item time, so assignDayTimes lays them out from the day
+ * start). Exported for unit testing.
+ */
+export function buildReplacementActivityRows(
+  dayId: string,
+  newActivities: Array<{
+    name?: string;
+    description?: string;
+    locationName?: string;
+    category?: string;
+    estimatedCost?: number | null;
+    bookingUrl?: string | null;
+    duration?: number;
+  }>,
+  notes: string
+): Array<Record<string, unknown>> {
+  const times = assignDayTimes(newActivities.map((a) => ({ durationMin: a.duration })));
+  return newActivities.map((act, index) => ({
+    day_id: dayId,
+    title: act.name || 'Activity',
+    description: act.description || '',
+    location_name: act.locationName || act.name,
+    category: act.category || 'activity',
+    estimated_cost: act.estimatedCost || null,
+    booking_url: act.bookingUrl || null,
+    sort_order: index + 1,
+    notes,
+    start_time: times[index].startTime,
+    end_time: times[index].endTime,
+  }));
+}
 
 interface RegenerateDayInput {
   itineraryId: string;
@@ -500,18 +536,13 @@ EXAMPLE when user wants sports but concert available:
   console.log(`[Day Regeneration] Completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s total`);
 
   // Replace the day's activities. Insert-then-delete (see swapDayActivities) so
-  // a failed insert preserves the originals instead of wiping the day.
-  const activitiesToInsert = newActivities.map((act, index) => ({
-    day_id: dayId,
-    title: act.name || 'Activity',
-    description: act.description || '',
-    location_name: act.locationName || act.name,
-    category: act.category || 'activity',
-    estimated_cost: act.estimatedCost || null,
-    booking_url: act.bookingUrl || null,
-    sort_order: index + 1,
-    notes: `Regenerated: "${userPrompt}"`,
-  }));
+  // a failed insert preserves the originals instead of wiping the day. Rows
+  // carry assigned start/end times so the regenerated day keeps a schedule.
+  const activitiesToInsert = buildReplacementActivityRows(
+    dayId,
+    newActivities,
+    `Regenerated: "${userPrompt}"`
+  );
 
   const insertedActivities = await swapDayActivities(supabase, dayId, activitiesToInsert);
 
