@@ -12,13 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] Generation: fix the getItinerary activity type-lie. getItinerary returns
-      flat activity objects but types day.activities as ActivityRecommendation[],
-      forcing `as unknown as` casts at call sites (e.g. the calendar route).
-      Introduce a proper StoredActivity / StoredDay type for what getItinerary
-      actually returns and thread it through, removing the casts. Type-only +
-      tests still green; no behavior change.
-
 - [ ] Generation: single-day regen should keep times (+ coords). regenerateDay
       (day-regeneration-service.ts) inserts replacement activities without
       start_time/end_time, so regenerating a day strips its schedule. Run
@@ -46,6 +39,10 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Generation: fix getItinerary activity type-lie. Added StoredActivity/
+      StoredDay/StoredItinerary for the flat shape getItinerary really returns
+      (was typed GeneratedItinerary → ActivityRecommendation), removing the
+      `as unknown as` cast in the calendar route. Type-only, tsc clean. — `6eaf601`
 - [x] Generation: per-activity cost estimates. New pure `estimate-cost.ts` maps
       price tier ($/$$/$$$/words) + category → ballpark USD; wired into
       activityToSimple so the cost rollup + budget-fit finally have data (7
