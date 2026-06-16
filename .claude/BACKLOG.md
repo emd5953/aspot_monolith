@@ -12,6 +12,27 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
+- [ ] Generation: per-activity cost estimates. estimatedCost is never set, so the
+      cost rollup has no data. Derive a rough numeric estimate per activity from
+      the research candidate's price tier ($/$$/$$$ or budget/moderate/luxury)
+      and category (meals vs attractions vs free activities) in a pure helper
+      (e.g. src/lib/ai/estimate-cost.ts), set it in activityToSimple, and persist
+      to estimated_cost. Unit-test the tier→dollar mapping; the existing cost
+      rollup then lights up. No paid API.
+
+- [ ] Generation: fix the getItinerary activity type-lie. getItinerary returns
+      flat activity objects but types day.activities as ActivityRecommendation[],
+      forcing `as unknown as` casts at call sites (e.g. the calendar route).
+      Introduce a proper StoredActivity / StoredDay type for what getItinerary
+      actually returns and thread it through, removing the casts. Type-only +
+      tests still green; no behavior change.
+
+- [ ] Generation: single-day regen should keep times (+ coords). regenerateDay
+      (day-regeneration-service.ts) inserts replacement activities without
+      start_time/end_time, so regenerating a day strips its schedule. Run
+      assignDayTimes over the new activities (and carry coords when available)
+      so a regenerated day stays timed like the main path. Unit-test the mapping.
+
 - [ ] "Tidy this day" — reorder a day's stops by proximity. Build on geo.ts +
       the now-persisted activity coords: a pure nearest-neighbor ordering that,
       starting from the first stop, visits the closest un-visited located stop
@@ -33,6 +54,13 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Generation: restore activity schedule times. The planner's per-item "HH:MM"
+      schedule was dropped (convertAgentPlanToDayPlans + activityToSimple), so
+      every itinerary had timeless activities. New pure `schedule-times.ts`
+      (assignDayTimes: honor planner times, bump overlaps, fill gaps from 09:00,
+      8 tests) wired into both build paths and persisted to start_time/end_time;
+      2 integration tests prove the planner schedule survives. Calendar export
+      now emits real timed events. — `c70a06a`
 - [x] Audit cycle 9 — new feature batch integrated clean (no fix). Broad smoke
       test after the 5-feature batch: home 200, dashboard/protected 307/401,
       new calendar route 401, autocomplete 200 live, no 500s / broken imports /
