@@ -12,6 +12,49 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
+- [ ] Calendar export (.ics). Add a "Add to calendar" action on the itinerary
+      view that downloads a valid iCalendar file: one VEVENT per activity that
+      has a date + start/end time (fall back to an all-day event for the day
+      when an activity has no time), with SUMMARY = activity title, LOCATION =
+      locationName, DESCRIPTION = notes, and a stable UID per activity. Build
+      the ICS string in a pure module (`src/lib/calendar/ics.ts`) — RFC-5545
+      line folding + escaping of `,`/`;`/`\\`/newlines — and serve it from
+      `GET /api/itinerary/[id]/calendar` (owner-checked via ownerGuard) with
+      `Content-Type: text/calendar`. No paid APIs — unit-test the ICS builder
+      (escaping, folding, all-day vs timed) and probe the route.
+
+- [ ] Surface packing tips + important notes. The planner already emits
+      `packingTips` and `importantNotes` (ItineraryPlanSchema) but they're
+      dropped after generation. Persist them on the itinerary (new nullable
+      JSONB/text columns via a migration, written through resiliently like
+      `activities.source`) and render them in the itinerary view (a "Before you
+      go" card) and the email. Unit-test the persistence mapping + view render;
+      keep it non-breaking if the migration isn't applied yet.
+
+- [ ] Per-day and trip cost rollup with budget fit. Compute the sum of activity
+      `estimatedCost` per day and for the whole trip in a pure helper, format as
+      currency, and show it in the itinerary view (per-day subtotal + a trip
+      total chip). Add a budget-fit indicator comparing the trip total against
+      the user's `budgetRange` (map the enum to a rough per-day ceiling). Pure
+      logic — unit-test the rollup + the over/under-budget classification; then
+      surface in the view.
+
+- [ ] Proximity sanity per day (no paid API). Using the `location_lat`/
+      `location_lng` now stored on activities, compute haversine distance
+      between consecutive activities in a day and flag a day as "spread out"
+      when the total hop distance exceeds a threshold (e.g. > 15 km of
+      back-and-forth). Surface a gentle "this day covers a lot of ground" hint
+      in the view. Pure logic — unit-test haversine + the per-day flag with
+      known coordinates. (Lays groundwork for travel-time ordering later.)
+
+- [ ] Rate-limit itinerary generation (protect paid spend). `POST
+      /api/itinerary/generate` and `/generate-stream` trigger paid OpenAI/Tavily
+      work with no per-user cap. Add a simple limiter (e.g. N generations per
+      rolling hour per user) backed by a small `generation_events` table or a
+      timestamp check, returning 429 with a friendly message when exceeded.
+      Keep the limit logic pure + unit-tested (under/at/over limit); wire it
+      into both generate routes before any paid call.
+
 - [ ] End-to-end "does the whole app actually work" audit. Boot the app and walk
       the real user journey: home → prompt → onboarding quiz → itinerary
       generate (fast mode) → view → drag/regenerate a day → trips/share. For
