@@ -12,14 +12,6 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Tasks
 
-- [ ] Rate-limit itinerary generation (protect paid spend). `POST
-      /api/itinerary/generate` and `/generate-stream` trigger paid OpenAI/Tavily
-      work with no per-user cap. Add a simple limiter (e.g. N generations per
-      rolling hour per user) backed by a small `generation_events` table or a
-      timestamp check, returning 429 with a friendly message when exceeded.
-      Keep the limit logic pure + unit-tested (under/at/over limit); wire it
-      into both generate routes before any paid call.
-
 - [ ] End-to-end "does the whole app actually work" audit. Boot the app and walk
       the real user journey: home → prompt → onboarding quiz → itinerary
       generate (fast mode) → view → drag/regenerate a day → trips/share. For
@@ -31,6 +23,11 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Rate-limit itinerary generation: both generate routes enforce 10/rolling-
+      hour per user before any paid call, returning 429 + Retry-After. Pure
+      `checkRateLimit` (5 tests) + `checkGenerationRateLimit` over a new
+      `generation_events` table (migration 015, RLS), failing open on storage
+      errors so a missing migration never blocks users. — `8053234`
 - [x] Per-day proximity sanity (haversine) + persist activity coords: generation
       now writes research coordinates to activities (activityToSimple →
       location_lat/lng via coordsColumns; getItinerary reads them back), and a
