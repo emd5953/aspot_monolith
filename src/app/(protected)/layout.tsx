@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { CoverVideo } from '@/components/landing/cover-video';
 import { AppNav } from '@/components/layout/app-nav';
 import { PageTransition } from '@/components/layout/page-transition';
@@ -6,12 +8,28 @@ import { PageTransition } from '@/components/layout/page-transition';
  * Shared frame for every authenticated page.
  * The cover video + nav are mounted once here so they persist across
  * route changes without restarting. Page content cross-fades on navigation.
+ *
+ * Auth is enforced here, once, for the whole route group. Individual pages
+ * used to each call getUser()/redirect — and several (itinerary, trips,
+ * profile/edit, the [id] detail pages) forgot, leaving them reachable while
+ * signed out. Guarding in the layout closes that hole structurally: no page
+ * under (protected) can render without a session. Pages may still do their own
+ * finer-grained redirects (e.g. profile → /quiz when onboarding is incomplete).
  */
-export default function ProtectedLayout({
+export default async function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/');
+  }
+
   return (
     <div className="relative min-h-screen overflow-x-hidden text-white">
       {/* Shared atmospheric background */}
