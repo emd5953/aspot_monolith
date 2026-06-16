@@ -66,3 +66,44 @@ export function isDaySpreadOut(
   if (locatedCoords(points).length < 2) return false;
   return dayHopDistanceKm(points) > thresholdKm;
 }
+
+export interface OrderablePoint {
+  id: string;
+  coordinates?: { lat: number; lng: number } | null;
+}
+
+function isLocated(p: OrderablePoint): boolean {
+  return !!p.coordinates && Number.isFinite(p.coordinates.lat) && Number.isFinite(p.coordinates.lng);
+}
+
+/**
+ * Greedy nearest-neighbor ordering of a day's stops to cut down on travel.
+ * Anchors on the first located stop, then repeatedly appends the closest
+ * un-visited located stop. Stops without coordinates keep their original
+ * relative order and are appended at the end. Returns the reordered ids.
+ *
+ * Greedy (not optimal TSP), but it reliably untangles a zig-zag day and is
+ * cheap + deterministic.
+ */
+export function nearestNeighborOrder(points: OrderablePoint[]): string[] {
+  const located = points.filter(isLocated);
+  const unlocated = points.filter((p) => !isLocated(p));
+  if (located.length <= 2) return points.map((p) => p.id);
+
+  const remaining = [...located];
+  const ordered: OrderablePoint[] = [remaining.shift()!];
+  while (remaining.length > 0) {
+    const last = ordered[ordered.length - 1].coordinates!;
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < remaining.length; i++) {
+      const d = haversineKm(last, remaining[i].coordinates!);
+      if (d < bestDist) {
+        bestDist = d;
+        bestIdx = i;
+      }
+    }
+    ordered.push(remaining.splice(bestIdx, 1)[0]);
+  }
+  return [...ordered, ...unlocated].map((p) => p.id);
+}

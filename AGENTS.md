@@ -74,10 +74,29 @@ Default section order:
 5. Run existing verification when relevant
 6. Report any docs intentionally left unchanged and why
 
+## Project: aSpot
+
+aSpot turns one sentence into a real, day-by-day trip. Say what you want; it researches real places, builds the days, and hands back an itinerary that reflects the prompt — not a top-10 list, not a chatbot.
+
+- **Stack:** Next.js (App Router) + React 19 + TypeScript; Supabase (Postgres, RLS, Realtime, OAuth); OpenAI via the Vercel AI SDK; Tavily for research; Google Maps/Places; Resend for Deep-mode email; deployed on Vercel.
+- **The contract is the schema.** Zod types in `src/lib/ai/schemas` are the hand-off between every pipeline step. LLM outputs are schema-validated, never regex-extracted.
+- **Core principle:** profile is the floor, prompt is the steering wheel. The system never invents places — candidates come from real research with provenance.
+- **Two modes, one pipeline:** Fast ("Plan it", streams on screen) and Deep ("Send it", background work + email). Same six steps: Understand → Discover → Rank → Plan → Critique → Persist.
+- **Migrations** live in `supabase/migrations/`. `src/types` holds shared TypeScript contracts; `src/data` holds static content (quiz questions); `src/test` holds fixtures/setup.
+
+### Verification
+
+- `npm test` (Vitest) · `npm run lint` (ESLint) · `npm run build` (type-check + build) · `npm run format`
+
 ## User Preferences
 
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
 ## Child DOX Index
 
-This project is not yet indexed. Before continuing you must scan the project, build the DOX tree and replace this message with the actual index. Go deep and scan files recursively to properly evaluate complexity and create nested DOX files where needed.
+- [`src/lib/ai/`](src/lib/ai/AGENTS.md) — the generation engine: research, curation, persistence, schemas, cost/time. Contains child [`agents/`](src/lib/ai/agents/AGENTS.md).
+- [`src/lib/itinerary/`](src/lib/itinerary/AGENTS.md) — persistence, versioning, ownership, and post-generation editing (reorder, swap, day-regenerate, revert, cost rollup).
+- [`src/app/api/`](src/app/api/AGENTS.md) — App Router route handlers: authenticate, authorize, delegate to `lib`.
+- [`src/components/`](src/components/AGENTS.md) — React UI and the hand-drawn aesthetic that is the product.
+
+Owned directly by this root (no child doc yet — simple, single-purpose): `src/lib/preferences` (quiz→profile, curation/scoring), `src/lib/trips`, `src/lib/quiz`, `src/lib/maps`, `src/lib/calendar`, `src/lib/email`, `src/lib/ratelimit`, `src/lib/supabase` (client/server/middleware), `src/app/(protected)`, `src/types`, `src/data`, `src/test`.
