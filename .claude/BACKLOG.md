@@ -7,6 +7,14 @@ add, or remove tasks. One task = one self-contained, shippable unit of work.
 
 ## Tasks
 
+- [ ] End-to-end "does the whole app actually work" audit. Boot the app and walk
+      the real user journey: home → prompt → onboarding quiz → itinerary
+      generate (fast mode) → view → drag/regenerate a day → trips/share. For
+      each flow, confirm pages render, key API routes respond, and there are no
+      runtime/console errors. File every break you find as a new `- [ ]` task
+      below with a one-line repro, then fix the highest-severity break in THIS
+      cycle. (This task stays in the backlog — re-run it whenever the app
+      changes; only the specific bug-fix tasks it spawns get checked off.)
 - [ ] Google Places verification: before candidates reach the planner, confirm
       each named place against a real Places address; drop anything that can't
       be verified. Add a feature flag so it can be turned off. Test the filter.
