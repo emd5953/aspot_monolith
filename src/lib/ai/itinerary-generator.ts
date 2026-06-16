@@ -29,6 +29,7 @@ import {
 } from './provenance';
 import { coordsColumns } from '@/lib/itinerary/itinerary-service';
 import { assignDayTimes } from './schedule-times';
+import { estimateActivityCost } from './estimate-cost';
 
 // ---------------------------------------------------------------------------
 // Local shape used by this service and the persistence layer.
@@ -403,7 +404,9 @@ function activityToSimple(activity: ActivityRecommendation, index: number): Simp
     startTime: activity.startTime,
     endTime: activity.endTime,
     duration: activity.suggestedDuration || undefined,
-    estimatedCost: undefined,
+    // Rough ballpark from the candidate's price tier + category, so the trip
+    // cost rollup has data. 0 (free) persists as null via the insert's `|| null`.
+    estimatedCost: estimateActivityCost(activity.type, item.priceRange) || undefined,
     sortOrder: index + 1,
     notes: activity.matchReasons?.join(', ') || '',
     source,
