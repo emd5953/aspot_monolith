@@ -8,6 +8,9 @@
  * - Shows full reasoning chain
  */
 
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 import { UserPreferences } from '@/types/quiz';
 import { OrchestrationState, ItineraryPlan, ResearchResult } from './types';
 import { runAgenticResearcher } from './agentic-researcher';
@@ -49,79 +52,124 @@ export interface AgenticOrchestratorOutput {
   thoughts: string[];
 }
 
+// ─── Orchestrator decision: continue / stop / research_more / revise ─────────
+
+export const OrchestratorActionSchema = z.object({
+  action: z.enum(['continue', 'stop', 'research_more', 'revise']),
+  reasoning: z.string().describe('One sentence justifying the action.'),
+});
+
+export type OrchestratorDecision = z.infer<typeof OrchestratorActionSchema>;
+
+export interface DecisionContext {
+  currentScore: number;
+  iteration: number;
+  maxIterations: number;
+  qualityThreshold: number;
+  issues: Array<{ severity: string; issue: string }>;
+}
+
+/** A function that picks the next action — real model, or injected in tests. */
+export type ActionDecider = (ctx: DecisionContext) => Promise<OrchestratorDecision>;
+
 /**
- * Orchestrator decides next action based on current state
+ * Rule-based decision — kept as the fallback when the LLM call is unavailable
+ * or errors. This is the original heuristic, extracted verbatim so behavior is
+ * unchanged when we fall back.
  */
-async function decideNextAction(
-  currentScore: number,
-  iteration: number,
-  maxIterations: number,
-  qualityThreshold: number,
-  issues: Array<{ severity: string; issue: string }>
-): Promise<{
-  action: 'continue' | 'stop' | 'research_more' | 'revise';
-  reasoning: string;
-}> {
-  // Simple rule-based decisions (could be AI-powered for even more agency)
-  
+export function decideNextActionRuleBased(ctx: DecisionContext): OrchestratorDecision {
+  const { currentScore, iteration, maxIterations, qualityThreshold, issues } = ctx;
+
   if (currentScore >= qualityThreshold) {
-    return {
-      action: 'stop',
-      reasoning: `Quality threshold met (${currentScore}/${qualityThreshold})`,
-    };
+    return { action: 'stop', reasoning: `Quality threshold met (${currentScore}/${qualityThreshold})` };
   }
-
   if (iteration >= maxIterations) {
-    return {
-      action: 'stop',
-      reasoning: `Max iterations reached (${iteration}/${maxIterations})`,
-    };
+    return { action: 'stop', reasoning: `Max iterations reached (${iteration}/${maxIterations})` };
   }
-
-  // Very aggressive stopping - accept any score above 60 after 1 iteration
   if (currentScore >= 60 && iteration >= 1) {
     return {
       action: 'stop',
       reasoning: `Acceptable score (${currentScore}) after ${iteration} iteration - stopping for speed`,
     };
   }
-
-  // More aggressive stopping - accept scores above 65
   if (currentScore >= 65 && iteration >= 1) {
-    return {
-      action: 'stop',
-      reasoning: `Good enough score (${currentScore}) after ${iteration} iteration(s)`,
-    };
+    return { action: 'stop', reasoning: `Good enough score (${currentScore}) after ${iteration} iteration(s)` };
   }
-
-  // More aggressive stopping - accept scores above 70
   if (currentScore >= 70 && iteration >= 2) {
-    return {
-      action: 'stop',
-      reasoning: `Good enough score (${currentScore}) after ${iteration} iterations`,
-    };
+    return { action: 'stop', reasoning: `Good enough score (${currentScore}) after ${iteration} iterations` };
   }
 
-  const highSeverityIssues = issues.filter(i => i.severity === 'high').length;
-  
+  const highSeverityIssues = issues.filter((i) => i.severity === 'high').length;
   if (highSeverityIssues > 3) {
-    return {
-      action: 'research_more',
-      reasoning: `Too many critical issues (${highSeverityIssues}), need more data`,
-    };
+    return { action: 'research_more', reasoning: `Too many critical issues (${highSeverityIssues}), need more data` };
   }
-
   if (currentScore < 60) {
-    return {
-      action: 'revise',
-      reasoning: `Score too low (${currentScore}), major revision needed`,
-    };
+    return { action: 'revise', reasoning: `Score too low (${currentScore}), major revision needed` };
+  }
+  return { action: 'continue', reasoning: `Score ${currentScore} is acceptable but can improve` };
+}
+
+/**
+ * LLM decider: let the model reason over the current score and the open issues
+ * and choose the next move. `generateObject` + the Zod schema guarantee a
+ * well-shaped decision (no regex parsing). This is the primary path.
+ */
+async function decideNextActionWithLLM(ctx: DecisionContext): Promise<OrchestratorDecision> {
+  const issueList =
+    ctx.issues.length > 0
+      ? ctx.issues.map((i) => `- [${i.severity}] ${i.issue}`).join('\n')
+      : '(none reported)';
+
+  const { object } = await generateObject({
+    model: openai('gpt-4o-mini'),
+    schema: OrchestratorActionSchema,
+    system: `You are the orchestrator of a multi-agent travel-itinerary builder. After each review you decide the next move:
+- "stop": the plan is good enough to ship.
+- "revise": the planner should rework the plan to address the issues.
+- "research_more": the issues are about missing/weak options — gather more candidates before replanning.
+- "continue": iterate once more without a specific corrective focus.
+Optimize for a genuinely good itinerary while respecting that each iteration costs time and money. Prefer "stop" once quality is clearly acceptable.`,
+    prompt: `Current quality score: ${ctx.currentScore}/100 (target ${ctx.qualityThreshold}).
+Iteration ${ctx.iteration} of at most ${ctx.maxIterations}.
+Open issues:
+${issueList}
+
+Choose the next action and justify it in one sentence.`,
+    temperature: 0.2,
+  });
+
+  return object;
+}
+
+/**
+ * Decide the orchestrator's next action.
+ *
+ * Hard guards run first (deterministic, no spend): once the quality threshold
+ * is met or the iteration ceiling is hit, we stop — never letting a model talk
+ * us into an unbounded, costly loop. Otherwise the LLM reasons over score +
+ * issues; if that call fails for any reason we fall back to the rule-based
+ * heuristic so generation never breaks on a flaky model call.
+ *
+ * `decide` is injectable so the control flow can be unit-tested without a
+ * paid model call.
+ */
+export async function decideNextAction(
+  ctx: DecisionContext,
+  decide: ActionDecider = decideNextActionWithLLM
+): Promise<OrchestratorDecision> {
+  if (ctx.currentScore >= ctx.qualityThreshold) {
+    return { action: 'stop', reasoning: `Quality threshold met (${ctx.currentScore}/${ctx.qualityThreshold})` };
+  }
+  if (ctx.iteration >= ctx.maxIterations) {
+    return { action: 'stop', reasoning: `Max iterations reached (${ctx.iteration}/${ctx.maxIterations})` };
   }
 
-  return {
-    action: 'continue',
-    reasoning: `Score ${currentScore} is acceptable but can improve`,
-  };
+  try {
+    return await decide(ctx);
+  } catch (err) {
+    console.warn('[agentic-orchestrator] LLM decision failed, using rule-based fallback:', err);
+    return decideNextActionRuleBased(ctx);
+  }
 }
 
 /**
@@ -305,13 +353,13 @@ export async function runAgenticOrchestrator(
       timestamp: new Date(),
     };
 
-    const decision = await decideNextAction(
+    const decision = await decideNextAction({
       currentScore,
       iteration,
       maxIterations,
       qualityThreshold,
-      reviewIssues
-    );
+      issues: reviewIssues,
+    });
 
     decisionStep.result = `Decision: ${decision.action} - ${decision.reasoning}`;
     allReasoning.push(decisionStep);
