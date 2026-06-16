@@ -6,6 +6,7 @@ import { getPreferences } from '@/lib/preferences/preferences-service';
 import { normalizePreferences } from '@/lib/preferences/normalize';
 import { parsePrompt } from '@/lib/ai/parse-prompt';
 import { sendItineraryEmail } from '@/lib/email/send-itinerary';
+import { checkGenerationRateLimit } from '@/lib/ratelimit/generation';
 import type { UserPreferences } from '@/types/quiz';
 import type { GeneratedItinerary } from '@/lib/ai/itinerary-generator';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -96,6 +97,15 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit before any paid work — generation spends on OpenAI/Tavily.
+    const rateLimit = await checkGenerationRateLimit(supabase, user.id);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "You've reached the generation limit for now. Please try again a little later." },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) } }
+      );
     }
 
     const body = await request.json();

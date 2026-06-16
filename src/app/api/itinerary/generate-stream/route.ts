@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateItinerary } from '@/lib/ai/itinerary-generator';
 import { getPreferences } from '@/lib/preferences/preferences-service';
+import { checkGenerationRateLimit } from '@/lib/ratelimit/generation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,6 +11,15 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return new Response('Unauthorized', { status: 401 });
+    }
+
+    // Rate limit before any paid work — generation spends on OpenAI/Tavily.
+    const rateLimit = await checkGenerationRateLimit(supabase, user.id);
+    if (!rateLimit.allowed) {
+      return new Response(
+        "You've reached the generation limit for now. Please try again a little later.",
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) } }
+      );
     }
 
     const body = await request.json();
