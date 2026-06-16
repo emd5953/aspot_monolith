@@ -23,6 +23,12 @@ perpetually auditing the app (filing + fixing breaks) once they're done.
 
 ## Done
 
+- [x] Audit cycle 5 → missing ownership checks on revert/regenerate/versions:
+      these routes relied on RLS alone, letting a trip member trigger owner-only
+      ops (destructive revert, paid regenerate) on another user's itinerary, and
+      breaking the codebase's owner-only pattern. Fixed with a shared pure
+      `ownerGuard` (404/403/ok) applied after getItinerary in all three. 3 unit
+      tests. (email route was already safe.) — `21ae675`
 - [x] Audit cycle 4 → activity coords mapped to a nonexistent column:
       itinerary-service wrote/read `location_coords`, but the schema has
       `location_lat`/`location_lng`. Add/edit-activity with coords would 500 and
