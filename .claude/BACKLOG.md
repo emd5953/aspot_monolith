@@ -28,6 +28,12 @@ add, or remove tasks. One task = one self-contained, shippable unit of work.
 
 ## Done
 
+- [x] Audit cycle 2 → auth-callback 404 dead-end: a failed code exchange
+      (expired/invalid email link or failed Google OAuth) redirected to
+      `/login`, which doesn't exist (auth lives in the landing popover) → hard
+      404. Fixed by redirecting failures to `/?authError=1` and surfacing a
+      retry banner on the landing page. Verified live: callback (no code / bad
+      code) both 307 → `/?authError=1` → 200 (was 404). 4 route tests. — `d4c15cc`
 - [x] Reddit-targeted research: Reddit-biased Tavily query pass merged into the
       candidate pool, candidates tagged with a `redditMentions` provenance
       count, query builder + mention-counter unit-tested. — `9a604db`
