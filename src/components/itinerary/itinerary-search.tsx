@@ -96,7 +96,7 @@ export function ItinerarySearch({ tone = 'default' }: ItinerarySearchProps) {
 
       {/* Loading overlay only for fast mode — deep mode lets users navigate away */}
       {isGenerating && mode === 'fast' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[color:var(--ink)]/50 p-4 backdrop-blur-md">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/70 p-4 backdrop-blur-md">
           <div className="w-full max-w-md">
             <KanyeQuotes />
           </div>

@@ -48,7 +48,11 @@ export async function parsePrompt(prompt: string): Promise<ParsedPrompt> {
 Today's date: ${today.toISOString().split('T')[0]}.
 
 Return a JSON object with these exact keys:
-- destination (string): the city or place. Canonical form, e.g. "New York City" not "NYC".
+- destination (string): the city or place, in canonical form, e.g. "New York City" not "NYC".
+  CRITICAL: only fill this in if the user actually names or clearly implies a place to travel to.
+  If the input is a greeting, a question, empty, gibberish, or otherwise not a trip request
+  (e.g. "hi", "hello", "what can you do?", "asdf"), return destination as "" (empty string).
+  NEVER guess or invent a destination. When in doubt, return "".
 - startDate (string): YYYY-MM-DD. If the user gave a vague time ("next month", "in June"), pick a reasonable specific date in that range. If they gave no timeframe at all, use "${defaultStart.toISOString().split('T')[0]}".
 - endDate (string): YYYY-MM-DD. The trip is INCLUSIVE of both start and end dates — startDate and endDate should span exactly the number of ACTIVITY DAYS requested.
   Length rules:
@@ -97,13 +101,15 @@ Respond with valid JSON only. No prose, no code fences.`;
     );
   }
 
-  if (!parsed.destination || typeof parsed.destination !== 'string') {
+  const destination =
+    typeof parsed.destination === 'string' ? parsed.destination.trim() : '';
+  const placeholderDestination = /^(unknown|n\/?a|none|tbd|null)$/i.test(destination);
+
+  if (!destination || placeholderDestination) {
     throw new Error(
       'Where to? Try including a destination, e.g. "4 days in Tokyo, food focused".'
     );
   }
-
-  const destination = parsed.destination.trim();
   const startDate = isValidDate(parsed.startDate)
     ? parsed.startDate!
     : defaultStart.toISOString().split('T')[0];

@@ -266,7 +266,7 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
       />
 
       {isRegenerating && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--ink)]/30 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md">
             <KanyeQuotes />
           </div>
