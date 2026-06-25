@@ -161,57 +161,74 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
       <p
         className={`text-xs font-bold uppercase tracking-wider text-white ${TEXT_SHADOW}`}
       >
-        {mode === 'login' ? 'Welcome back' : 'Create your account'}
+        <span key={mode} className="animate-auth-fade inline-block">
+          {mode === 'login' ? 'Welcome back' : 'Create your account'}
+        </span>
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-3 space-y-2.5">
-        {mode === 'signup' && (
+      <form onSubmit={handleSubmit} className="mt-3">
+        {/* Name field collapses/expands as the box morphs between
+            signup and login. The grid 1fr→0fr trick animates height,
+            and the bottom margin lives inside the collapsing region so
+            the remaining fields sit flush once it's hidden. */}
+        <div
+          className="grid transition-[grid-template-rows] duration-300 ease-out"
+          style={{ gridTemplateRows: mode === 'signup' ? '1fr' : '0fr' }}
+          aria-hidden={mode !== 'signup'}
+        >
+          <div className="overflow-hidden">
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Your name"
+              required={mode === 'signup'}
+              tabIndex={mode === 'signup' ? 0 : -1}
+              className={`${inputClass} mb-2.5`}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2.5">
           <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Your name"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
             required
             className={inputClass}
           />
-        )}
 
-        <input
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          required
-          className={inputClass}
-        />
+          <input
+            type="password"
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={mode === 'login' ? 'Password' : 'Pick a password'}
+            required
+            className={inputClass}
+          />
 
-        <input
-          type="password"
-          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder={mode === 'login' ? 'Password' : 'Pick a password'}
-          required
-          className={inputClass}
-        />
+          {error && (
+            <p
+              className={`rounded-full bg-rose-500/80 px-4 py-2 text-center text-xs font-semibold text-white backdrop-blur-md ${TEXT_SHADOW}`}
+            >
+              {error}
+            </p>
+          )}
 
-        {error && (
-          <p
-            className={`rounded-full bg-rose-500/80 px-4 py-2 text-center text-xs font-semibold text-white backdrop-blur-md ${TEXT_SHADOW}`}
+          <button
+            type="submit"
+            disabled={loading || !email.trim() || !password}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_-8px_rgba(10,25,55,0.8)] ring-1 ring-white/25 transition-all hover:-translate-y-[1px] hover:bg-slate-800 disabled:opacity-85 disabled:hover:translate-y-0"
           >
-            {error}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading || !email.trim() || !password}
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_-8px_rgba(10,25,55,0.8)] ring-1 ring-white/25 transition-all hover:-translate-y-[1px] hover:bg-slate-800 disabled:opacity-85 disabled:hover:translate-y-0"
-        >
-          {submitLabel}
-          {!loading && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />}
-        </button>
+            <span key={mode} className="animate-auth-fade">
+              {submitLabel}
+            </span>
+            {!loading && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />}
+          </button>
+        </div>
       </form>
 
       <div
@@ -233,14 +250,16 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
       </button>
 
       <p className={`mt-4 text-center text-xs font-medium text-white ${TEXT_SHADOW}`}>
-        {mode === 'login' ? "Don't have one? " : 'Already signed up? '}
-        <button
-          type="button"
-          onClick={() => onSwitchMode(mode === 'login' ? 'signup' : 'login')}
-          className="font-bold underline decoration-white/80 underline-offset-2 hover:decoration-white"
-        >
-          {mode === 'login' ? 'Sign up' : 'Log in'}
-        </button>
+        <span key={mode} className="animate-auth-fade inline-block">
+          {mode === 'login' ? "Don't have one? " : 'Already signed up? '}
+          <button
+            type="button"
+            onClick={() => onSwitchMode(mode === 'login' ? 'signup' : 'login')}
+            className="font-bold underline decoration-white/80 underline-offset-2 hover:decoration-white"
+          >
+            {mode === 'login' ? 'Sign up' : 'Log in'}
+          </button>
+        </span>
       </p>
     </div>
   );

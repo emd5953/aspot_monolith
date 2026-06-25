@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SkyPrompt } from './sky-prompt';
 import { AuthPopover } from './auth-popover';
@@ -67,6 +67,25 @@ function HeroBanner() {
 export function LandingHero() {
   const [authMode, setAuthMode] = useState<AuthMode>(null);
 
+  // The white "cloud" pill is a single shared element that slides between the
+  // Log in / Sign up buttons. It rests on Sign up by default (the primary CTA)
+  // and glides over to Log in when login mode is active.
+  const loginRef = useRef<HTMLButtonElement>(null);
+  const signupRef = useRef<HTMLButtonElement>(null);
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+
+  useEffect(() => {
+    const measure = () => {
+      const el = authMode === 'login' ? loginRef.current : signupRef.current;
+      if (el) setPill({ left: el.offsetLeft, width: el.offsetWidth });
+    };
+    measure();
+    // Re-measure on resize and once webfonts settle (button widths shift).
+    window.addEventListener('resize', measure);
+    document.fonts?.ready.then(measure).catch(() => {});
+    return () => window.removeEventListener('resize', measure);
+  }, [authMode]);
+
   return (
     <>
       <Suspense fallback={null}>
@@ -87,23 +106,41 @@ export function LandingHero() {
 
           {/* Anchor: position relative so the popover can absolutely-position under it */}
           <div className="relative flex items-center gap-1 sm:gap-2">
+            {/* Shared white pill that glides between the two buttons. */}
+            {pill && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute top-0 h-full rounded-full bg-white shadow-[0_8px_20px_-8px_rgba(10,25,55,0.5)] transition-[left,width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                style={{ left: pill.left, width: pill.width }}
+              />
+            )}
             <button
+              ref={loginRef}
               type="button"
               onClick={() =>
                 setAuthMode((m) => (m === 'login' ? null : 'login'))
               }
               aria-expanded={authMode === 'login'}
-              className={`rounded-full px-4 py-2 text-sm font-medium text-white transition-colors hover:text-white/90 ${TEXT_SHADOW_BODY}`}
+              className={`relative z-10 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-300 ${
+                authMode === 'login'
+                  ? 'text-slate-900'
+                  : `text-white ${TEXT_SHADOW_BODY}`
+              }`}
             >
               Log in
             </button>
             <button
+              ref={signupRef}
               type="button"
               onClick={() =>
                 setAuthMode((m) => (m === 'signup' ? null : 'signup'))
               }
               aria-expanded={authMode === 'signup'}
-              className="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-[0_8px_20px_-8px_rgba(10,25,55,0.5)] transition-all hover:-translate-y-[1px] hover:bg-white/95"
+              className={`relative z-10 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-300 ${
+                authMode === 'login'
+                  ? `text-white ${TEXT_SHADOW_BODY}`
+                  : 'text-slate-900'
+              }`}
             >
               Sign up
             </button>

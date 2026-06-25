@@ -276,6 +276,16 @@ body {
   animation: popover-in 0.22s cubic-bezier(0.18, 1.25, 0.4, 1) forwards;
 }
 
+/* Auth mode switch — soft crossfade for text that swaps between
+   login / signup while the popover stays mounted. */
+@keyframes auth-fade-swap {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-auth-fade {
+  animation: auth-fade-swap 0.35s ease;
+}
+
 /* ——— Focus ring ——— */
 :focus-visible {
   outline: none;
