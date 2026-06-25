@@ -263,11 +263,11 @@ export async function generateItinerary(
       dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
     }
   } else {
-    // Standard Multi-Agent System (Agentic Mode)
-    console.log('[TIMING] Starting Multi-Agent System (Agentic Mode)...');
+    // Classic Multi-Agent System: fixed research → plan → review loop (up to 3 iterations)
+    console.log('[TIMING] Starting Classic Multi-Agent System (Fixed-Loop)...');
     onProgress?.({ status: 'researching', message: 'Researching destination...', progress: 15 });
     const startTime = Date.now();
-    console.log('Agents: Research → Plan → Review (with autonomous loops)');
+    console.log('Agents: Research → Plan → Review (fixed loop, up to 3 iterations)');
     
     try {
       orchestratorResult = await runOrchestrator({
@@ -293,14 +293,14 @@ export async function generateItinerary(
         },
       });
 
-      console.log(`[TIMING] Multi-Agent System completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+      console.log(`[TIMING] Classic Multi-Agent System (Fixed-Loop) completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
 
       if (orchestratorResult.success && orchestratorResult.plan) {
         dayPlans = convertAgentPlanToDayPlans(orchestratorResult.plan, startDate, orchestratorResult.research);
         packingTips = orchestratorResult.plan.packingTips ?? [];
         importantNotes = orchestratorResult.plan.importantNotes ?? [];
         
-        console.log('Multi-Agent orchestration complete!');
+        console.log('Classic Multi-Agent orchestration complete!');
         console.log(`Final score: ${orchestratorResult.state.review?.score || 'N/A'}/100`);
         console.log(`Iterations: ${orchestratorResult.state.iteration}`);
       } else {
@@ -969,8 +969,8 @@ export async function regenerateItinerary(
       );
     }
   } else if (useAgenticMode) {
-    // Full Multi-Agent System for regeneration
-    console.log('[TIMING] Regenerating with Multi-Agent System (Agentic Mode)...');
+    // Classic Multi-Agent System for regeneration (fixed-loop)
+    console.log('[TIMING] Regenerating with Classic Multi-Agent System (Fixed-Loop)...');
     const startTime = Date.now();
     
     try {

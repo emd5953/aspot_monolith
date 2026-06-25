@@ -1,9 +1,8 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Plus, Trash2, MapPin, Calendar } from 'lucide-react';
-import { GenerateForm, GenerationProgress } from '@/components/itinerary/generate-form';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowRight, Plus, Trash2, MapPin, Calendar } from 'lucide-react';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 import { PromoChip } from '@/components/ui/promo-chip';
@@ -19,34 +18,12 @@ interface Itinerary {
 }
 
 export default function ItineraryPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-sm text-white/80">Loading…</div>
-        </div>
-      }
-    >
-      <ItineraryInner />
-    </Suspense>
-  );
-}
-
-function ItineraryInner() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState<GenerationProgress | null>(null);
-  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     fetchItineraries();
-    if (searchParams.get('from') === 'prompt') {
-      setShowForm(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchItineraries = async () => {
@@ -61,70 +38,6 @@ function ItineraryInner() {
       console.error('Failed to fetch itineraries:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleGenerate = async (data: {
-    destination: string;
-    startDate: string;
-    endDate: string;
-    title?: string;
-    generationMode?: 'standard' | 'advanced';
-    activityDensity?: 'relaxed' | 'moderate' | 'packed';
-  }) => {
-    setIsGenerating(true);
-    setProgress({ status: 'starting', message: 'Starting…', progress: 0 });
-    try {
-      const res = await fetch('/api/itinerary/generate-stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      if (!res.ok || !res.body) {
-        const message = await res.text().catch(() => '');
-        throw new Error(message || 'Failed to generate');
-      }
-
-      // Read the Server-Sent Events stream: each `data: {...}` line is a
-      // progress update, a final `done` payload, or an `error`.
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        // SSE events are separated by a blank line.
-        const events = buffer.split('\n\n');
-        buffer = events.pop() ?? '';
-
-        for (const event of events) {
-          const line = event.split('\n').find((l) => l.startsWith('data:'));
-          if (!line) continue;
-          const payload = JSON.parse(line.slice(5).trim());
-
-          if (payload.status === 'done') {
-            router.push(`/itinerary/${payload.itinerary.id}`);
-            return;
-          }
-          if (payload.status === 'error') {
-            throw new Error(payload.message || 'Failed to generate');
-          }
-          setProgress({
-            status: payload.status,
-            message: payload.message,
-            progress: payload.progress,
-          });
-        }
-      }
-
-      throw new Error('Generation ended without producing an itinerary');
-    } finally {
-      setIsGenerating(false);
-      setProgress(null);
     }
   };
 
@@ -151,25 +64,6 @@ function ItineraryInner() {
     archived: 'bg-slate-100 text-slate-600 border-slate-200',
   };
 
-  if (showForm) {
-    return (
-      <main className="relative mx-auto max-w-2xl px-6 pt-16 pb-24">
-        <button
-          onClick={() => setShowForm(false)}
-          className="mb-4 inline-flex items-center gap-2 text-sm text-white/85 transition-colors hover:text-white"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
-          Back to itineraries
-        </button>
-        <GenerateForm
-          onSubmit={handleGenerate}
-          isLoading={isGenerating}
-          realProgress={progress}
-        />
-      </main>
-    );
-  }
-
   return (
     <main className="relative mx-auto max-w-5xl px-6 pt-16 pb-24">
       <section className="animate-fade-up">
@@ -184,7 +78,7 @@ function ItineraryInner() {
             </p>
           </div>
           <HandDrawnButton
-            onClick={() => setShowForm(true)}
+            onClick={() => router.push('/dashboard')}
             variant="primary"
             size="md"
             className="gap-2 self-start md:self-end"
@@ -211,7 +105,7 @@ function ItineraryInner() {
               Describe a destination, a few dates, and a vibe — aSpot builds the rest.
             </p>
             <HandDrawnButton
-              onClick={() => setShowForm(true)}
+              onClick={() => router.push('/dashboard')}
               variant="primary"
               size="md"
               className="mt-8 gap-2"

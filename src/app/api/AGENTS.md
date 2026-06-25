@@ -9,7 +9,7 @@ Next.js App Router route handlers. Thin HTTP layer over `@/lib`: authenticate, a
 - Route groups: `auth/`, `quiz/`, `itinerary/`, `trips/`, `maps/`.
 - Itinerary sub-routes own the editing surface: `[id]/days`, `[id]/activities` (move/reorder/[activityId]), `[id]/versions`, `[id]/revert`, `[id]/regenerate`, `[id]/days/[dayId]/regenerate`, `[id]/status`, `[id]/calendar`, `[id]/email`.
 - Trips sub-routes: `[id]/members`, `[id]/regenerate-code`, `join`.
-- Streaming generation: `itinerary/generate-stream` (Fast mode streams to screen); `itinerary/generate` for the standard path.
+- Generation: `itinerary/generate` — Fast mode (awaited, returns the itinerary) and Deep mode (`waitUntil` background run + email). The single generation entry point.
 
 ## Local Contracts
 
