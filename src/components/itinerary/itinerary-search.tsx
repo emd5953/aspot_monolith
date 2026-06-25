@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Sparkles, Zap } from 'lucide-react';
 import { PromptInput } from '@/components/ui/prompt-input';
@@ -15,6 +15,23 @@ interface ItinerarySearchProps {
 }
 
 type Mode = 'fast' | 'deep';
+
+/**
+ * Example prompts cycled into the input placeholder. A fresh one is picked on
+ * each page load (client-side, post-hydration) so the suggestion feels alive.
+ */
+const EXAMPLE_PROMPTS = [
+  '2 nights in nyc, big on food…',
+  '4 days in tokyo, food focused…',
+  'a long weekend in lisbon, lots of viewpoints…',
+  '5 days in rome, history and pasta…',
+  '3 days in paris, art and cafés…',
+  'a week in barcelona, beaches and tapas…',
+  '3 nights in london, theatre and markets…',
+  '4 days in mexico city, a street-food crawl…',
+  'a weekend in amsterdam, canals and museums…',
+  '5 days in bangkok, temples and night markets…',
+];
 
 /**
  * One-shot itinerary generator. Two modes:
@@ -33,6 +50,16 @@ export function ItinerarySearch({ tone = 'default' }: ItinerarySearchProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deepConfirmation, setDeepConfirmation] = useState<string | null>(null);
+  // Start on a fixed example so server and client first render match, then
+  // swap to a random one after mount — keeps it fresh per refresh without a
+  // hydration mismatch.
+  const [placeholder, setPlaceholder] = useState(EXAMPLE_PROMPTS[0]);
+
+  useEffect(() => {
+    setPlaceholder(
+      EXAMPLE_PROMPTS[Math.floor(Math.random() * EXAMPLE_PROMPTS.length)]
+    );
+  }, []);
 
   const handleGenerate = async (prompt: string) => {
     setIsGenerating(true);
@@ -97,6 +124,7 @@ export function ItinerarySearch({ tone = 'default' }: ItinerarySearchProps) {
           isGenerating={isGenerating}
           error={error}
           deepConfirmation={deepConfirmation}
+          placeholder={placeholder}
         />
       ) : (
         <DefaultInput
@@ -106,6 +134,7 @@ export function ItinerarySearch({ tone = 'default' }: ItinerarySearchProps) {
           isGenerating={isGenerating}
           error={error}
           deepConfirmation={deepConfirmation}
+          placeholder={placeholder}
         />
       )}
     </>
@@ -175,6 +204,7 @@ interface LightPillProps {
   isGenerating: boolean;
   error: string | null;
   deepConfirmation: string | null;
+  placeholder: string;
 }
 
 function LightPill({
@@ -186,6 +216,7 @@ function LightPill({
   isGenerating,
   error,
   deepConfirmation,
+  placeholder,
 }: LightPillProps) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -206,7 +237,7 @@ function LightPill({
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="2 nights in NYC, big on food…"
+          placeholder={placeholder}
           aria-label="Describe your trip"
           disabled={isGenerating}
           className="flex-1 bg-transparent py-2.5 text-base text-slate-800 placeholder:text-slate-500/70 outline-none disabled:opacity-70"
@@ -264,6 +295,7 @@ interface DefaultInputProps {
   isGenerating: boolean;
   error: string | null;
   deepConfirmation: string | null;
+  placeholder: string;
 }
 
 function DefaultInput({
@@ -273,11 +305,12 @@ function DefaultInput({
   isGenerating,
   error,
   deepConfirmation,
+  placeholder,
 }: DefaultInputProps) {
   return (
     <div className="space-y-3">
       <PromptInput
-        placeholder="2 nights in NYC, big on food…"
+        placeholder={placeholder}
         onSubmit={onSubmit}
         submitLabel={mode === 'deep' ? 'Send it' : 'Plan it'}
         isSubmitting={isGenerating}
