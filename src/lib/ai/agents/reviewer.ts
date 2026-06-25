@@ -95,6 +95,9 @@ given, clearly serves it).`;
     schema: ReviewSchema,
     prompt: reviewPrompt,
     temperature: 0.3,
+    // Schema has optional fields (e.g. issue.dayNumber); relax OpenAI strict
+    // structured outputs. Zod still validates the response client-side.
+    providerOptions: { openai: { strictJsonSchema: false } },
   });
 
   const issues: ReviewIssue[] = parsed.issues.map((issue) => ({
@@ -176,6 +179,7 @@ works — change only what the issues call for.`;
       schema: ItineraryPlanSchema,
       prompt: revisionPrompt,
       temperature: 0.5,
+      providerOptions: { openai: { strictJsonSchema: false } },
     });
 
     // The schema omits `destination` (the planner doesn't echo it back), so

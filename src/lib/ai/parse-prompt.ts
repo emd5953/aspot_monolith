@@ -1,5 +1,6 @@
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { alignToWeekend } from './weekend-align';
 
 export interface ParsedPrompt {
   /** Destination city / place (required) */
@@ -48,14 +49,20 @@ export async function parsePrompt(prompt: string): Promise<ParsedPrompt> {
 Today's date: ${today.toISOString().split('T')[0]}.
 
 Return a JSON object with these exact keys:
-- destination (string): the city or place. Canonical form, e.g. "New York City" not "NYC".
+- destination (string): the city or place, in canonical form, e.g. "New York City" not "NYC".
+  CRITICAL: only fill this in if the user actually names or clearly implies a place to travel to.
+  If the input is a greeting, a question, empty, gibberish, or otherwise not a trip request
+  (e.g. "hi", "hello", "what can you do?", "asdf"), return destination as "" (empty string).
+  NEVER guess or invent a destination. When in doubt, return "".
 - startDate (string): YYYY-MM-DD. If the user gave a vague time ("next month", "in June"), pick a reasonable specific date in that range. If they gave no timeframe at all, use "${defaultStart.toISOString().split('T')[0]}".
 - endDate (string): YYYY-MM-DD. The trip is INCLUSIVE of both start and end dates — startDate and endDate should span exactly the number of ACTIVITY DAYS requested.
   Length rules:
     * "N days" = N activity days → endDate = startDate + (N-1)
     * "N nights" = N activity days → endDate = startDate + (N-1)    (a "2-night" trip has 2 full days of stuff)
-    * "long weekend" = 3 activity days → endDate = startDate + 2
+    * "weekend" = 2 activity days (Sat-Sun) → endDate = startDate + 1
+    * "long weekend" = 3 activity days (Fri-Sun) → endDate = startDate + 2
     * "a week" = 7 activity days → endDate = startDate + 6
+  For "weekend"/"long weekend" trips, pick a startDate that actually falls on the weekend: Saturday for "weekend", Friday for "long weekend".
     * If no length mentioned, default to 4 activity days → "${defaultEnd.toISOString().split('T')[0]}".
   Examples:
     "2 nights in NYC" starting 2026-05-25 → endDate 2026-05-26 (2 days: 25, 26).
@@ -97,13 +104,15 @@ Respond with valid JSON only. No prose, no code fences.`;
     );
   }
 
-  if (!parsed.destination || typeof parsed.destination !== 'string') {
+  const destination =
+    typeof parsed.destination === 'string' ? parsed.destination.trim() : '';
+  const placeholderDestination = /^(unknown|n\/?a|none|tbd|null)$/i.test(destination);
+
+  if (!destination || placeholderDestination) {
     throw new Error(
       'Where to? Try including a destination, e.g. "4 days in Tokyo, food focused".'
     );
   }
-
-  const destination = parsed.destination.trim();
   const startDate = isValidDate(parsed.startDate)
     ? parsed.startDate!
     : defaultStart.toISOString().split('T')[0];
@@ -117,10 +126,14 @@ Respond with valid JSON only. No prose, no code fences.`;
       ? addDays(new Date(startDate), 3).toISOString().split('T')[0]
       : endDate;
 
+  // A "weekend" trip should start on the weekend, not mid-week. When the prompt
+  // asks for a weekend, snap the whole window forward to the next Sat/Fri.
+  const aligned = alignToWeekend(startDate, finalEnd, prompt);
+
   return {
     destination,
-    startDate,
-    endDate: finalEnd,
+    startDate: aligned.startDate,
+    endDate: aligned.endDate,
     title:
       (typeof parsed.title === 'string' && parsed.title.trim()) ||
       `Trip to ${destination}`,

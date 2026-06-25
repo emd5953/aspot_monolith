@@ -53,7 +53,9 @@ async function runGenerationPipeline(opts: RunOptions): Promise<GeneratedItinera
     useAdvancedCuration
   );
 
-  if (opts.userEmail) {
+  // Only deep mode emails the user. Fast mode keeps them on-screen, so an
+  // email would be redundant.
+  if (opts.mode === 'deep' && opts.userEmail) {
     try {
       await sendItineraryEmail({
         to: opts.userEmail,

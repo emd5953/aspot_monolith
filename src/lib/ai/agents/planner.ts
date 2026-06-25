@@ -175,6 +175,11 @@ will recompute calendar dates for each day, so don't worry about getting them pe
     schema: ItineraryPlanSchema,
     prompt: planningPrompt,
     temperature: 0.7,
+    // Our schemas keep most leaf fields optional (the planner often omits
+    // them and post-processing fills defaults). OpenAI's strict structured
+    // outputs reject any optional property, so relax strict mode — the SDK
+    // still validates the result against the Zod schema client-side.
+    providerOptions: { openai: { strictJsonSchema: false } },
   });
 
   console.log(

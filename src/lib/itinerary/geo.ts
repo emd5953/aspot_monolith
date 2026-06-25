@@ -107,3 +107,16 @@ export function nearestNeighborOrder(points: OrderablePoint[]): string[] {
   }
   return [...ordered, ...unlocated].map((p) => p.id);
 }
+
+/**
+ * Whether a "Tidy route" action makes sense for a day: it needs at least three
+ * located stops (with two or fewer there's nothing to untangle) AND must
+ * currently be spread out. Gates both the UI affordance and the endpoint, so a
+ * day that's already tight is never reshuffled.
+ */
+export function canTidyDay(
+  points: OrderablePoint[],
+  thresholdKm: number = SPREAD_OUT_THRESHOLD_KM
+): boolean {
+  return points.filter(isLocated).length >= 3 && isDaySpreadOut(points, thresholdKm);
+}

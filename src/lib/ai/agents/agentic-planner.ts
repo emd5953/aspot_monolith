@@ -93,6 +93,7 @@ Return exactly ${tripDays} day themes, one per trip day, in order.`;
     schema: PlanningStrategySchema,
     prompt: strategyPrompt,
     temperature: 0.8,
+    providerOptions: { openai: { strictJsonSchema: false } },
   });
 
   return object;
@@ -241,6 +242,7 @@ ${userIntent ? `7. **OBJECTIVE LOCK**: focus is "${userIntent}". This day MUST c
     schema: SingleDaySchema,
     prompt: dayPrompt,
     temperature: 0.8,
+    providerOptions: { openai: { strictJsonSchema: false } },
   });
 
   // Within-day dedupe (defensive — the schema doesn't enforce uniqueness).
