@@ -1,5 +1,6 @@
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { alignToWeekend } from './weekend-align';
 
 export interface ParsedPrompt {
   /** Destination city / place (required) */
@@ -58,8 +59,10 @@ Return a JSON object with these exact keys:
   Length rules:
     * "N days" = N activity days → endDate = startDate + (N-1)
     * "N nights" = N activity days → endDate = startDate + (N-1)    (a "2-night" trip has 2 full days of stuff)
-    * "long weekend" = 3 activity days → endDate = startDate + 2
+    * "weekend" = 2 activity days (Sat-Sun) → endDate = startDate + 1
+    * "long weekend" = 3 activity days (Fri-Sun) → endDate = startDate + 2
     * "a week" = 7 activity days → endDate = startDate + 6
+  For "weekend"/"long weekend" trips, pick a startDate that actually falls on the weekend: Saturday for "weekend", Friday for "long weekend".
     * If no length mentioned, default to 4 activity days → "${defaultEnd.toISOString().split('T')[0]}".
   Examples:
     "2 nights in NYC" starting 2026-05-25 → endDate 2026-05-26 (2 days: 25, 26).
@@ -123,10 +126,14 @@ Respond with valid JSON only. No prose, no code fences.`;
       ? addDays(new Date(startDate), 3).toISOString().split('T')[0]
       : endDate;
 
+  // A "weekend" trip should start on the weekend, not mid-week. When the prompt
+  // asks for a weekend, snap the whole window forward to the next Sat/Fri.
+  const aligned = alignToWeekend(startDate, finalEnd, prompt);
+
   return {
     destination,
-    startDate,
-    endDate: finalEnd,
+    startDate: aligned.startDate,
+    endDate: aligned.endDate,
     title:
       (typeof parsed.title === 'string' && parsed.title.trim()) ||
       `Trip to ${destination}`,
