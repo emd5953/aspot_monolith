@@ -136,6 +136,7 @@ ${issueList}
 
 Choose the next action and justify it in one sentence.`,
     temperature: 0.2,
+    providerOptions: { openai: { strictJsonSchema: false } },
   });
 
   return object;
