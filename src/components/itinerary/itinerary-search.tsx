@@ -4,7 +4,7 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Sparkles, Zap } from 'lucide-react';
 import { PromptInput } from '@/components/ui/prompt-input';
-import { KanyeQuotes } from '@/components/itinerary/kanye-quotes';
+import { KanyeQuote } from '@/components/itinerary/kanye-quote';
 
 interface ItinerarySearchProps {
   /**
@@ -72,7 +72,22 @@ export function ItinerarySearch({ tone = 'default' }: ItinerarySearchProps) {
 
   return (
     <>
-      {tone === 'light' ? (
+      {isGenerating ? (
+        // While a request is in flight, collapse the whole input — pill, mode
+        // picker, captions — down to just the loader so nothing competes with
+        // it. Fast mode then routes to the itinerary; deep mode flips back to
+        // the input (isGenerating → false) and shows the "we'll email you" toast.
+        <div className="animate-fade-up flex w-full flex-col items-center gap-4 py-4 text-center">
+          <span className="h-11 w-11 animate-spin rounded-full border-[3.5px] border-white/45 border-t-white" />
+          <p className="loading-dots font-heading text-2xl font-bold leading-tight text-white [text-shadow:0_2px_5px_rgba(10,30,60,0.65)]">
+            Building your trip
+          </p>
+          <p className="max-w-[16rem] text-sm font-semibold leading-relaxed text-white [text-shadow:0_2px_4px_rgba(10,30,60,0.6)]">
+            Researching spots and pacing your days.
+          </p>
+          <KanyeQuote />
+        </div>
+      ) : tone === 'light' ? (
         <LightPill
           value={value}
           setValue={setValue}
@@ -92,15 +107,6 @@ export function ItinerarySearch({ tone = 'default' }: ItinerarySearchProps) {
           error={error}
           deepConfirmation={deepConfirmation}
         />
-      )}
-
-      {/* Loading overlay only for fast mode — deep mode lets users navigate away */}
-      {isGenerating && mode === 'fast' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/70 p-4 backdrop-blur-md">
-          <div className="w-full max-w-md">
-            <KanyeQuotes />
-          </div>
-        </div>
       )}
     </>
   );
