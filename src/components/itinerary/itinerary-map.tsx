@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { loadGoogleMaps } from '@/lib/maps/loader';
 
 interface Activity {
   id: string;
@@ -70,18 +71,7 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
       }
 
       try {
-        if (!window.google) {
-          const script = document.createElement('script');
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry`;
-          script.async = true;
-          script.defer = true;
-
-          await new Promise<void>((resolve, reject) => {
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Failed to load Google Maps'));
-            document.head.appendChild(script);
-          });
-        }
+        await loadGoogleMaps(apiKey);
 
         if (!mapRef.current) return;
 
