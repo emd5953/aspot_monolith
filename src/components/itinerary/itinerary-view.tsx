@@ -9,6 +9,7 @@ import {
   MapPin,
   Calendar,
   Check,
+  Route,
 } from 'lucide-react';
 import { DaySchedule } from './day-schedule';
 import { ItineraryMap } from './itinerary-map';
@@ -22,7 +23,7 @@ import {
   BUDGET_STATUS_LABEL,
   type BudgetStatus,
 } from '@/lib/itinerary/cost';
-import { isDaySpreadOut } from '@/lib/itinerary/geo';
+import { isDaySpreadOut, canTidyDay } from '@/lib/itinerary/geo';
 
 interface Activity {
   id: string;
@@ -72,6 +73,7 @@ interface ItineraryViewProps {
   onStatusChange?: (status: string) => void;
   onEditDay?: (dayId: string, dayNumber: number, activities: Activity[]) => void;
   onTitleChange?: (title: string) => void;
+  onTidyDay?: (dayId: string) => Promise<void> | void;
 }
 
 const STATUS_TONES: Record<string, string> = {
@@ -92,11 +94,29 @@ export function ItineraryView({
   onStatusChange,
   onEditDay,
   onTitleChange,
+  onTidyDay,
 }: ItineraryViewProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(itinerary.title);
+  const [isTidying, setIsTidying] = useState(false);
+
+  const activeDay = itinerary.days[activeTab];
+  const activeDayPoints = (activeDay?.activities || []).map((a) => ({
+    id: a.id,
+    coordinates: a.locationCoords,
+  }));
+
+  const handleTidy = async () => {
+    if (!onTidyDay || !activeDay) return;
+    setIsTidying(true);
+    try {
+      await onTidyDay(activeDay.id);
+    } finally {
+      setIsTidying(false);
+    }
+  };
 
   const formatDateRange = (start: Date, end: Date) => {
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
@@ -259,15 +279,23 @@ export function ItineraryView({
             </p>
           )}
         </div>
-        {isDaySpreadOut(
-          (itinerary.days[activeTab]?.activities || []).map((a) => ({
-            coordinates: a.locationCoords,
-          }))
-        ) && (
-          <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-            🗺️ This day covers a lot of ground — consider grouping nearby stops to
-            cut down on travel.
-          </p>
+        {isDaySpreadOut(activeDayPoints) && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+            <p className="text-xs font-medium text-amber-800">
+              🗺️ This day covers a lot of ground — consider grouping nearby stops
+              to cut down on travel.
+            </p>
+            {onTidyDay && canTidyDay(activeDayPoints) && (
+              <button
+                onClick={handleTidy}
+                disabled={isTidying}
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100 disabled:opacity-60"
+              >
+                <Route className="h-3 w-3" strokeWidth={2.5} />
+                {isTidying ? 'Tidying…' : 'Tidy route'}
+              </button>
+            )}
+          </div>
         )}
         <ItineraryMap
           destination={itinerary.destination}

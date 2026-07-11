@@ -149,6 +149,23 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
+  const handleTidyDay = async (dayId: string) => {
+    try {
+      const res = await fetch(`/api/itinerary/${id}/activities/tidy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dayId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to tidy route');
+      }
+      await fetchItinerary();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to tidy route');
+    }
+  };
+
   const handleStatusChange = async (status: string) => {
     try {
       const res = await fetch(`/api/itinerary/${id}/status`, {
@@ -246,6 +263,7 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
         onStatusChange={handleStatusChange}
         onEditDay={handleEditDay}
         onTitleChange={handleTitleChange}
+        onTidyDay={handleTidyDay}
       />
 
       <RegenerateModal
