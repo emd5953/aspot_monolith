@@ -119,6 +119,12 @@ export interface PlanRequest {
   userIntent?: string;
   /** Original prompt verbatim. */
   rawPrompt?: string;
+  /**
+   * Issues from the previous iteration's review, when the orchestrator decided
+   * to revise. Fed into the strategy and per-day prompts so a re-plan actually
+   * addresses what the reviewer flagged instead of re-rolling blind.
+   */
+  reviewIssues?: ReviewIssue[];
 }
 
 export interface DayPlan {

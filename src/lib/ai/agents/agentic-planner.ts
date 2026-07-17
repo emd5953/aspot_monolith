@@ -13,8 +13,11 @@
  * The model can't return a malformed shape, so this file no longer carries
  * regex extraction or JSON-parse fallbacks.
  *
- * Cross-day dedup happens after all per-day calls return — a deterministic
- * post-processing pass, not part of the LLM's job.
+ * The curated pool is partitioned into disjoint per-day slices before the
+ * parallel builds fire (see pool-partition.ts), so days don't compete for the
+ * same top candidates. Cross-day dedup still runs afterward as a safety net
+ * (the LLM can name off-pool places from its own knowledge), and any bucket
+ * it empties is refilled deterministically from the day's unused pool.
  */
 
 import { generateObject } from 'ai';
@@ -23,7 +26,7 @@ import {
   PlanRequest,
   ItineraryPlan,
   DayPlan,
-  ResearchResult,
+  ReviewIssue,
 } from './types';
 import { UserPreferences } from '@/types/quiz';
 import {
@@ -31,6 +34,11 @@ import {
   SingleDaySchema,
   type PlanningStrategySchemaT,
 } from '../schemas/plan';
+import {
+  partitionResearchAcrossDays,
+  refillBucket,
+  type DayPool,
+} from './pool-partition';
 
 interface ReasoningStep {
   thought: string;
@@ -47,8 +55,15 @@ interface ReasoningStep {
 async function createPlanningStrategy(
   request: PlanRequest
 ): Promise<PlanningStrategySchemaT> {
-  const { research, preferences, startDate, endDate, userIntent, rawPrompt } =
-    request;
+  const {
+    research,
+    preferences,
+    startDate,
+    endDate,
+    userIntent,
+    rawPrompt,
+    reviewIssues,
+  } = request;
 
   const tripDays =
     Math.ceil(
@@ -59,8 +74,18 @@ async function createPlanningStrategy(
     ? `\n🎯 USER'S CORE FOCUS (top priority — beats generic prefs when they conflict):\nUser said: "${rawPrompt ?? userIntent}"\nFocus: "${userIntent}"\nEvery day theme must clearly serve this focus.\n`
     : '';
 
+  const issuesBlock =
+    reviewIssues && reviewIssues.length > 0
+      ? `\n⚠️ A previous version of this plan was reviewed and rejected. Fix these issues in the new strategy:\n${reviewIssues
+          .map(
+            (i) =>
+              `- [${i.severity}]${i.dayNumber ? ` Day ${i.dayNumber}:` : ''} ${i.issue} → ${i.suggestion}`
+          )
+          .join('\n')}\n`
+      : '';
+
   const strategyPrompt = `You are a strategic itinerary planner. Create a high-level strategy for a ${tripDays}-day trip to ${research.destination}.
-${intentBlock}
+${intentBlock}${issuesBlock}
 USER PROFILE:
 - Travel Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
 - Planning Style: ${preferences.planningStyle || 'balanced'}
@@ -101,27 +126,26 @@ Return exactly ${tripDays} day themes, one per trip day, in order.`;
 
 // ─── Step 2: per-day build ─────────────────────────────────────────────────
 
+/** "Name (details) @ location" — location grounds the proximity rules. */
+function annotate(name: string, details: string, location?: string): string {
+  return `${name} (${details})${location ? ` @ ${location}` : ''}`;
+}
+
 /**
- * Build one day given its theme, the destination, and the available pool.
- * Used in parallel — one of these per trip day. The orchestrator stamps the
- * correct calendar date afterward.
- *
- * `usedItems` is best-effort dedup hint; deterministic cross-day dedup
- * happens later in `runAgenticPlanner`.
+ * Build one day given its theme, the destination, and this day's own slice of
+ * the pool (disjoint from other days' slices — see pool-partition.ts). Used in
+ * parallel — one of these per trip day. The orchestrator stamps the correct
+ * calendar date afterward.
  */
 async function buildDayWithReasoning(
   dayNumber: number,
   theme: string,
   destination: string,
-  availableOptions: {
-    attractions: ResearchResult['attractions'];
-    restaurants: ResearchResult['restaurants'];
-    activities: ResearchResult['activities'];
-  },
+  pool: DayPool,
   preferences: UserPreferences,
-  usedItems: Set<string>,
   userIntent?: string,
-  rawPrompt?: string
+  rawPrompt?: string,
+  dayIssues: ReviewIssue[] = []
 ): Promise<{
   day: DayPlan;
   reasoning: string[];
@@ -130,10 +154,17 @@ async function buildDayWithReasoning(
     ? `\n🎯 PRIMARY OBJECTIVE FOR THE WHOLE TRIP — must show up TODAY:\nUser said: "${rawPrompt ?? userIntent}"\nFocus: "${userIntent}"\nThis day MUST include at least one item that obviously serves this focus.\n`
     : '';
 
+  const issuesBlock =
+    dayIssues.length > 0
+      ? `\n⚠️ A previous version of this day was reviewed and rejected. Fix these issues:\n${dayIssues
+          .map((i) => `- [${i.severity}] ${i.issue} → ${i.suggestion}`)
+          .join('\n')}\n`
+      : '';
+
   const dayPrompt = `You are planning Day ${dayNumber} of a trip to ${destination.toUpperCase()}.
 
 🚨 CRITICAL: every activity MUST be in ${destination.toUpperCase()}. Verify each one.
-${intentBlock}
+${intentBlock}${issuesBlock}
 THEME: ${theme}
 
 USER PERSONALITY:
@@ -146,34 +177,33 @@ USER PERSONALITY:
 - Budget: ${preferences.budgetRange}
 - Pace: ${preferences.travelPace}
 
-AVAILABLE OPTIONS (in ${destination}, not yet used):
+AVAILABLE OPTIONS (reserved for THIS day — other days have their own list; strongly prefer these):
 ${
-  availableOptions.attractions.length > 0
-    ? `Attractions: ${availableOptions.attractions
-        .filter((a) => !usedItems.has(a.name))
+  pool.attractions.length > 0
+    ? `Attractions: ${pool.attractions
         .slice(0, 10)
-        .map((a) => `${a.name} (${a.category}, ${a.estimatedDuration}min, ${a.priceRange})`)
-        .join(', ')}`
+        .map((a) =>
+          annotate(a.name, `${a.category}, ${a.estimatedDuration}min, ${a.priceRange}`, a.location)
+        )
+        .join('; ')}`
     : `(No pool — use your knowledge of ${preferences.activityTypes.slice(0, 3).join(', ')} in ${destination}.)`
 }
 
 ${
-  availableOptions.restaurants.length > 0
-    ? `Restaurants: ${availableOptions.restaurants
-        .filter((r) => !usedItems.has(r.name))
+  pool.restaurants.length > 0
+    ? `Restaurants: ${pool.restaurants
         .slice(0, 8)
-        .map((r) => `${r.name} (${r.cuisine.join('/')}, ${r.priceRange})`)
-        .join(', ')}`
+        .map((r) => annotate(r.name, `${r.cuisine.join('/')}, ${r.priceRange}`, r.location))
+        .join('; ')}`
     : `(No pool — use your knowledge of ${preferences.cuisinePreferences.slice(0, 2).join(', ')} restaurants in ${destination}.)`
 }
 
 ${
-  availableOptions.activities.length > 0
-    ? `Activities: ${availableOptions.activities
-        .filter((a) => !usedItems.has(a.name))
+  pool.activities.length > 0
+    ? `Activities: ${pool.activities
         .slice(0, 6)
-        .map((a) => `${a.name} (${a.category}, ${a.duration}min)`)
-        .join(', ')}`
+        .map((a) => annotate(a.name, `${a.category}, ${a.duration}min`))
+        .join('; ')}`
     : `(No pool — use your knowledge of activities in ${destination}.)`
 }
 
@@ -197,6 +227,7 @@ ${
 }
 
 GEOGRAPHIC RULES (CRITICAL):
+0. Options above carry "@ location" when known — use it to group, don't guess.
 1. Group all activities in ONE neighborhood/area.
 2. Activities should be within 10-15 minutes of each other.
 3. Lunch near morning activities; dinner near evening activities.
@@ -260,11 +291,6 @@ ${userIntent ? `7. **OBJECTIVE LOCK**: focus is "${userIntent}". This day MUST c
   const afternoon = dedupe(object.afternoon ?? [], seenInDay);
   const evening = dedupe(object.evening ?? [], seenInDay);
 
-  // Track items used so the next day's prompt sees them filtered out.
-  for (const item of [...morning, ...afternoon, ...evening]) {
-    usedItems.add(item.name);
-  }
-
   const day: DayPlan = {
     dayNumber,
     // Stamped properly by the orchestrator after Promise.all.
@@ -287,8 +313,15 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
   thoughts: string[];
   reasoningSteps: ReasoningStep[];
 }> {
-  const { research, preferences, startDate, endDate, userIntent, rawPrompt } =
-    request;
+  const {
+    research,
+    preferences,
+    startDate,
+    endDate,
+    userIntent,
+    rawPrompt,
+    reviewIssues = [],
+  } = request;
   const thoughts: string[] = [];
   const reasoningSteps: ReasoningStep[] = [];
 
@@ -321,14 +354,17 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
   thoughts.push(`🎯 PACING: ${strategy.pacingStrategy}`);
   thoughts.push(`🍽️ MEALS: ${strategy.mealStrategy}`);
 
-  // STEP 2: per-day build, in parallel
+  // STEP 2: per-day build, in parallel — each day gets its own disjoint pool
+  // slice so parallel builds don't all pick the same top candidates.
   thoughts.push('');
   thoughts.push('🏗️ BUILDING: Creating day-by-day itinerary in parallel...');
 
-  // Items used. Note: parallel calls share the *empty* set at start, so this
-  // is a best-effort hint to the LLM. The deterministic cross-day dedup pass
-  // below is the actual guarantee.
-  const sharedUsed = new Set<string>();
+  const { pools, geoClustered } = partitionResearchAcrossDays(research, tripDays);
+  thoughts.push(
+    geoClustered
+      ? '🗺️ Pool partitioned geographically — each day anchors to one area.'
+      : '🎲 Pool partitioned by rank (not enough coordinates to geo-cluster).'
+  );
 
   const dayPromises = Array.from({ length: tripDays }, (_, i) => {
     const dayNumber = i + 1;
@@ -340,19 +376,20 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
 
     thoughts.push(`  Day ${dayNumber}: ${theme}`);
 
+    // Issues flagged for this specific day, plus trip-general ones.
+    const dayIssues = reviewIssues.filter(
+      (issue) => !issue.dayNumber || issue.dayNumber === dayNumber
+    );
+
     return buildDayWithReasoning(
       dayNumber,
       theme,
       research.destination,
-      {
-        attractions: research.attractions,
-        restaurants: research.restaurants,
-        activities: research.activities,
-      },
+      pools[i],
       preferences,
-      sharedUsed,
       userIntent,
-      rawPrompt
+      rawPrompt,
+      dayIssues
     ).then(({ day, reasoning }) => {
       const step: ReasoningStep = {
         thought: `Planning Day ${dayNumber} with theme: ${theme}`,
@@ -400,12 +437,26 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
     thoughts.push(`  ✓ Removed ${removed} duplicate(s) across days.`);
   }
 
-  // Sanity: warn if a day ended up empty.
-  days.forEach((day, idx) => {
-    const total = day.morning.length + day.afternoon.length + day.evening.length;
-    if (total === 0) {
-      thoughts.push(`  ⚠️ WARNING: Day ${idx + 1} has no activities after dedup.`);
+  // STEP 2.6: refill — any bucket dedup emptied gets the best unused candidate
+  // from that day's own pool, so no day ships with a hole.
+  days = days.map((day, idx) => {
+    const refilled = { ...day };
+    for (const bucket of ['morning', 'afternoon', 'evening'] as const) {
+      if (refilled[bucket].length === 0) {
+        const item = refillBucket(bucket, pools[idx], globalUsed);
+        if (item) {
+          refilled[bucket] = [item];
+          thoughts.push(
+            `  🩹 Refilled empty ${bucket} of Day ${idx + 1} with "${item.name}".`
+          );
+        } else {
+          thoughts.push(
+            `  ⚠️ WARNING: Day ${idx + 1} ${bucket} is empty and the pool has nothing left.`
+          );
+        }
+      }
     }
+    return refilled;
   });
 
   // STEP 3: validate

@@ -12,7 +12,7 @@ import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { UserPreferences } from '@/types/quiz';
-import { OrchestrationState, ItineraryPlan, ResearchResult } from './types';
+import { OrchestrationState, ItineraryPlan, ResearchResult, ReviewIssue } from './types';
 import { runAgenticResearcher } from './agentic-researcher';
 import { runAgenticPlanner } from './agentic-planner';
 import { runReviewerAgent } from './reviewer';
@@ -257,11 +257,25 @@ export async function runAgenticOrchestrator(
   // sees it. This is what makes output feel curated rather than generic —
   // instead of hoping gpt-4o-mini will honor "match user prefs" instructions,
   // we rank candidates against prefs + intent keywords and keep only the top.
+  // Limits scale with trip length: the pool is partitioned into disjoint
+  // per-day slices downstream, so a 5-day trip needs a much deeper pool than
+  // a weekend.
+  const tripDays =
+    Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   const beforeAttractions = researchResult.result.attractions.length;
   const beforeRestaurants = researchResult.result.restaurants.length;
   researchResult = {
     ...researchResult,
-    result: curateResearchByPreferences(researchResult.result, preferences, {}, userIntent),
+    result: curateResearchByPreferences(
+      researchResult.result,
+      preferences,
+      {
+        attractionLimit: Math.max(12, tripDays * 4),
+        restaurantLimit: Math.max(10, tripDays * 3),
+        activityLimit: Math.max(8, tripDays * 2),
+      },
+      userIntent
+    ),
   };
   allThoughts.push(
     `🎯 Curated to user prefs${userIntent ? ` + intent ("${userIntent}")` : ''}: ${beforeAttractions}→${researchResult.result.attractions.length} attractions, ${beforeRestaurants}→${researchResult.result.restaurants.length} restaurants`
@@ -280,7 +294,7 @@ export async function runAgenticOrchestrator(
   })));
 
   let currentPlan: ItineraryPlan | undefined;
-  let reviewIssues: Array<{ severity: string; issue: string; suggestion: string }> = [];
+  let reviewIssues: ReviewIssue[] = [];
 
   // PHASE 2: ITERATIVE PLANNING WITH ADAPTIVE STOPPING
   allThoughts.push('');
@@ -311,6 +325,9 @@ export async function runAgenticOrchestrator(
       endDate,
       userIntent,
       rawPrompt,
+      // On iteration 2+ this carries the previous review's findings, so the
+      // re-plan addresses them instead of re-rolling blind.
+      reviewIssues,
     });
 
     currentPlan = planResult.plan;
@@ -370,6 +387,15 @@ export async function runAgenticOrchestrator(
     allThoughts.push(`DECISION: ${decision.reasoning}`);
 
     if (decision.action === 'stop') {
+      // If the reviewer rejected the plan and produced a corrected version,
+      // ship the corrected one — throwing it away wastes the review's most
+      // expensive output and ships the plan we know is flawed.
+      if (!reviewResult.review.approved && reviewResult.review.revisedPlan) {
+        currentPlan = reviewResult.review.revisedPlan;
+        allThoughts.push(
+          "Adopting reviewer's revised plan (original was rejected with critical issues)"
+        );
+      }
       allThoughts.push('Stopping: Quality goal achieved or iteration limit reached');
       break;
     }
