@@ -287,6 +287,51 @@ interface FilterOptions {
  * candidates whose name/description match its keywords get a heavy bonus, so
  * the planner sees an on-theme pool first.
  */
+/**
+ * Take the top `limit` restaurants without letting one cuisine own the pool.
+ *
+ * The cuisine bonus in `scoreRestaurant` is the single strongest restaurant
+ * signal, which meant a traveller whose quiz says "japanese, italian" got a
+ * three-day Lisbon trip where four of five meals were Japanese — the Portuguese
+ * places were real, well-rated, and ranked just below a wall of ramen. The
+ * preference isn't wrong, it just shouldn't be able to erase the destination.
+ *
+ * So no single cuisine may take more than `maxShare` of the kept slots while
+ * alternatives exist. Ranking is otherwise untouched: the best restaurants
+ * still come first, and if the pool genuinely has nothing else, the overflow
+ * fills the remaining slots rather than shipping a short list.
+ */
+export function diversifyByCuisine<T extends RestaurantData>(
+  ranked: T[],
+  limit: number,
+  maxShare = 0.5
+): T[] {
+  const cap = Math.max(1, Math.ceil(limit * maxShare));
+  const counts = new Map<string, number>();
+  const kept: T[] = [];
+  const overflow: T[] = [];
+
+  for (const restaurant of ranked) {
+    if (kept.length >= limit) break;
+    const key = (restaurant.cuisine?.[0] || 'unknown').toLowerCase().trim();
+    const seen = counts.get(key) ?? 0;
+    if (seen >= cap) {
+      overflow.push(restaurant);
+      continue;
+    }
+    counts.set(key, seen + 1);
+    kept.push(restaurant);
+  }
+
+  // Nothing else to offer — better a same-cuisine pool than a starved one.
+  for (const restaurant of overflow) {
+    if (kept.length >= limit) break;
+    kept.push(restaurant);
+  }
+
+  return kept;
+}
+
 export function curateResearchByPreferences(
   research: ResearchResult,
   prefs: UserPreferences,
@@ -307,11 +352,13 @@ export function curateResearchByPreferences(
     .slice(0, attractionLimit)
     .map((s) => s.item);
 
-  const scoredRestaurants = (research.restaurants || [])
-    .map((r) => ({ item: r, score: scoreRestaurant(r, prefs, intentKw) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, restaurantLimit)
-    .map((s) => s.item);
+  const scoredRestaurants = diversifyByCuisine(
+    (research.restaurants || [])
+      .map((r) => ({ item: r, score: scoreRestaurant(r, prefs, intentKw) }))
+      .sort((a, b) => b.score - a.score)
+      .map((s) => s.item),
+    restaurantLimit
+  );
 
   const scoredActivities = (research.activities || [])
     .map((a) => ({ item: a, score: scoreActivity(a, prefs, intentKw) }))
