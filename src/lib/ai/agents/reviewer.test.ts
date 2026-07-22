@@ -152,12 +152,13 @@ describe('runReviewerAgent score ceiling', () => {
     expect(review.score).toBe(expected);
   });
 
-  it('does not produce a revision unless autoRevise is set', async () => {
+  // Reviewing must never cost a second model call. Revisions belong to the
+  // orchestrator, which is the only place the dedup and coverage guards run.
+  it('never makes a second model call to revise a rejected plan', async () => {
     modelReturns({ score: 20, approved: false });
     const { review } = await runReviewerAgent(req(duplicateVenuePlan()));
 
-    expect(review.revisedPlan).toBeUndefined();
-    // One call: the review itself, never a second for the revision.
+    expect(review.approved).toBe(false);
     expect(generateObject).toHaveBeenCalledTimes(1);
   });
 });

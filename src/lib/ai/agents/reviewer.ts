@@ -35,7 +35,6 @@ export async function runReviewerAgent(request: ReviewRequest): Promise<{
     research,
     userIntent,
     rawPrompt,
-    autoRevise = false,
   } = request;
   const thoughts: string[] = [];
 
@@ -180,23 +179,14 @@ given, clearly serves it).`;
     suggestions: parsed.suggestions,
   };
 
-  // Rejected with critical issues → attempt a surgical revision.
-  //
-  // Off by default. A revision is a full-plan `generateObject` call on gpt-4o
-  // and is only ever *used* when the orchestrator decides to stop; on every
-  // other iteration the planner re-plans from the issues instead and the
-  // revision is discarded. Producing one per iteration roughly quadrupled deep
-  // mode's wall clock for output nobody read. The orchestrator now asks for it
-  // explicitly, once, at the point it actually needs one.
-  if (autoRevise && !approved && highIssues > 0) {
-    thoughts.push('Generating revised plan...');
-    const revisedPlan = await reviseItineraryPlan(plan, issues, preferences);
-    if (revisedPlan) {
-      review.revisedPlan = revisedPlan;
-      thoughts.push('Created revised plan addressing issues');
-    }
-  }
-
+  // No revision is produced here. A revision is a full-plan `generateObject`
+  // call on gpt-4o and is only ever *used* on the iteration the orchestrator
+  // decides to stop on; on every other iteration the planner re-plans from the
+  // issues and the revision is discarded. Producing one per round roughly
+  // quadrupled deep mode's wall clock for output nobody read. The orchestrator
+  // calls `reviseItineraryPlan` itself, once, where it actually needs one — and
+  // that is the only path, so the dedup and coverage guards there cannot be
+  // bypassed by a caller that gets a revision handed to it.
   return { review, thoughts };
 }
 

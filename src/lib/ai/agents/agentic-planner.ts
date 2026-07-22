@@ -330,7 +330,7 @@ ${userIntent ? `7. **OBJECTIVE LOCK**: focus is "${userIntent}". This day MUST c
  *
  * Days are built in parallel and can't see each other, so this is the pass that
  * stops the same place being booked twice. It is exported because the reviewer
- * can hand back a wholesale `revisedPlan` that never went through the planner's
+ * can hand back a wholesale revised plan that never went through the planner's
  * post-processing — a plan adopted straight from the reviewer used to bypass
  * dedup entirely and re-introduce duplicates the planner had already removed.
  *
