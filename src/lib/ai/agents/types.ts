@@ -173,6 +173,13 @@ export interface ReviewRequest {
   userIntent?: string;
   /** Original prompt verbatim. */
   rawPrompt?: string;
+  /**
+   * Produce `revisedPlan` when the review rejects the plan. Off by default: a
+   * revision is a full-plan model call that only matters on the iteration the
+   * orchestrator stops on, so it asks for it explicitly instead of paying for
+   * one every round.
+   */
+  autoRevise?: boolean;
 }
 
 export interface ReviewResult {
