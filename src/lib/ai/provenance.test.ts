@@ -2,9 +2,30 @@ import { describe, it, expect } from 'vitest';
 import {
   deriveSource,
   normalizeName,
+  dedupeKey,
   buildProvenanceIndex,
   lookupSource,
 } from './provenance';
+
+describe('dedupeKey', () => {
+  // Both of these shipped in real itineraries: the same venue booked twice
+  // because the two spellings hashed differently.
+  it('collapses a leading article', () => {
+    expect(dedupeKey('The Bluebird Cafe')).toBe(dedupeKey('Bluebird Cafe'));
+  });
+
+  it('collapses a parenthetical qualifier', () => {
+    expect(dedupeKey('The Bluebird Cafe (Evening Show)')).toBe(
+      dedupeKey('Bluebird Cafe')
+    );
+    expect(dedupeKey('Ebisu Yokocho [late night]')).toBe(dedupeKey('Ebisu Yokocho'));
+  });
+
+  it('still tells genuinely different places apart', () => {
+    expect(dedupeKey('Bluebird Cafe')).not.toBe(dedupeKey('Bluebird Diner'));
+    expect(dedupeKey('Omoide Yokocho')).not.toBe(dedupeKey('Ebisu Yokocho'));
+  });
+});
 
 describe('deriveSource', () => {
   it('treats any reddit mention as a Reddit favorite', () => {

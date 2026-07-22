@@ -52,12 +52,49 @@ function rank(source: ItemSource): number {
   return source === 'reddit' ? 3 : source === 'places' ? 2 : source === 'tavily' ? 1 : 0;
 }
 
-/** Normalize a place name for matching: lowercase, punctuation → spaces. */
+/**
+ * Normalize a place name for matching: lowercase, punctuation → spaces.
+ *
+ * Unicode-aware on purpose. An ASCII-only character class (`[^a-z0-9]`) erases
+ * every non-Latin script — "根津神社" and "Кафе Пушкинъ" both normalize to the
+ * empty string — and every caller that dedupes treats an empty key as "drop
+ * this item", which silently deleted whole Tokyo and Moscow itineraries. It
+ * also split "Café Central" from "Cafe Central", so the duplicate this is meant
+ * to catch shipped anyway. Decomposing first and dropping combining marks folds
+ * the accent; `\p{L}\p{N}` keeps every script's letters.
+ */
 export function normalizeName(name: string): string {
   return name
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
+}
+
+/**
+ * Dedup key for a place name.
+ *
+ * `normalizeName` folds case and punctuation. On top of that this strips the
+ * two things the planner uses to smuggle the same venue past a naive
+ * comparison:
+ *
+ *   - a leading article — "The Bluebird Cafe" vs "Bluebird Cafe", which is how
+ *     one venue shipped on two consecutive days of the same trip;
+ *   - a trailing parenthetical qualifier — "The Bluebird Cafe (Evening Show)",
+ *     which is how it then shipped twice within a single day.
+ *
+ * The qualifier match is anchored to the end for a reason. Stripping every
+ * parenthetical anywhere in the name collapsed distinct branches of the same
+ * chain — "Ippudo (Shibuya)" and "Ippudo (Ginza)" both became "ippudo" — and
+ * dedupe then deleted the second, genuinely different restaurant.
+ *
+ * Every stage that dedupes or tracks "already used" must key on this, or the
+ * stages disagree about what counts as the same place.
+ */
+export function dedupeKey(name: string): string {
+  const withoutQualifier = name.replace(/\s*(\([^)]*\)|\[[^\]]*\]|\{[^}]*\})\s*$/, '');
+  return normalizeName(withoutQualifier).replace(/^(the|a|an|le|la|el|il) /, '');
 }
 
 export interface ProvenanceCandidate extends ProvenanceSignals {
