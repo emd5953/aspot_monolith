@@ -383,9 +383,12 @@ export async function fetchDestinationDataWithPrefs(
     `[tavily] Extracted — attractions:${attractions.length} restaurants:${restaurants.length} activities:${activities.length} events:${events.length}`
   );
 
-  // Google Places verification (flag-gated, default off): drop any candidate
-  // that can't be confirmed as a real place at a real address. Hard structural
-  // defense against hallucinated places reaching the planner.
+  // Google Places resolution (flag-gated). Stamps real coordinates onto every
+  // candidate we can resolve. This is the input geo-clustering runs on: days
+  // only cluster by neighborhood once ~60% of the pool is located, so without
+  // this pass every itinerary falls back to rank-ordering and days crisscross
+  // the city. Unresolved candidates survive unlocated — see verifyAndFilter,
+  // the failures are mostly dated events that legitimately have no Places entry.
   let verifiedAttractions = taggedAttractions;
   let verifiedRestaurants = taggedRestaurants;
   let verifiedActivities = taggedActivities;
@@ -396,8 +399,17 @@ export async function fetchDestinationDataWithPrefs(
         verifyAndFilter(taggedRestaurants, destination, findPlaceFromText),
         verifyAndFilter(taggedActivities, destination, findPlaceFromText),
       ]);
+    const located = [
+      ...verifiedAttractions,
+      ...verifiedRestaurants,
+      ...verifiedActivities,
+    ].filter((i) => i.coordinates).length;
+    const total =
+      verifiedAttractions.length +
+      verifiedRestaurants.length +
+      verifiedActivities.length;
     console.log(
-      `[tavily] Places-verified — attractions:${verifiedAttractions.length}/${taggedAttractions.length} restaurants:${verifiedRestaurants.length}/${taggedRestaurants.length} activities:${verifiedActivities.length}/${taggedActivities.length}`
+      `[tavily] Places-resolved — ${located}/${total} candidates carry coordinates (${Math.round((100 * located) / Math.max(total, 1))}% coverage; geo-clustering needs 60%)`
     );
   }
 

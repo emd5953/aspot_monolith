@@ -40,6 +40,14 @@ export interface ActivityOption {
   duration: number; // minutes
   priceRange: string;
   adventureLevel: number; // 1-10
+  /**
+   * Present once Google Places resolution confirms the activity is somewhere
+   * real. Optional because many activities legitimately have no Places entry
+   * (dated events, walking tours, cooking classes) — those stay in the pool
+   * unlocated rather than being dropped.
+   */
+  address?: string;
+  coordinates?: { lat: number; lng: number };
   url?: string;
   imageUrl?: string;
   redditMentions?: number;
