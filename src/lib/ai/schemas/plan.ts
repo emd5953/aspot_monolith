@@ -17,44 +17,126 @@
 
 import { z } from 'zod';
 
+// ─── Item type normalization ────────────────────────────────────────────────
+
+/**
+ * The five slot kinds the rest of the pipeline understands.
+ *
+ * These are NOT enforced as a Zod enum on the wire. We send
+ * `strictJsonSchema: false` to OpenAI (the schema has optional fields), which
+ * means the provider does *not* constrain the response — so a model that
+ * decides an item is `"entertainment"` used to throw a ZodError, reject the
+ * day-build promise, and take the entire generation down with it. The wire
+ * schema accepts any string; `normalizeItemType` maps it onto the enum.
+ */
+export const ITEM_TYPES = [
+  'attraction',
+  'restaurant',
+  'activity',
+  'transport',
+  'free_time',
+] as const;
+
+export type ItemType = (typeof ITEM_TYPES)[number];
+
+/** Off-enum values models actually emit, mapped to the closest real slot. */
+const ITEM_TYPE_ALIASES: Record<string, ItemType> = {
+  entertainment: 'activity',
+  nightlife: 'activity',
+  event: 'activity',
+  show: 'activity',
+  tour: 'activity',
+  experience: 'activity',
+  shopping: 'activity',
+  outdoor: 'activity',
+  bar: 'restaurant',
+  cafe: 'restaurant',
+  coffee: 'restaurant',
+  food: 'restaurant',
+  dining: 'restaurant',
+  meal: 'restaurant',
+  breakfast: 'restaurant',
+  lunch: 'restaurant',
+  dinner: 'restaurant',
+  drinks: 'restaurant',
+  museum: 'attraction',
+  landmark: 'attraction',
+  sightseeing: 'attraction',
+  park: 'attraction',
+  neighborhood: 'attraction',
+  travel: 'transport',
+  transit: 'transport',
+  commute: 'transport',
+  rest: 'free_time',
+  break: 'free_time',
+  free: 'free_time',
+  relax: 'free_time',
+};
+
+/**
+ * Coerce whatever the model called this slot into a real `ItemType`.
+ * Unknown values fall back to `activity` — the most neutral slot — rather than
+ * failing, because a slightly mistyped item is infinitely better than a dead
+ * generation.
+ */
+export function normalizeItemType(raw: unknown): ItemType {
+  if (typeof raw !== 'string') return 'activity';
+  const key = raw.toLowerCase().trim().replace(/[\s-]+/g, '_');
+  if ((ITEM_TYPES as readonly string[]).includes(key)) return key as ItemType;
+  return ITEM_TYPE_ALIASES[key] ?? 'activity';
+}
+
+/** Clamp a model-supplied duration into the range the UI can render. */
+export function normalizeDuration(raw: unknown): number {
+  const n = typeof raw === 'number' && Number.isFinite(raw) ? raw : 90;
+  return Math.min(Math.max(Math.round(n), 15), 360);
+}
+
+/** Coerce a model-supplied issue severity; anything unrecognized is `medium`. */
+export function normalizeSeverity(raw: unknown): 'low' | 'medium' | 'high' {
+  const key = typeof raw === 'string' ? raw.toLowerCase().trim() : '';
+  if (key === 'low' || key === 'high') return key;
+  if (key === 'critical' || key === 'severe' || key === 'blocker') return 'high';
+  if (key === 'minor' || key === 'nit') return 'low';
+  return 'medium';
+}
+
 // ─── Per-item shapes ────────────────────────────────────────────────────────
 
 /**
  * One scheduled thing in a day (an activity, restaurant stop, etc.).
  * Mirrors `ScheduledItem` in agents/types.ts but loosened in places where the
  * model often omits values that we can fill in ourselves.
+ *
+ * Deliberately free of value constraints (no enum, no min/max). Because we run
+ * with `strictJsonSchema: false`, OpenAI does not enforce the schema — every
+ * constraint here is a *client-side throw waiting to happen*, and a throw in a
+ * parallel day build kills the whole itinerary. Constraints are expressed as
+ * descriptions (which steer the model) and enforced by the `normalize*`
+ * helpers above (which cannot fail).
  */
 export const ScheduledItemSchema = z.object({
   /** "HH:MM" 24h. Falls back to "10:00" downstream if missing. */
   time: z.string().describe('24-hour HH:MM start time, e.g. "09:00".'),
   name: z
     .string()
-    .min(2)
     .describe(
       "The real, specific name of the place or activity. e.g. 'The Dead Rabbit', not 'a bar'."
     ),
   type: z
-    .enum(['attraction', 'restaurant', 'activity', 'transport', 'free_time'])
-    .describe('What kind of slot this is. Use restaurant for any meal.'),
-  /** Minutes. */
-  duration: z
-    .number()
-    .int()
-    .min(15)
-    .max(360)
-    .describe('Duration in minutes (15-360).'),
+    .string()
+    .describe(
+      'Exactly one of: attraction | restaurant | activity | transport | free_time. Use "restaurant" for any meal or drinks stop, "activity" for tours, shows and nightlife.'
+    ),
+  /** Minutes. Clamped to 15-360 by `normalizeDuration`. */
+  duration: z.number().describe('Duration in minutes (15-360).'),
   description: z
     .string()
     .optional()
     .describe('1-2 sentences of why this fits the trip.'),
   tips: z.string().optional(),
   /** Reviewer/UI uses this; planner gets bonus signal by emitting it. */
-  matchScore: z
-    .number()
-    .min(0)
-    .max(100)
-    .optional()
-    .describe('0-100 fit score for this user.'),
+  matchScore: z.number().optional().describe('0-100 fit score for this user.'),
   matchReasons: z
     .array(z.string())
     .optional()
@@ -65,7 +147,10 @@ export const ScheduledItemSchema = z.object({
    * planner needn't emit it; included so the field survives any schema-validated
    * round-trip of a plan.
    */
-  source: z.enum(['reddit', 'places', 'tavily', 'ai']).optional(),
+  source: z
+    .string()
+    .optional()
+    .describe('Set by the pipeline, not the model. Ignore.'),
 });
 
 /**
@@ -76,7 +161,8 @@ export const ScheduledItemSchema = z.object({
  * here but post-processing flags days that have zero items across all three.
  */
 export const DayPlanSchema = z.object({
-  dayNumber: z.number().int().min(1),
+  /** Overwritten by the orchestrator, so unconstrained on the wire. */
+  dayNumber: z.number(),
   /** YYYY-MM-DD. Post-processing will overwrite with the correct calendar
    *  date computed from startDate + index, so the model can leave it best-effort. */
   date: z
@@ -182,8 +268,10 @@ export type SingleDaySchemaT = z.infer<typeof SingleDaySchema>;
  * One issue the reviewer found. Mirrors `ReviewIssue` in agents/types.ts.
  */
 export const ReviewIssueSchema = z.object({
-  severity: z.enum(['low', 'medium', 'high']),
-  dayNumber: z.number().int().optional(),
+  severity: z
+    .string()
+    .describe('Exactly one of: low | medium | high.'),
+  dayNumber: z.number().optional(),
   issue: z.string().describe('What is wrong.'),
   suggestion: z.string().describe('How to fix it.'),
 });
@@ -194,7 +282,9 @@ export const ReviewIssueSchema = z.object({
  */
 export const ReviewSchema = z.object({
   approved: z.boolean().describe('Whether the plan is good enough to ship.'),
-  score: z.number().min(0).max(100).describe('Overall quality, 0-100.'),
+  /** Clamped to 0-100 by the reviewer; unconstrained here so an out-of-range
+   *  score can't throw and take the orchestrator down. */
+  score: z.number().describe('Overall quality, 0-100.'),
   issues: z.array(ReviewIssueSchema).default([]),
   suggestions: z
     .array(z.string())
