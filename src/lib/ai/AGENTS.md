@@ -19,7 +19,8 @@ The generation engine. Turns a prompt + profile into a saved, day-by-day itinera
 ## Local Contracts
 
 - Pipeline order (per README): Understand → Discover → Rank → Plan → Critique → Persist. Each step has one job and a typed hand-off to the next.
-- The system never invents places — candidates come from real research with provenance. Do not add code paths that fabricate venues.
+- The system never invents places — candidates come from real research with provenance. Do not add code paths that fabricate venues. (The planner can still name places from model recall; `auditPlan` measures that as the off-pool ratio and penalizes it.)
+- Google Places resolution (`@/lib/maps/place-verification`, gated by `PLACES_VERIFICATION_ENABLED`) **enriches, never filters**. Its job is stamping coordinates so `agents/pool-partition` can geo-cluster days — that needs ~60% coverage, and with the flag off it is 0%, which is why days used to crisscross the city. Candidates it cannot resolve stay in the pool unlocated: the unresolvable ~10-25% is mostly dated events and walking tours that correctly have no Places entry, and dropping them deletes the events feature.
 - Orchestration lives in `agents/`; this layer wires research/curation/persistence around it and converts agent plans into stored day plans.
 - Curation against the user's profile happens via `@/lib/preferences/score-research` before planning.
 
