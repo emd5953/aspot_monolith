@@ -180,7 +180,6 @@ export interface ReviewResult {
   score: number; // 0-100
   issues: ReviewIssue[];
   suggestions: string[];
-  revisedPlan?: ItineraryPlan;
 }
 
 export interface ReviewIssue {

@@ -14,8 +14,9 @@ import { z } from 'zod';
 import { UserPreferences } from '@/types/quiz';
 import { OrchestrationState, ItineraryPlan, ResearchResult, ReviewIssue } from './types';
 import { runAgenticResearcher } from './agentic-researcher';
-import { runAgenticPlanner } from './agentic-planner';
-import { runReviewerAgent } from './reviewer';
+import { runAgenticPlanner, removeCrossDayDuplicates } from './agentic-planner';
+import { runReviewerAgent, reviseItineraryPlan } from './reviewer';
+import { auditPlan } from './plan-audit';
 import { getCachedResearch, setCachedResearch } from '../research-cache';
 import { curateResearchByPreferences } from '@/lib/preferences/score-research';
 
@@ -318,6 +319,7 @@ export async function runAgenticOrchestrator(
     };
     allReasoning.push(planStep);
 
+    const planStart = Date.now();
     const planResult = await runAgenticPlanner({
       research: researchResult.result,
       preferences,
@@ -331,6 +333,9 @@ export async function runAgenticOrchestrator(
     });
 
     currentPlan = planResult.plan;
+    console.log(
+      `[agentic-orchestrator] iteration ${iteration}: planning took ${((Date.now() - planStart) / 1000).toFixed(1)}s`
+    );
     planStep.result = `Plan created: ${currentPlan.days.length} days`;
     allThoughts.push(...planResult.thoughts);
     allReasoning.push(...planResult.reasoningSteps.map(s => ({
@@ -351,6 +356,7 @@ export async function runAgenticOrchestrator(
     };
     allReasoning.push(reviewStep);
 
+    const reviewStart = Date.now();
     const reviewResult = await runReviewerAgent({
       plan: currentPlan,
       preferences,
@@ -358,6 +364,9 @@ export async function runAgenticOrchestrator(
       userIntent,
       rawPrompt,
     });
+    console.log(
+      `[agentic-orchestrator] iteration ${iteration}: review took ${((Date.now() - reviewStart) / 1000).toFixed(1)}s`
+    );
 
     currentScore = reviewResult.review.score;
     reviewIssues = reviewResult.review.issues;
@@ -387,14 +396,74 @@ export async function runAgenticOrchestrator(
     allThoughts.push(`DECISION: ${decision.reasoning}`);
 
     if (decision.action === 'stop') {
-      // If the reviewer rejected the plan and produced a corrected version,
-      // ship the corrected one — throwing it away wastes the review's most
-      // expensive output and ships the plan we know is flawed.
-      if (!reviewResult.review.approved && reviewResult.review.revisedPlan) {
-        currentPlan = reviewResult.review.revisedPlan;
-        allThoughts.push(
-          "Adopting reviewer's revised plan (original was rejected with critical issues)"
+      // Last chance to fix a plan we know is flawed: ask the reviewer for a
+      // corrected version, here and only here, because this is the one
+      // iteration whose plan actually ships.
+      //
+      // But the revision comes straight out of a model and never passed
+      // through the planner's post-processing, so it has to earn the swap:
+      // dedupe it first (an adopted revision used to silently re-introduce
+      // duplicate venues the planner had already stripped), then adopt it only
+      // if the audit says it's genuinely no worse than what we already have.
+      const needsRevision =
+        !reviewResult.review.approved &&
+        reviewIssues.some((i) => i.severity === 'high');
+      const reviseStart = Date.now();
+      const revised = needsRevision
+        ? await reviseItineraryPlan(currentPlan, reviewIssues, preferences)
+        : undefined;
+      if (needsRevision) {
+        console.log(
+          `[agentic-orchestrator] revision took ${((Date.now() - reviseStart) / 1000).toFixed(1)}s`
         );
+      }
+
+      if (revised) {
+        // Re-stamp the calendar from the plan we already trust. The revision's
+        // `date`/`dayNumber` are raw model output that nothing overwrites on
+        // this path (the planner path stamps its own), and an unparseable date
+        // reaches `new Date(day.date)` at persist time and fails the whole
+        // generation after every model call has already been paid for.
+        const byIndex = currentPlan.days;
+        const cleaned: ItineraryPlan = {
+          ...revised,
+          days: removeCrossDayDuplicates(revised.days).days.map((day, i) => ({
+            ...day,
+            dayNumber: byIndex[i]?.dayNumber ?? i + 1,
+            date: byIndex[i]?.date ?? day.date,
+          })),
+        };
+        const beforeCeiling = auditPlan(currentPlan, researchResult.result).scoreCeiling;
+        const afterCeiling = auditPlan(cleaned, researchResult.result).scoreCeiling;
+
+        // The ceiling is a min over findings, so it goes *up* when the plan
+        // holds less: a revision that quietly drops two days audits clean and
+        // would otherwise always win. Coverage is not negotiable — a shorter
+        // trip than the user asked for is never an improvement.
+        const countItems = (p: ItineraryPlan) =>
+          p.days.reduce(
+            (n, d) =>
+              n + (d.morning?.length ?? 0) + (d.afternoon?.length ?? 0) + (d.evening?.length ?? 0),
+            0
+          );
+        const keptCoverage =
+          cleaned.days.length === currentPlan.days.length &&
+          countItems(cleaned) >= countItems(currentPlan) * 0.8;
+
+        if (!keptCoverage) {
+          allThoughts.push(
+            `Keeping the original plan — the revision drops coverage (${currentPlan.days.length} days/${countItems(currentPlan)} items → ${cleaned.days.length}/${countItems(cleaned)})`
+          );
+        } else if (afterCeiling >= beforeCeiling) {
+          currentPlan = cleaned;
+          allThoughts.push(
+            `Adopting reviewer's revised plan (audit ceiling ${beforeCeiling} → ${afterCeiling})`
+          );
+        } else {
+          allThoughts.push(
+            `Keeping the original plan — the reviewer's revision audits worse (${beforeCeiling} → ${afterCeiling})`
+          );
+        }
       }
       allThoughts.push('Stopping: Quality goal achieved or iteration limit reached');
       break;

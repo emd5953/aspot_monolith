@@ -208,12 +208,11 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
         state.agents.orchestrator.thoughts.push(`✗ Plan needs revision (Score: ${reviewResult.review.score}/100)`);
         state.agents.orchestrator.thoughts.push(`Issues found: ${reviewResult.review.issues.map(i => i.issue).join(', ')}`);
         log(state, 'orchestrator', 'Plan rejected, will revise');
-        
-        // Use revised plan if reviewer provided one
-        if (reviewResult.review.revisedPlan) {
-          currentPlan = reviewResult.review.revisedPlan;
-          state.agents.orchestrator.thoughts.push('Using reviewer-suggested revision');
-        }
+        // No revision is adopted here. The reviewer no longer hands one back,
+        // because a plan swapped in at this point would skip
+        // `removeCrossDayDuplicates` and every other planner post-processing
+        // step. `agentic-orchestrator` owns the one path that adopts a
+        // revision, and it dedupes and coverage-checks it first.
       }
       notify();
     }

@@ -4,6 +4,7 @@ import {
   clusterByProximity,
   partitionResearchAcrossDays,
   refillBucket,
+  buildFallbackDay,
   type DayPool,
 } from './pool-partition';
 import type {
@@ -217,5 +218,62 @@ describe('refillBucket', () => {
   it('returns null when the pool is exhausted', () => {
     const used = new Set(['museum', 'trattoria', 'bike tour']);
     expect(refillBucket('afternoon', pool, used)).toBeNull();
+  });
+});
+
+describe('buildFallbackDay', () => {
+  const fullPool = (): DayPool => ({
+    attractions: [attraction('Museum'), attraction('Castle'), attraction('Park')],
+    restaurants: [restaurant('Trattoria'), restaurant('Osteria')],
+    activities: [activity('Bike Tour'), activity('Kayak')],
+  });
+
+  it('fills every bucket and leads the evening with a restaurant', () => {
+    const day = buildFallbackDay(3, 'Old town', fullPool());
+
+    expect(day.dayNumber).toBe(3);
+    expect(day.theme).toBe('Old town');
+    expect(day.morning).toHaveLength(2);
+    expect(day.afternoon).toHaveLength(2);
+    expect(day.evening).toHaveLength(2);
+    expect(day.morning[0].type).toBe('attraction');
+    expect(day.evening[0].type).toBe('restaurant');
+  });
+
+  it('never repeats a place across buckets', () => {
+    const day = buildFallbackDay(1, 'x', fullPool());
+    const names = [...day.morning, ...day.afternoon, ...day.evening].map((i) => i.name);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  // The pool is this day's slice, and `assignToCentroids` can leave it empty.
+  // A starved day has to come back empty rather than throw, because the caller
+  // is already handling a failure when it reaches here.
+  it('returns empty buckets for an empty pool instead of throwing', () => {
+    const day = buildFallbackDay(2, 'x', {
+      attractions: [],
+      restaurants: [],
+      activities: [],
+    });
+    expect(day.morning).toEqual([]);
+    expect(day.afternoon).toEqual([]);
+    expect(day.evening).toEqual([]);
+  });
+
+  it('degrades to a short day when the pool holds fewer than six places', () => {
+    const day = buildFallbackDay(1, 'x', {
+      attractions: [attraction('Museum')],
+      restaurants: [restaurant('Trattoria')],
+      activities: [],
+    });
+    const total = day.morning.length + day.afternoon.length + day.evening.length;
+    expect(total).toBe(2);
+  });
+
+  // The caller overwrites this with the real calendar date. Asserted so the
+  // contract is explicit rather than incidental.
+  it('emits a placeholder date for the caller to overwrite', () => {
+    const day = buildFallbackDay(1, 'x', fullPool());
+    expect(day.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });

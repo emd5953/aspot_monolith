@@ -20,9 +20,11 @@ import {
   AttractionData,
   RestaurantData,
   ActivityData,
+  DayPlan,
   ScheduledItem,
 } from './types';
 import { haversineKm, LatLng } from '@/lib/itinerary/geo';
+import { dedupeKey } from '../provenance';
 
 export interface DayPool {
   attractions: AttractionData[];
@@ -261,7 +263,7 @@ export function refillBucket(
   used: Set<string>
 ): ScheduledItem | null {
   const unused = <T extends { name: string }>(items: T[]): T | undefined =>
-    items.find((i) => !used.has(i.name.toLowerCase().trim()));
+    items.find((i) => !used.has(dedupeKey(i.name)));
 
   const order: Array<
     [ScheduledItem['type'], Array<AttractionData | RestaurantData | ActivityData>]
@@ -281,9 +283,53 @@ export function refillBucket(
   for (const [type, items] of order) {
     const candidate = unused(items);
     if (candidate) {
-      used.add(candidate.name.toLowerCase().trim());
+      used.add(dedupeKey(candidate.name));
       return toScheduledItem(candidate, type, bucket);
     }
   }
   return null;
+}
+
+// ─── Model-free day assembly ─────────────────────────────────────────────────
+
+/**
+ * Build a complete day from a pool with no model involved.
+ *
+ * This is the safety net for a failed day build: days are planned in parallel,
+ * and before this existed a single malformed model response rejected the whole
+ * `Promise.all` and killed the entire generation. Filling each bucket from the
+ * day's own (already geo-clustered) pool produces a plainer day than the model
+ * would — no narrative, no tips — but it is real, researched places in a
+ * sensible order, which is a far better failure mode than nothing.
+ *
+ * `refillBucket` picks by bucket-appropriate type, so morning/afternoon lead
+ * with attractions and evening leads with a restaurant.
+ */
+export function buildFallbackDay(
+  dayNumber: number,
+  theme: string,
+  pool: DayPool
+): DayPlan {
+  const used = new Set<string>();
+  const fill = (bucket: Bucket, count: number): ScheduledItem[] => {
+    const items: ScheduledItem[] = [];
+    for (let i = 0; i < count; i++) {
+      const item = refillBucket(bucket, pool, used);
+      if (!item) break;
+      items.push(item);
+    }
+    return items;
+  };
+
+  return {
+    dayNumber,
+    // Overwritten by the caller with the real calendar date.
+    date: new Date().toISOString().split('T')[0],
+    theme,
+    morning: fill('morning', 2),
+    afternoon: fill('afternoon', 2),
+    evening: fill('evening', 2),
+    notes: 'Assembled from researched places after the planner failed on this day.',
+    estimatedCost: '$$$',
+  };
 }

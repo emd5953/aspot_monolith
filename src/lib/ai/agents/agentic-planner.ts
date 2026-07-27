@@ -26,17 +26,22 @@ import {
   PlanRequest,
   ItineraryPlan,
   DayPlan,
+  ScheduledItem,
   ReviewIssue,
 } from './types';
 import { UserPreferences } from '@/types/quiz';
 import {
   PlanningStrategySchema,
   SingleDaySchema,
+  normalizeItemType,
+  normalizeDuration,
   type PlanningStrategySchemaT,
 } from '../schemas/plan';
+import { dedupeKey } from '../provenance';
 import {
   partitionResearchAcrossDays,
   refillBucket,
+  buildFallbackDay,
   type DayPool,
 } from './pool-partition';
 
@@ -276,20 +281,32 @@ ${userIntent ? `7. **OBJECTIVE LOCK**: focus is "${userIntent}". This day MUST c
     providerOptions: { openai: { strictJsonSchema: false } },
   });
 
+  // Normalize the wire shape into the pipeline's contract. The wire schema is
+  // deliberately permissive (see schemas/plan.ts) so nothing here can throw.
+  const normalizeItems = (items: typeof object.morning): ScheduledItem[] =>
+    (items ?? [])
+      .filter((item) => typeof item?.name === 'string' && item.name.trim().length > 1)
+      .map((item) => ({
+        ...item,
+        name: item.name.trim(),
+        type: normalizeItemType(item.type),
+        duration: normalizeDuration(item.duration),
+        source: undefined, // stamped later from the research pool, never by the model
+      }));
+
   // Within-day dedupe (defensive — the schema doesn't enforce uniqueness).
   const dedupe = <T extends { name: string }>(items: T[], seen: Set<string>): T[] =>
     items.filter((item) => {
-      if (!item.name) return false;
-      const key = item.name.toLowerCase().trim();
-      if (seen.has(key)) return false;
+      const key = dedupeKey(item.name);
+      if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
     });
 
   const seenInDay = new Set<string>();
-  const morning = dedupe(object.morning ?? [], seenInDay);
-  const afternoon = dedupe(object.afternoon ?? [], seenInDay);
-  const evening = dedupe(object.evening ?? [], seenInDay);
+  const morning = dedupe(normalizeItems(object.morning), seenInDay);
+  const afternoon = dedupe(normalizeItems(object.afternoon), seenInDay);
+  const evening = dedupe(normalizeItems(object.evening), seenInDay);
 
   const day: DayPlan = {
     dayNumber,
@@ -304,6 +321,49 @@ ${userIntent ? `7. **OBJECTIVE LOCK**: focus is "${userIntent}". This day MUST c
   };
 
   return { day, reasoning: object.reasoning ?? [] };
+}
+
+// ─── Cross-day dedup ───────────────────────────────────────────────────────
+
+/**
+ * Drop any item whose venue already appears earlier in the trip.
+ *
+ * Days are built in parallel and can't see each other, so this is the pass that
+ * stops the same place being booked twice. It is exported because the reviewer
+ * can hand back a wholesale revised plan that never went through the planner's
+ * post-processing — a plan adopted straight from the reviewer used to bypass
+ * dedup entirely and re-introduce duplicates the planner had already removed.
+ *
+ * Pure: returns new day objects and reports what it took out.
+ */
+export function removeCrossDayDuplicates(days: DayPlan[]): {
+  days: DayPlan[];
+  used: Set<string>;
+  removed: Array<{ name: string; dayNumber: number }>;
+} {
+  const used = new Set<string>();
+  const removed: Array<{ name: string; dayNumber: number }> = [];
+
+  const filterBucket = (items: ScheduledItem[], dayNumber: number) =>
+    (items ?? []).filter((item) => {
+      const key = dedupeKey(item.name);
+      if (!key) return false;
+      if (used.has(key)) {
+        removed.push({ name: item.name, dayNumber });
+        return false;
+      }
+      used.add(key);
+      return true;
+    });
+
+  const out = days.map((day) => ({
+    ...day,
+    morning: filterBucket(day.morning, day.dayNumber),
+    afternoon: filterBucket(day.afternoon, day.dayNumber),
+    evening: filterBucket(day.evening, day.dayNumber),
+  }));
+
+  return { days: out, used, removed };
 }
 
 // ─── Public entry point ────────────────────────────────────────────────────
@@ -390,17 +450,35 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
       userIntent,
       rawPrompt,
       dayIssues
-    ).then(({ day, reasoning }) => {
-      const step: ReasoningStep = {
-        thought: `Planning Day ${dayNumber} with theme: ${theme}`,
-        action: `Building activities for ${theme}`,
-        result: `${day.morning.length + day.afternoon.length + day.evening.length} activities planned`,
-      };
-      reasoningSteps.push(step);
-      reasoning.forEach((r) => thoughts.push(`    💭 ${r}`));
-      // Stamp the correct calendar date for this day.
-      return { ...day, date: dayDateIso };
-    });
+    )
+      .then(({ day, reasoning }) => {
+        const step: ReasoningStep = {
+          thought: `Planning Day ${dayNumber} with theme: ${theme}`,
+          action: `Building activities for ${theme}`,
+          result: `${day.morning.length + day.afternoon.length + day.evening.length} activities planned`,
+        };
+        reasoningSteps.push(step);
+        reasoning.forEach((r) => thoughts.push(`    💭 ${r}`));
+        // Stamp the correct calendar date for this day.
+        return { ...day, date: dayDateIso };
+      })
+      .catch((err) => {
+        // One day failing must never take the trip down. Days build in
+        // parallel, so an unhandled rejection here used to reject the whole
+        // Promise.all and abort the generation entirely. Fall back to a
+        // deterministic day assembled straight from this day's pool — a
+        // slightly plainer day beats no itinerary at all.
+        console.error(`[agentic-planner] Day ${dayNumber} build failed:`, err);
+        thoughts.push(
+          `  ⚠️ Day ${dayNumber} build failed (${err instanceof Error ? err.message : 'unknown error'}) — assembled from the pool instead.`
+        );
+        reasoningSteps.push({
+          thought: `Day ${dayNumber} model build failed`,
+          action: 'Falling back to deterministic pool assembly',
+          result: 'Day recovered without the model',
+        });
+        return { ...buildFallbackDay(dayNumber, theme, pools[i]), date: dayDateIso };
+      });
   });
 
   let days = await Promise.all(dayPromises);
@@ -409,27 +487,13 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
   thoughts.push('');
   thoughts.push('🔍 DEDUPLICATING: Removing duplicate activities across days...');
 
-  const globalUsed = new Set<string>();
-  let removed = 0;
-
-  const filterAcrossDays = (items: DayPlan['morning'], dayIdx: number) =>
-    items.filter((item) => {
-      const key = item.name.toLowerCase().trim();
-      if (globalUsed.has(key)) {
-        thoughts.push(`  ⚠️ Removed duplicate "${item.name}" from Day ${dayIdx + 1}`);
-        removed++;
-        return false;
-      }
-      globalUsed.add(key);
-      return true;
-    });
-
-  days = days.map((day, idx) => ({
-    ...day,
-    morning: filterAcrossDays(day.morning, idx),
-    afternoon: filterAcrossDays(day.afternoon, idx),
-    evening: filterAcrossDays(day.evening, idx),
-  }));
+  const deduped = removeCrossDayDuplicates(days);
+  days = deduped.days;
+  const globalUsed = deduped.used;
+  const removed = deduped.removed.length;
+  deduped.removed.forEach((r) =>
+    thoughts.push(`  ⚠️ Removed duplicate "${r.name}" from Day ${r.dayNumber}`)
+  );
 
   if (removed === 0) {
     thoughts.push('  ✓ No duplicates found.');

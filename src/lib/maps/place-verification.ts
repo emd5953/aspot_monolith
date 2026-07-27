@@ -96,6 +96,20 @@ export function nameMatches(candidateName: string, matchedName: string): boolean
   if (!a || !b) return false;
   if (a === b || a.includes(b) || b.includes(a)) return true;
 
+  // Word-boundary-insensitive containment. Research names and Google names
+  // disagree about spacing on the same real place — "Ben Fiddich" vs
+  // "Bar Benfiddich", "Amo Yako" vs "Ameyoko market". Comparing with spaces
+  // collapsed catches these; the length floor keeps short names from matching
+  // each other by accident.
+  const aTight = a.replace(/ /g, '');
+  const bTight = b.replace(/ /g, '');
+  if (
+    Math.min(aTight.length, bTight.length) >= 6 &&
+    (aTight.includes(bTight) || bTight.includes(aTight))
+  ) {
+    return true;
+  }
+
   const aTokens = new Set(a.split(' ').filter((t) => t.length > 2));
   const bTokens = new Set(b.split(' ').filter((t) => t.length > 2));
   if (aTokens.size === 0 || bTokens.size === 0) return false;
@@ -107,16 +121,29 @@ export function nameMatches(candidateName: string, matchedName: string): boolean
 }
 
 /**
- * Verify a list of candidates against real places and drop the unverifiable.
- * Survivors are enriched with the confirmed address + coordinates. When the
- * flag is off, items pass through untouched. A `lookup` failure for one item
- * drops only that item — verification never throws the whole pipeline.
+ * Resolve candidates against real places and enrich them with the confirmed
+ * address + coordinates. When the flag is off, items pass through untouched.
+ *
+ * **Enrich, don't drop.** An earlier version deleted every candidate it
+ * couldn't resolve. Measured against the real research cache, ~10-25% of a pool
+ * fails to resolve — and the failures are overwhelmingly things that correctly
+ * have no Places entry: dated events ("Tokyo Game Show", "Santa Casa Alfama
+ * Music Festival"), walking tours, and cooking classes. Dropping them silently
+ * deleted the entire date-aware events feature from every itinerary. So an
+ * unresolved candidate survives, just without coordinates.
+ *
+ * Coordinates are what matter downstream: `pool-partition` geo-clusters days
+ * only once ~60% of the pool is located, so the point of this pass is coverage,
+ * not censorship. A `lookup` failure affects only that one item and never
+ * throws the pipeline.
+ *
+ * Pass `drop: true` for the old filtering behavior.
  */
 export async function verifyAndFilter<T extends VerifiableItem>(
   items: T[],
   destination: string,
   lookup: PlaceLookup,
-  options: { enabled?: boolean } = {}
+  options: { enabled?: boolean; drop?: boolean } = {}
 ): Promise<T[]> {
   const enabled = options.enabled ?? isPlaceVerificationEnabled();
   if (!enabled || items.length === 0) return items;
@@ -126,17 +153,18 @@ export async function verifyAndFilter<T extends VerifiableItem>(
       try {
         const match = await lookup(`${item.name}, ${destination}`);
         if (!match.found || !match.name || !nameMatches(item.name, match.name)) {
-          return null;
+          return options.drop ? null : item;
         }
-        // Enrich the survivor with the confirmed address/coords. Spreading a
-        // generic T loses its narrowed type, so re-assert as T.
+        // Enrich the resolved item with the confirmed address/coords. Spreading
+        // a generic T loses its narrowed type, so re-assert as T.
         return {
           ...item,
           address: match.address ?? item.address,
           coordinates: match.location ?? item.coordinates,
         } as T;
       } catch {
-        return null; // unverifiable → drop, but don't break the pipeline
+        // Unresolvable → keep the item, just unlocated. Never break the pipeline.
+        return options.drop ? null : item;
       }
     })
   );

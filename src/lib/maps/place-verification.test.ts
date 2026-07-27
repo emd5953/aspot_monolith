@@ -118,33 +118,52 @@ describe('verifyAndFilter', () => {
     expect(out).toEqual(items);
   });
 
-  it('drops unverifiable candidates and enriches survivors', async () => {
+  it('enriches what it resolves and keeps what it cannot', async () => {
+    // Enrich, don't drop. Measured against the real research cache, the
+    // unresolvable ~10-25% is overwhelmingly dated events and walking tours
+    // that correctly have no Places entry; dropping them silently deleted the
+    // entire events feature from every itinerary.
     const out = await verifyAndFilter(items, 'NYC', lookup, { enabled: true });
-    expect(out.map((i) => i.name)).toEqual(['The Dead Rabbit', 'Attaboy']);
+    expect(out.map((i) => i.name)).toEqual([
+      'The Dead Rabbit',
+      'Totally Made Up Spot',
+      'Attaboy',
+    ]);
     expect(out[0].address).toBe('30 Water St');
     expect(out[0].coordinates).toEqual({ lat: 40.7, lng: -74.0 });
+    // Unresolved survives, just unlocated — so geo-clustering skips it.
+    expect(out[1].coordinates).toBeUndefined();
   });
 
-  it('drops a candidate whose resolved name does not match', async () => {
+  it('keeps a candidate whose resolved name does not match, unenriched', async () => {
     const wrongMatch: PlaceLookup = async () => ({
       found: true,
       name: 'Some Other Place Entirely',
       address: 'Elsewhere',
+      location: { lat: 1, lng: 2 },
     });
     const out = await verifyAndFilter([{ name: 'Joe Bar' }], 'NYC', wrongMatch, {
       enabled: true,
     });
-    expect(out).toEqual([]);
+    expect(out).toEqual([{ name: 'Joe Bar' }]);
   });
 
-  it('drops the item but does not throw when lookup errors', async () => {
+  it('keeps the item and does not throw when lookup errors', async () => {
     const throwingLookup: PlaceLookup = async () => {
       throw new Error('network down');
     };
     const out = await verifyAndFilter([{ name: 'Anywhere' }], 'NYC', throwingLookup, {
       enabled: true,
     });
-    expect(out).toEqual([]);
+    expect(out).toEqual([{ name: 'Anywhere' }]);
+  });
+
+  it('still filters when explicitly asked to drop', async () => {
+    const out = await verifyAndFilter(items, 'NYC', lookup, {
+      enabled: true,
+      drop: true,
+    });
+    expect(out.map((i) => i.name)).toEqual(['The Dead Rabbit', 'Attaboy']);
   });
 
   it('returns [] input unchanged (no lookup calls) for empty list', async () => {
