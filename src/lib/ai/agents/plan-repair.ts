@@ -109,19 +109,24 @@ export function sortBucketChronologically(items: ScheduledItem[]): ScheduledItem
 }
 
 /**
- * The bucket an item should sit in given its published hours, or null when it
- * is fine where it is (or when no bucket works).
+ * Where a venue that is shut at its scheduled time could go instead, or null
+ * when no bucket on this day works.
  *
- * Prefers the latest workable bucket for a venue that is shut in the morning,
- * because the overwhelmingly common case is a bar or dinner restaurant landing
- * before noon — and evening is where it belongs, not merely where it is open.
+ * Callers must establish that the item is actually misplaced before calling —
+ * "leave it alone" and "nowhere works" are different answers and must not share
+ * a return value. An earlier version folded the open check in here and returned
+ * null for both; the caller read every null as closed-all-day and dropped The
+ * High Line, Eataly, and The Cloisters out of a real NYC plan. Hence the split.
+ *
+ * Prefers the latest workable bucket, because the overwhelmingly common case is
+ * a bar or dinner restaurant landing before noon — and evening is where it
+ * belongs, not merely where it is open.
  */
-function findOpenBucket(
+export function findOpenBucket(
   hours: WeeklyHours,
   weekday: number,
   current: Bucket
 ): Bucket | null {
-  if (isOpenAt(hours, weekday, BUCKET_MINUTES[current])) return null;
   const order: Bucket[] =
     current === 'morning' ? ['evening', 'afternoon'] : ['evening', 'afternoon', 'morning'];
   for (const bucket of order) {
@@ -176,6 +181,16 @@ export function repairPlan(
       evening: [...(day.evening ?? [])],
     };
 
+    // How full each bucket should end up. Taken from the day as planned (never
+    // below one) so a repair that *removes* something — a duplicate, or a venue
+    // shut all day — is followed by a replacement instead of quietly shrinking
+    // the day. Refills stop early when the pool runs dry.
+    const target: Record<Bucket, number> = {
+      morning: Math.max(1, next.morning.length),
+      afternoon: Math.max(1, next.afternoon.length),
+      evening: Math.max(1, next.evening.length),
+    };
+
     // ── 1. Duplicates ──────────────────────────────────────────────────────
     for (const bucket of BUCKETS) {
       next[bucket] = next[bucket].filter((item) => {
@@ -202,29 +217,58 @@ export function repairPlan(
             staying.push(item);
             continue;
           }
-          const target = findOpenBucket(hours, weekday, bucket);
-          if (!target) {
+
+          // Judge the item at the time it is actually scheduled — the same
+          // instant the audit uses — falling back to the bucket's nominal time
+          // when the item carries no readable one.
+          const at = toMinutes(item.time) ?? BUCKET_MINUTES[bucket];
+          if (isOpenAt(hours, weekday, at)) {
             staying.push(item);
             continue;
           }
-          next[target].push({ ...item, time: BUCKET_TIME[target] });
+
+          const moveTo = findOpenBucket(hours, weekday, bucket);
+          if (moveTo) {
+            next[moveTo].push({ ...item, time: BUCKET_TIME[moveTo] });
+            repairs.push(
+              `Day ${day.dayNumber}: moved "${item.name}" from the ${bucket} to the ${moveTo} — it is closed at ${item.time}.`
+            );
+            continue;
+          }
+          // Shut at every hour of this day — there is nowhere on the day to
+          // move it to, so drop it and let the refill below put something open
+          // in its place. Measured against the real NYC pool this is the
+          // common case, not the rare one: a museum closed Mondays and two
+          // markets that only run on weekends all shipped inside the plan.
           repairs.push(
-            `Day ${day.dayNumber}: moved "${item.name}" from the ${bucket} to the ${target} — it is closed at ${item.time}.`
+            `Day ${day.dayNumber}: dropped "${item.name}" from the ${bucket} — it is closed all day.`
           );
         }
         next[bucket] = staying;
       }
     }
 
-    // ── 3. Empty buckets ───────────────────────────────────────────────────
-    // Runs after the moves above, which can empty the bucket they moved out of.
+    // ── 3. Refill back up to target ────────────────────────────────────────
+    // Runs after the moves and drops above, which are what create the holes.
     for (const bucket of BUCKETS) {
-      if (next[bucket].length > 0) continue;
-      const item = refillBucket(bucket, pool, used);
-      if (item) {
-        next[bucket] = [item];
+      // Only accept a candidate that is actually open then. A candidate with
+      // no published hours is eligible — unknown is not closed — but one we
+      // know is shut must never be used to plug a hole. Without this, repair
+      // filled an empty NYC morning with a bar that opens at 17:00, trading an
+      // "empty bucket" finding for a worse "closed when scheduled" one.
+      const openThen = (candidate: { name: string }) => {
+        if (weekday === null) return true;
+        const hours = hoursIndex.get(dedupeKey(candidate.name));
+        if (!hours || hours.length === 0) return true;
+        return isOpenAt(hours, weekday, BUCKET_MINUTES[bucket]);
+      };
+
+      while (next[bucket].length < target[bucket]) {
+        const item = refillBucket(bucket, pool, used, openThen);
+        if (!item) break; // Pool exhausted — an honest hole beats a wrong pick.
+        next[bucket].push(item);
         repairs.push(
-          `Day ${day.dayNumber}: refilled the empty ${bucket} with "${item.name}".`
+          `Day ${day.dayNumber}: filled the ${bucket} with "${item.name}".`
         );
       }
     }

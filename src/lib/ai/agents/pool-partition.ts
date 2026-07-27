@@ -260,10 +260,21 @@ function toScheduledItem(
 export function refillBucket(
   bucket: Bucket,
   pool: DayPool,
-  used: Set<string>
+  used: Set<string>,
+  /**
+   * Optional extra eligibility test, applied after the unused check.
+   *
+   * `plan-repair` passes one that rejects a candidate closed at this bucket's
+   * time. Without it, refilling an empty morning could pick a place that opens
+   * at 17:00 — measured against the real NYC pool, that is exactly what
+   * happened, and the repair pass "fixed" an empty bucket by creating a fresh
+   * closed-when-scheduled finding. A refill must not trade one defect for
+   * another.
+   */
+  accept?: (candidate: { name: string }) => boolean
 ): ScheduledItem | null {
   const unused = <T extends { name: string }>(items: T[]): T | undefined =>
-    items.find((i) => !used.has(dedupeKey(i.name)));
+    items.find((i) => !used.has(dedupeKey(i.name)) && (!accept || accept(i)));
 
   const order: Array<
     [ScheduledItem['type'], Array<AttractionData | RestaurantData | ActivityData>]

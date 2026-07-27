@@ -181,21 +181,79 @@ describe('repairPlan — opening hours', () => {
     expect(repairs.some((r) => r.includes('closed'))).toBe(false);
   });
 
-  it('does not move a venue that is shut all day with nowhere open to go', () => {
-    // Closed Mondays; the fixture's day 1 is a Monday.
-    const closedMonday: WeeklyHours = [1, 2, 3, 4, 5, 6]
-      .map((day) => ({ day, open: 9 * 60, close: 17 * 60 }))
-      .filter((p) => p.day !== 1);
+  // Closed Mondays; the fixture's day 1 is a Monday.
+  const closedMonday: WeeklyHours = [0, 2, 3, 4, 5, 6].map((day) => ({
+    day,
+    open: 9 * 60,
+    close: 17 * 60,
+  }));
 
-    const { plan: fixed } = repairPlan(
+  it('drops a venue that is shut all day and replaces it from the pool', () => {
+    const { plan: fixed, repairs } = repairPlan(
       plan([{ morning: [item('Monday Museum', { time: '10:00' })] }]),
       research([{ name: 'Monday Museum', openingHours: closedMonday }]),
+      [pool(['Open Alternative'])]
+    );
+
+    expect(fixed.days[0].morning.map((i) => i.name)).toEqual(['Open Alternative']);
+    expect(repairs.some((r) => r.includes('closed all day'))).toBe(true);
+  });
+
+  // "Leave it alone" and "nowhere on this day works" are different answers.
+  // Conflating them dropped The High Line and Eataly — both open daily — out
+  // of a real NYC plan, because the open case shared a return value with the
+  // no-bucket-works case.
+  it('does not drop a venue that is open at its scheduled time', () => {
+    const openDaily: WeeklyHours = Array.from({ length: 7 }, (_, day) => ({
+      day,
+      open: 9 * 60,
+      close: 22 * 60,
+    }));
+
+    const { plan: fixed, repairs } = repairPlan(
+      plan([{ morning: [item('The High Line', { time: '10:00' })] }]),
+      research([{ name: 'The High Line', openingHours: openDaily }]),
+      [pool(['Should Not Be Used'])]
+    );
+
+    expect(fixed.days[0].morning.map((i) => i.name)).toEqual(['The High Line']);
+    expect(repairs.some((r) => r.includes('closed'))).toBe(false);
+  });
+
+  it('judges the item at its own scheduled time, not the bucket default', () => {
+    // Open 09:00–11:00 only. The bucket default (10:00) is inside that window,
+    // but the item is actually booked at 08:00, which is not.
+    const earlyOnly: WeeklyHours = Array.from({ length: 7 }, (_, day) => ({
+      day,
+      open: 9 * 60,
+      close: 11 * 60,
+    }));
+
+    const { repairs } = repairPlan(
+      plan([{ morning: [item('Narrow Window', { time: '08:00' })] }]),
+      research([{ name: 'Narrow Window', openingHours: earlyOnly }]),
       emptyPools(1)
     );
 
-    // Nothing on the day works, so it stays put for the audit to flag rather
-    // than being shuffled into another bucket that is equally shut.
-    expect(fixed.days[0].morning.map((i) => i.name)).toContain('Monday Museum');
+    expect(repairs.some((r) => r.includes('closed'))).toBe(true);
+  });
+
+  it('never refills with a candidate that is itself shut at that hour', () => {
+    // Repair once filled an empty NYC morning with a bar opening at 17:00,
+    // trading an "empty bucket" finding for a worse "closed when scheduled" one.
+    const eveningOnly: WeeklyHours = Array.from({ length: 7 }, (_, day) => ({
+      day,
+      open: 17 * 60,
+      close: 23 * 60,
+    }));
+
+    const { plan: fixed } = repairPlan(
+      plan([{ morning: [] }]),
+      research([{ name: 'Left Bank', openingHours: eveningOnly }]),
+      [pool(['Left Bank'])]
+    );
+
+    expect(fixed.days[0].morning).toHaveLength(0);
   });
 });
 
@@ -208,7 +266,7 @@ describe('repairPlan — empty buckets', () => {
     );
 
     expect(fixed.days[0].afternoon.map((i) => i.name)).toEqual(['Backup Attraction']);
-    expect(repairs.some((r) => r.includes('refilled'))).toBe(true);
+    expect(repairs.some((r) => r.includes('filled the afternoon'))).toBe(true);
   });
 
   it('never refills with a venue already used elsewhere in the trip', () => {
