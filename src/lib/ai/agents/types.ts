@@ -6,6 +6,7 @@
 
 import { UserPreferences } from '@/types/quiz';
 import type { ItemSource } from '@/lib/ai/provenance';
+import type { WeeklyHours } from '@/lib/maps/place-verification';
 
 // Agent message types for inter-agent communication
 export interface AgentMessage {
@@ -70,6 +71,13 @@ export interface ResearchResult {
 interface ResearchProvenance {
   redditMentions?: number;
   coordinates?: { lat: number; lng: number };
+  /**
+   * Weekly opening hours, stamped by the Place Details hop of Google Places
+   * verification. Absent when that hop didn't run or the place publishes none —
+   * consumers must read absent as "unknown", never as "closed". Consumed by the
+   * closed-when-scheduled check in plan-audit.ts.
+   */
+  openingHours?: WeeklyHours;
 }
 
 export interface AttractionData extends ResearchProvenance {

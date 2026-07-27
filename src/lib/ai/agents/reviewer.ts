@@ -21,6 +21,34 @@ import {
   normalizeDuration,
 } from '../schemas/plan';
 import { auditPlan } from './plan-audit';
+import { dedupeKey } from '../provenance';
+
+/**
+ * Names of every venue the plan already books, canonicalized.
+ *
+ * Exported for testing. The "options not used" block below used to test
+ * `item.name.includes(candidate.name)` — raw substring, against the explicit
+ * contract in AGENTS.md that all name comparison here goes through `dedupeKey`.
+ * It failed in both directions: "The Bluebird Cafe" in the plan didn't match
+ * "Bluebird Cafe" in the pool (so a booked venue was offered as available, and
+ * the reviewer's suggested swap then tripped the duplicate finding), while a
+ * pool entry named "Park" matched every item containing that substring (so real
+ * alternatives were hidden from the reviewer).
+ */
+export function plannedVenueKeys(plan: ItineraryPlan): Set<string> {
+  const keys = new Set<string>();
+  for (const day of plan.days ?? []) {
+    for (const item of [
+      ...(day.morning ?? []),
+      ...(day.afternoon ?? []),
+      ...(day.evening ?? []),
+    ]) {
+      const key = dedupeKey(item.name);
+      if (key) keys.add(key);
+    }
+  }
+  return keys;
+}
 
 /**
  * Reviewer Agent — validates and improves itineraries.
@@ -65,6 +93,8 @@ ${
     : '\nThe mechanical checks are clean. Judge the plan on quality, interest, and fit.'
 }\n`;
 
+  const plannedKeys = plannedVenueKeys(plan);
+
   const reviewPrompt = `You are a meticulous travel itinerary reviewer. Analyze this itinerary for quality, feasibility, and alignment with user preferences.
 ${intentBlock}${auditBlock}
 ITINERARY TO REVIEW:
@@ -79,25 +109,11 @@ USER PREFERENCES:
 
 AVAILABLE OPTIONS NOT USED:
 Attractions: ${research.attractions
-    .filter(
-      (a) =>
-        !plan.days.some((d) =>
-          [...d.morning, ...d.afternoon, ...d.evening].some((i) =>
-            i.name.includes(a.name)
-          )
-        )
-    )
+    .filter((a) => !plannedKeys.has(dedupeKey(a.name)))
     .map((a) => a.name)
     .join(', ')}
 Restaurants: ${research.restaurants
-    .filter(
-      (r) =>
-        !plan.days.some((d) =>
-          [...d.morning, ...d.afternoon, ...d.evening].some((i) =>
-            i.name.includes(r.name)
-          )
-        )
-    )
+    .filter((r) => !plannedKeys.has(dedupeKey(r.name)))
     .map((r) => r.name)
     .join(', ')}
 

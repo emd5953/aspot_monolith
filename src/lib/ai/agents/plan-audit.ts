@@ -19,6 +19,7 @@
 import { ItineraryPlan, ResearchResult, ReviewIssue, ScheduledItem } from './types';
 import { dedupeKey } from '../provenance';
 import { haversineKm, LatLng } from '@/lib/itinerary/geo';
+import { isOpenAt, type WeeklyHours } from '@/lib/maps/place-verification';
 
 export interface AuditFinding extends ReviewIssue {
   /** Highest score a plan carrying this finding may be awarded. */
@@ -97,6 +98,50 @@ function buildCoordIndex(research: ResearchResult): Map<string, LatLng> {
   return index;
 }
 
+/** name → published weekly hours, for everything Place Details resolved. */
+function buildHoursIndex(research: ResearchResult): Map<string, WeeklyHours> {
+  const index = new Map<string, WeeklyHours>();
+  for (const item of [
+    ...(research.attractions ?? []),
+    ...(research.restaurants ?? []),
+    ...(research.activities ?? []),
+  ]) {
+    const key = dedupeKey(item.name);
+    if (key && item.openingHours?.length && !index.has(key)) {
+      index.set(key, item.openingHours);
+    }
+  }
+  return index;
+}
+
+const DAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+/**
+ * Weekday (0 = Sunday) for a plan's "YYYY-MM-DD" date, or null when it isn't
+ * one. Parsed as UTC so the audit gives the same answer regardless of where the
+ * server runs — a local-time parse flips the weekday either side of midnight
+ * and would make this check non-deterministic across regions.
+ */
+function weekdayOf(date: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}/.test(date ?? '')) return null;
+  const parsed = new Date(`${date.slice(0, 10)}T00:00:00Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.getUTCDay();
+}
+
+/** 570 → "09:30". Handles past-midnight windows (1560 → "02:00"). */
+function fmtMinutes(minutes: number): string {
+  const m = ((minutes % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
+
 /** Every name the research pass offered, for off-pool detection. */
 function buildPoolKeys(research: ResearchResult): Set<string> {
   const keys = new Set<string>();
@@ -144,11 +189,14 @@ function centroid(points: LatLng[]): LatLng | null {
 export function auditPlan(plan: ItineraryPlan, research: ResearchResult): PlanAudit {
   const findings: AuditFinding[] = [];
   const coords = buildCoordIndex(research);
+  const hoursIndex = buildHoursIndex(research);
   const poolKeys = buildPoolKeys(research);
   const days = plan.days ?? [];
 
   const locate = (item: ScheduledItem): LatLng | undefined =>
     coords.get(dedupeKey(item.name));
+  const hoursFor = (item: ScheduledItem): WeeklyHours | undefined =>
+    hoursIndex.get(dedupeKey(item.name));
 
   // ── 1. The same venue twice in one trip ──────────────────────────────────
   const seen = new Map<string, number>();
@@ -272,14 +320,50 @@ export function auditPlan(plan: ItineraryPlan, research: ResearchResult): PlanAu
   }
 
   // ── 5. Things scheduled when they are shut ───────────────────────────────
-  // A name heuristic, not real hours: a live run put "Bar Trench" at 09:00 and
-  // "MOSS Dining Bar" at 11:00 on the same morning. Real grounding needs
-  // opening_hours from Places Details (one extra lookup per candidate); until
-  // then this catches the obvious class of error without that spend.
+  // Published hours when we have them, the name heuristic when we don't.
+  //
+  // The heuristic came first and only ever caught one shape of error (a live
+  // run put "Bar Trench" at 09:00 and "MOSS Dining Bar" at 11:00 on the same
+  // morning). It cannot see a museum that closes Mondays, a restaurant shut
+  // between lunch and dinner, or anything scheduled after closing — all of
+  // which ship as confidently as the rest of the plan. Place Details hours
+  // turn that guess into a fact, so where they exist they win outright and the
+  // heuristic is skipped entirely: a venue with real hours must never be
+  // flagged for having "bar" in its name while its own week says it is open.
   for (const day of days) {
+    const weekday = weekdayOf(day.date);
     for (const item of dayItems(day)) {
       const at = toMinutes(item.time);
-      if (at === null || at >= 11 * 60) continue;
+      if (at === null) continue;
+
+      const hours = hoursFor(item);
+      if (hours && hours.length > 0 && weekday !== null) {
+        if (!isOpenAt(hours, weekday, at)) {
+          const openToday = hours.filter((p) => p.day === weekday);
+          const detail =
+            openToday.length === 0
+              ? `it is closed all day on ${DAY_NAMES[weekday]}`
+              : `it opens ${openToday
+                  .map((p) => `${fmtMinutes(p.open)}–${fmtMinutes(p.close)}`)
+                  .join(', ')} that day`;
+          findings.push({
+            severity: 'high',
+            dayNumber: day.dayNumber,
+            issue: `"${item.name}" is scheduled at ${item.time} on day ${day.dayNumber}, but ${detail}.`,
+            suggestion:
+              openToday.length === 0
+                ? `Move "${item.name}" to a day it is open, or replace it.`
+                : `Move "${item.name}" to within ${openToday
+                    .map((p) => `${fmtMinutes(p.open)}–${fmtMinutes(p.close)}`)
+                    .join(' or ')} on day ${day.dayNumber}.`,
+            scoreCeiling: 70,
+          });
+        }
+        continue;
+      }
+
+      // No published hours — fall back to the name guess, morning only.
+      if (at >= 11 * 60) continue;
       // Name only. Folding the description in defeated the "kept narrow"
       // intent above: "grab breakfast at a sushi bar counter" and "hotel
       // lounge breakfast" both matched and capped a perfectly good plan.

@@ -10,8 +10,10 @@ import {
 import { UserPreferences } from '@/types/quiz';
 import {
   isPlaceVerificationEnabled,
+  isHoursLookupEnabled,
   verifyAndFilter,
   findPlaceFromText,
+  fetchPlaceHours,
 } from '@/lib/maps/place-verification';
 import { shouldSearchEvents, buildEventsQuery } from './events-search';
 
@@ -393,23 +395,24 @@ export async function fetchDestinationDataWithPrefs(
   let verifiedRestaurants = taggedRestaurants;
   let verifiedActivities = taggedActivities;
   if (isPlaceVerificationEnabled()) {
+    // Hours are a second hop per resolved place, so they carry their own switch.
+    const hours = isHoursLookupEnabled() ? fetchPlaceHours : undefined;
     [verifiedAttractions, verifiedRestaurants, verifiedActivities] =
       await Promise.all([
-        verifyAndFilter(taggedAttractions, destination, findPlaceFromText),
-        verifyAndFilter(taggedRestaurants, destination, findPlaceFromText),
-        verifyAndFilter(taggedActivities, destination, findPlaceFromText),
+        verifyAndFilter(taggedAttractions, destination, findPlaceFromText, { hours }),
+        verifyAndFilter(taggedRestaurants, destination, findPlaceFromText, { hours }),
+        verifyAndFilter(taggedActivities, destination, findPlaceFromText, { hours }),
       ]);
-    const located = [
+    const all = [
       ...verifiedAttractions,
       ...verifiedRestaurants,
       ...verifiedActivities,
-    ].filter((i) => i.coordinates).length;
-    const total =
-      verifiedAttractions.length +
-      verifiedRestaurants.length +
-      verifiedActivities.length;
+    ];
+    const located = all.filter((i) => i.coordinates).length;
+    const timed = all.filter((i) => i.openingHours?.length).length;
+    const total = all.length;
     console.log(
-      `[tavily] Places-resolved — ${located}/${total} candidates carry coordinates (${Math.round((100 * located) / Math.max(total, 1))}% coverage; geo-clustering needs 60%)`
+      `[tavily] Places-resolved — ${located}/${total} candidates carry coordinates (${Math.round((100 * located) / Math.max(total, 1))}% coverage; geo-clustering needs 60%), ${timed}/${total} carry opening hours`
     );
   }
 

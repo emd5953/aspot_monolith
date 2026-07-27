@@ -17,6 +17,7 @@ import { runAgenticResearcher } from './agentic-researcher';
 import { runAgenticPlanner, removeCrossDayDuplicates } from './agentic-planner';
 import { runReviewerAgent, reviseItineraryPlan } from './reviewer';
 import { auditPlan } from './plan-audit';
+import { repairPlan } from './plan-repair';
 import { getCachedResearch, setCachedResearch } from '../research-cache';
 import { curateResearchByPreferences } from '@/lib/preferences/score-research';
 
@@ -332,7 +333,38 @@ export async function runAgenticOrchestrator(
       reviewIssues,
     });
 
-    currentPlan = planResult.plan;
+    // Mechanical repair, before the model ever sees the plan.
+    //
+    // This is where the audit's findings get *fixed* rather than merely
+    // reported. It matters most in fast mode, which is the default path:
+    // `maxIterations = 1` means `decideNextAction` returns "stop" on the first
+    // pass before any reasoning happens, so the score ceiling can cap a flawed
+    // plan but nothing ever acts on it. Repairing here raises the floor on
+    // every generation for zero model spend and no extra latency.
+    //
+    // It also runs before review on purpose: the reviewer then scores the plan
+    // that actually ships, and spends its issue budget on taste instead of
+    // re-reporting a backwards clock we already straightened.
+    const repaired = repairPlan(
+      planResult.plan,
+      researchResult.result,
+      planResult.pools
+    );
+    currentPlan = repaired.plan;
+    if (repaired.repairs.length > 0) {
+      allThoughts.push(`🔧 Deterministic repair applied ${repaired.repairs.length} fix(es):`);
+      repaired.repairs.forEach((r) => allThoughts.push(`  • ${r}`));
+      allReasoning.push({
+        agent: 'orchestrator',
+        thought: 'Mechanical defects have known fixes — apply them in code, not via the model',
+        action: 'Running deterministic plan repair',
+        result: `${repaired.repairs.length} fix(es) applied`,
+        timestamp: new Date(),
+      });
+    } else {
+      allThoughts.push('🔧 Deterministic repair: nothing to fix.');
+    }
+
     console.log(
       `[agentic-orchestrator] iteration ${iteration}: planning took ${((Date.now() - planStart) / 1000).toFixed(1)}s`
     );
@@ -425,7 +457,7 @@ export async function runAgenticOrchestrator(
         // reaches `new Date(day.date)` at persist time and fails the whole
         // generation after every model call has already been paid for.
         const byIndex = currentPlan.days;
-        const cleaned: ItineraryPlan = {
+        const restamped: ItineraryPlan = {
           ...revised,
           days: removeCrossDayDuplicates(revised.days).days.map((day, i) => ({
             ...day,
@@ -433,6 +465,12 @@ export async function runAgenticOrchestrator(
             date: byIndex[i]?.date ?? day.date,
           })),
         };
+        // Repair the revision too, so the comparison below is like-for-like:
+        // `currentPlan` has already been through repair, and a revision judged
+        // against it unrepaired would lose on defects we know how to fix. The
+        // date re-stamp must come first — repair reads `day.date` to decide
+        // what is open.
+        const cleaned = repairPlan(restamped, researchResult.result, planResult.pools).plan;
         const beforeCeiling = auditPlan(currentPlan, researchResult.result).scoreCeiling;
         const afterCeiling = auditPlan(cleaned, researchResult.result).scoreCeiling;
 

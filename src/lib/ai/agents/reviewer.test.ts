@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ItineraryPlan, ResearchResult, ScheduledItem } from './types';
+import { dedupeKey } from '../provenance';
 
 /**
  * The score clamp is the load-bearing line of the whole audit change: the
@@ -16,7 +17,7 @@ const generateObject = vi.hoisted(() => vi.fn());
 vi.mock('ai', () => ({ generateObject }));
 vi.mock('@ai-sdk/openai', () => ({ openai: () => 'mock-model' }));
 
-const { runReviewerAgent } = await import('./reviewer');
+const { runReviewerAgent, plannedVenueKeys } = await import('./reviewer');
 
 const item = (name: string, over: Partial<ScheduledItem> = {}): ScheduledItem => ({
   time: '10:00',
@@ -160,5 +161,34 @@ describe('runReviewerAgent score ceiling', () => {
 
     expect(review.approved).toBe(false);
     expect(generateObject).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * The "options not used" block used to compare names with raw `includes`,
+ * against the AGENTS.md contract that all name comparison here goes through
+ * `dedupeKey`. It failed both ways: a booked venue was offered back to the
+ * reviewer as available (whose suggested swap then tripped the duplicate
+ * finding), and a short pool name hid every real alternative containing it.
+ */
+describe('plannedVenueKeys', () => {
+  it('canonicalizes names so an article does not read as a different venue', () => {
+    const keys = plannedVenueKeys(duplicateVenuePlan());
+    expect(keys.has(dedupeKey('The Bluebird Cafe'))).toBe(true);
+    expect(keys.has(dedupeKey('Bluebird Cafe'))).toBe(true);
+  });
+
+  it('collects across every bucket and day', () => {
+    const keys = plannedVenueKeys(cleanPlan());
+    for (const name of ['Museum 1', 'Park 1', 'Osteria 1', 'Museum 2', 'Osteria 2']) {
+      expect(keys.has(dedupeKey(name))).toBe(true);
+    }
+  });
+
+  it('does not treat a substring match as the same venue', () => {
+    // The plan books "Park 1" and "Park 2"; a pool entry simply named "Park"
+    // is a different place and must stay offerable as an alternative.
+    const keys = plannedVenueKeys(cleanPlan());
+    expect(keys.has(dedupeKey('Park'))).toBe(false);
   });
 });

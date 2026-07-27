@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { auditPlan } from './plan-audit';
 import type { ItineraryPlan, ResearchResult, ScheduledItem } from './types';
+import type { WeeklyHours } from '@/lib/maps/place-verification';
 
 /**
  * These cases are drawn from real generations that the LLM reviewer passed:
@@ -217,6 +218,87 @@ describe('auditPlan — opening hours heuristic', () => {
     );
     expect(audit.findings.some((f) => f.issue.includes('almost certainly shut'))).toBe(
       false
+    );
+  });
+});
+
+describe('auditPlan — published opening hours', () => {
+  // The fixture dates day 1 as 2026-09-10, a Thursday (weekday 4).
+  const timed = (name: string, openingHours: WeeklyHours): ResearchResult => ({
+    destination: 'Testville',
+    attractions: [
+      {
+        name,
+        description: '',
+        category: 'x',
+        estimatedDuration: 90,
+        priceRange: '$$',
+        openingHours,
+      },
+    ],
+    restaurants: [],
+    activities: [],
+    localInsights: [],
+    sources: [],
+  });
+
+  const thursdayAfternoon: WeeklyHours = [{ day: 4, open: 12 * 60, close: 17 * 60 }];
+
+  it('flags a venue scheduled outside its published window', () => {
+    const audit = auditPlan(
+      plan([{ morning: [item('Late Opener', { time: '09:00' })] }]),
+      timed('Late Opener', thursdayAfternoon)
+    );
+    const finding = audit.findings.find((f) => f.issue.includes('12:00–17:00'));
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe('high');
+    expect(audit.scoreCeiling).toBeLessThanOrEqual(70);
+  });
+
+  it('catches the museum that closes on the trip day', () => {
+    // Open every day except Thursday, which is when it is scheduled.
+    const closedThursday: WeeklyHours = [0, 1, 2, 3, 5, 6].map((day) => ({
+      day,
+      open: 9 * 60,
+      close: 17 * 60,
+    }));
+    const audit = auditPlan(
+      plan([{ morning: [item('Closed Museum', { time: '10:00' })] }]),
+      timed('Closed Museum', closedThursday)
+    );
+    expect(
+      audit.findings.some((f) => f.issue.includes('closed all day on Thursday'))
+    ).toBe(true);
+  });
+
+  it('stays quiet when the venue is genuinely open', () => {
+    const audit = auditPlan(
+      plan([{ afternoon: [item('Late Opener', { time: '14:00' })] }]),
+      timed('Late Opener', thursdayAfternoon)
+    );
+    expect(audit.findings.some((f) => f.issue.includes('but it'))).toBe(false);
+  });
+
+  // Real hours beat the name guess outright — a bar whose own week says it is
+  // open at 09:00 must not be flagged for having "bar" in its name.
+  it('suppresses the name heuristic when real hours say the venue is open', () => {
+    const morningBar: WeeklyHours = [{ day: 4, open: 8 * 60, close: 23 * 60 }];
+    const audit = auditPlan(
+      plan([{ morning: [item('Bar Trench', { time: '09:00' })] }]),
+      timed('Bar Trench', morningBar)
+    );
+    expect(audit.findings.some((f) => f.issue.includes('almost certainly shut'))).toBe(
+      false
+    );
+  });
+
+  it('still falls back to the heuristic for a venue with no published hours', () => {
+    const audit = auditPlan(
+      plan([{ morning: [item('Bar Trench', { time: '09:00' })] }]),
+      timed('Some Other Place', thursdayAfternoon)
+    );
+    expect(audit.findings.some((f) => f.issue.includes('almost certainly shut'))).toBe(
+      true
     );
   });
 });

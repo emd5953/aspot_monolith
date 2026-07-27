@@ -51,6 +51,33 @@ interface ReasoningStep {
   result?: string;
 }
 
+/**
+ * Models, by job.
+ *
+ * The per-day build is the call that actually writes the itinerary the user
+ * reads, and it ran on the cheapest model in the pipeline at temperature 0.8
+ * while the reviewer — which only grades — got `gpt-4o`. That is backwards:
+ * no amount of reviewing recovers content the planner never generated well,
+ * and the audit ceiling can cap a bad plan but cannot author a good one.
+ *
+ * The strategy call stays on the small model: it emits a handful of day themes
+ * that the per-day pass is free to interpret, and its 0.8 temperature is doing
+ * useful work there (theme variety across days). Precision is not the job.
+ *
+ * Both are env-overridable so the cost/quality trade can be dialed — and A/B'd
+ * against `auditPlan`'s deterministic score — without a code change.
+ */
+const DAY_BUILD_MODEL = process.env.PLANNER_DAY_MODEL || 'gpt-4o';
+const STRATEGY_MODEL = process.env.PLANNER_STRATEGY_MODEL || 'gpt-4o-mini';
+
+/**
+ * Day building is a constraint-satisfaction job — pick from this pool, keep one
+ * neighbourhood, fill three buckets, no repeats — not a creative one. 0.8 was
+ * inherited from the strategy call and bought variance we then paid to detect
+ * (off-pool invented venues) and repair.
+ */
+const DAY_BUILD_TEMPERATURE = Number(process.env.PLANNER_DAY_TEMPERATURE ?? 0.5);
+
 // ─── Step 1: strategy ──────────────────────────────────────────────────────
 
 /**
@@ -119,7 +146,7 @@ ${userIntent ? `0. ⚠️ HOW will every day clearly serve "${userIntent}"? Each
 Return exactly ${tripDays} day themes, one per trip day, in order.`;
 
   const { object } = await generateObject({
-    model: openai('gpt-4o-mini'),
+    model: openai(STRATEGY_MODEL),
     schema: PlanningStrategySchema,
     prompt: strategyPrompt,
     temperature: 0.8,
@@ -274,10 +301,10 @@ CRITICAL RULES:
 ${userIntent ? `7. **OBJECTIVE LOCK**: focus is "${userIntent}". This day MUST contain at least one item that obviously serves it.` : ''}`;
 
   const { object } = await generateObject({
-    model: openai('gpt-4o-mini'),
+    model: openai(DAY_BUILD_MODEL),
     schema: SingleDaySchema,
     prompt: dayPrompt,
-    temperature: 0.8,
+    temperature: DAY_BUILD_TEMPERATURE,
     providerOptions: { openai: { strictJsonSchema: false } },
   });
 
@@ -372,6 +399,14 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
   plan: ItineraryPlan;
   thoughts: string[];
   reasoningSteps: ReasoningStep[];
+  /**
+   * The per-day pool slices this plan was built from. Returned rather than
+   * recomputed by the caller so the repair pass replaces and refills from the
+   * exact same (geo-clustered) slice the day was planned against — recomputing
+   * would be deterministic today but would silently drift the moment
+   * partitioning takes another input.
+   */
+  pools: DayPool[];
 }> {
   const {
     research,
@@ -550,5 +585,5 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
     )} activities`
   );
 
-  return { plan, thoughts, reasoningSteps };
+  return { plan, thoughts, reasoningSteps, pools };
 }

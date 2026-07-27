@@ -1,5 +1,7 @@
 // Types for destination data fetched via Tavily search
 
+import type { WeeklyHours } from '@/lib/maps/place-verification';
+
 /**
  * Provenance signal shared by every candidate type: how many Reddit search
  * hits named this place. A place with several Reddit threads vouching for it
@@ -13,6 +15,8 @@ export interface Attraction {
   category: string;
   address: string;
   coordinates?: { lat: number; lng: number };
+  /** Weekly opening hours from Place Details. Absent means unknown, not closed. */
+  openingHours?: WeeklyHours;
   estimatedDuration: number; // minutes
   priceRange: string;
   rating?: number;
@@ -27,6 +31,8 @@ export interface Restaurant {
   priceRange: string;
   address: string;
   coordinates?: { lat: number; lng: number };
+  /** Weekly opening hours from Place Details. Absent means unknown, not closed. */
+  openingHours?: WeeklyHours;
   rating?: number;
   url?: string;
   imageUrl?: string;
@@ -48,6 +54,8 @@ export interface ActivityOption {
    */
   address?: string;
   coordinates?: { lat: number; lng: number };
+  /** Weekly opening hours from Place Details. Absent means unknown, not closed. */
+  openingHours?: WeeklyHours;
   url?: string;
   imageUrl?: string;
   redditMentions?: number;
