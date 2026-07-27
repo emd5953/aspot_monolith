@@ -50,3 +50,6 @@ next-env.d.ts
 # machine-local Claude Code config (bypass mode, personal allowlist)
 .claude/settings.local.json
 .gstack/
+
+# machine-local Rivet server state (pid, ports, absolute paths, session ids)
+.rivet/
