@@ -32,6 +32,7 @@ import { ItineraryPlan, ResearchResult, ScheduledItem, DayPlan } from './types';
 import { dedupeKey } from '../provenance';
 import { refillBucket, type DayPool } from './pool-partition';
 import { isOpenAt, type WeeklyHours } from '@/lib/maps/place-verification';
+import { isOnTheme, themeScore, anchorBucket, ANCHOR_TIME } from './theme';
 
 export interface RepairResult {
   plan: ItineraryPlan;
@@ -184,10 +185,19 @@ export function findOpenBucket(
 export function repairPlan(
   plan: ItineraryPlan,
   research: ResearchResult,
-  pools: DayPool[]
+  pools: DayPool[],
+  userIntent?: string
 ): RepairResult {
   const repairs: string[] = [];
   const hoursIndex = buildHoursIndex(research);
+
+  // A theme only counts if it is specific enough to match anything. A vague
+  // intent would otherwise flag every day and anchor them all on noise.
+  const themed = Boolean(userIntent) && isOnTheme(userIntent!, userIntent);
+  const anchorSlot = anchorBucket(userIntent);
+  const anchorMinutes =
+    Number(ANCHOR_TIME[anchorSlot].slice(0, 2)) * 60 +
+    Number(ANCHOR_TIME[anchorSlot].slice(3, 5));
   const hoursFor = (item: ScheduledItem): WeeklyHours | undefined =>
     hoursIndex.get(dedupeKey(item.name));
 
@@ -281,6 +291,102 @@ export function repairPlan(
           );
         }
         next[bucket] = staying;
+      }
+    }
+
+    // ── 3a. The theme's anchor ─────────────────────────────────────────────
+    //
+    // Placed before meals and before fill, because it is the most fixed point
+    // there is: it is the thing the user actually asked for. A day that has
+    // nothing serving the theme has failed at its only job, however tidy it
+    // looks — a real house-music run returned The Elevated Acre, Smorgasburg,
+    // and Coney Island, every one of which passes every other check.
+    if (themed) {
+      const onThemeIn = (b: Bucket) =>
+        next[b].findIndex((i) =>
+          isOnTheme(`${i.name} ${i.description ?? ''}`, userIntent)
+        );
+
+      // Being present is not the same as being the spine. A real run anchored
+      // a night-out theme on a bar at 10:00 — technically on-theme, useless as
+      // a plan. So an anchor only counts when it sits in the slot the theme
+      // belongs to, and an on-theme item found elsewhere is MOVED there rather
+      // than leaving the day to be re-anchored on something else.
+      let anchored = onThemeIn(anchorSlot) >= 0;
+
+      if (!anchored) {
+        for (const b of BUCKETS) {
+          if (b === anchorSlot) continue;
+          const idx = onThemeIn(b);
+          if (idx < 0) continue;
+
+          const moving = next[b][idx];
+          const hours = hoursIndex.get(dedupeKey(moving.name));
+          if (weekday !== null && hours?.length && !isOpenAt(hours, weekday, anchorMinutes)) {
+            continue; // Right theme, but shut then — leave it where it works.
+          }
+
+          next[b] = next[b].filter((_, i) => i !== idx);
+          next[anchorSlot].push({ ...moving, time: ANCHOR_TIME[anchorSlot] });
+          target[anchorSlot] = Math.max(target[anchorSlot], next[anchorSlot].length);
+          repairs.push(
+            `Day ${day.dayNumber}: moved "${moving.name}" from the ${b} to the ${anchorSlot} at ${ANCHOR_TIME[anchorSlot]} — it is what the day is for.`
+          );
+          anchored = true;
+          break;
+        }
+      }
+
+      if (!anchored) {
+        // Best on-theme candidate anywhere in the pool, day slice first. The
+        // theme outranks geography for exactly one item per day: a themed trip
+        // that keeps every day tidy and never delivers the theme is worse than
+        // one that travels for the thing it promised.
+        const candidates = [
+          ...pool.activities,
+          ...pool.attractions,
+          ...pool.restaurants,
+          ...(research.activities ?? []),
+          ...(research.attractions ?? []),
+          ...(research.restaurants ?? []),
+        ];
+
+        let best: { name: string; score: number; type: ScheduledItem['type'] } | null =
+          null;
+        for (const c of candidates) {
+          if (used.has(dedupeKey(c.name))) continue;
+          const text = `${c.name} ${'description' in c ? (c.description ?? '') : ''} ${'category' in c ? (c.category ?? '') : ''}`;
+          if (!isOnTheme(text, userIntent)) continue;
+          // Rank by literal match so a venue that names the theme outright
+          // beats one that merely qualifies by venue kind. Both are eligible;
+          // the wording is just better evidence.
+          const score = themeScore(text, userIntent);
+          if (weekday !== null) {
+            const hours = hoursIndex.get(dedupeKey(c.name));
+            if (hours?.length && !isOpenAt(hours, weekday, anchorMinutes)) continue;
+          }
+          if (!best || score > best.score) {
+            best = {
+              name: c.name,
+              score,
+              type: 'cuisine' in c ? 'restaurant' : 'activity',
+            };
+          }
+        }
+
+        if (best) {
+          used.add(dedupeKey(best.name));
+          next[anchorSlot].push({
+            time: ANCHOR_TIME[anchorSlot],
+            name: best.name,
+            type: best.type,
+            duration: 120,
+          });
+          target[anchorSlot] = Math.max(target[anchorSlot], next[anchorSlot].length);
+          repairs.push(
+            `Day ${day.dayNumber}: anchored the ${anchorSlot} on "${best.name}" — nothing served "${userIntent}".`
+          );
+        }
       }
     }
 

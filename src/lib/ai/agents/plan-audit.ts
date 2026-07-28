@@ -20,6 +20,7 @@ import { ItineraryPlan, ResearchResult, ReviewIssue, ScheduledItem } from './typ
 import { dedupeKey } from '../provenance';
 import { haversineKm, LatLng } from '@/lib/itinerary/geo';
 import { isOpenAt, type WeeklyHours } from '@/lib/maps/place-verification';
+import { isOnTheme, anchorBucket } from './theme';
 
 export interface AuditFinding extends ReviewIssue {
   /** Highest score a plan carrying this finding may be awarded. */
@@ -196,7 +197,11 @@ function centroid(points: LatLng[]): LatLng | null {
  * confidence. (If they're always no-oping, Places resolution is off; see
  * tavily-service.)
  */
-export function auditPlan(plan: ItineraryPlan, research: ResearchResult): PlanAudit {
+export function auditPlan(
+  plan: ItineraryPlan,
+  research: ResearchResult,
+  userIntent?: string
+): PlanAudit {
   const findings: AuditFinding[] = [];
   const coords = buildCoordIndex(research);
   const hoursIndex = buildHoursIndex(research);
@@ -380,6 +385,53 @@ export function auditPlan(plan: ItineraryPlan, research: ResearchResult): PlanAu
         suggestion: `Drop a stop from day ${day.dayNumber} — this is more day than anyone actually has.`,
         scoreCeiling: 85,
       });
+    }
+  }
+
+  // ── 3d. The theme has to actually show up ────────────────────────────────
+  //
+  // The user asked for something. A day that contains nothing serving it has
+  // failed at the only job it was given, however clean it is mechanically —
+  // and this is the one failure the rest of the audit is blind to. A real run
+  // asking for house music returned The Elevated Acre, Smorgasburg, and Coney
+  // Island, all of which pass every other check here.
+  //
+  // Severity is high because it is a miss on the explicit request, not a
+  // rough edge. Anchoring is checked per day: a themed trip where the theme
+  // appears once on day 2 is not a themed trip.
+  if (userIntent && isOnTheme(userIntent, userIntent)) {
+    const slot = anchorBucket(userIntent);
+    for (const day of days) {
+      const onTheme = dayItems(day).filter((i) =>
+        isOnTheme(`${i.name} ${i.description ?? ''}`, userIntent)
+      );
+
+      if (onTheme.length === 0) {
+        findings.push({
+          severity: 'high',
+          dayNumber: day.dayNumber,
+          issue: `Day ${day.dayNumber} has nothing that serves "${userIntent}" — the thing the trip was asked for.`,
+          suggestion: `Give day ${day.dayNumber} at least one stop that obviously serves "${userIntent}", and build the day around it.`,
+          scoreCeiling: 70,
+        });
+        continue;
+      }
+
+      // Present but misplaced. A night-out theme anchored on a bar at 10:00 is
+      // on-theme and unusable — the anchor has to sit where the theme belongs.
+      const inSlot = (day[slot] ?? []).some((i) =>
+        isOnTheme(`${i.name} ${i.description ?? ''}`, userIntent)
+      );
+      if (!inSlot) {
+        const stray = onTheme[0];
+        findings.push({
+          severity: 'medium',
+          dayNumber: day.dayNumber,
+          issue: `Day ${day.dayNumber} serves "${userIntent}" only at ${stray.time} ("${stray.name}") — not in the ${slot}, where the day should peak.`,
+          suggestion: `Move "${stray.name}" into the ${slot} on day ${day.dayNumber} and build the rest of the day around it.`,
+          scoreCeiling: 85,
+        });
+      }
     }
   }
 

@@ -351,7 +351,8 @@ export async function runAgenticOrchestrator(
     const repaired = repairPlan(
       planResult.plan,
       researchResult.result,
-      planResult.pools
+      planResult.pools,
+      userIntent
     );
     currentPlan = repaired.plan;
     if (repaired.repairs.length > 0) {
@@ -473,9 +474,14 @@ export async function runAgenticOrchestrator(
         // against it unrepaired would lose on defects we know how to fix. The
         // date re-stamp must come first — repair reads `day.date` to decide
         // what is open.
-        const cleaned = repairPlan(restamped, researchResult.result, planResult.pools).plan;
-        const beforeCeiling = auditPlan(currentPlan, researchResult.result).scoreCeiling;
-        const afterCeiling = auditPlan(cleaned, researchResult.result).scoreCeiling;
+        const cleaned = repairPlan(
+          restamped,
+          researchResult.result,
+          planResult.pools,
+          userIntent
+        ).plan;
+        const beforeCeiling = auditPlan(currentPlan, researchResult.result, userIntent).scoreCeiling;
+        const afterCeiling = auditPlan(cleaned, researchResult.result, userIntent).scoreCeiling;
 
         // The ceiling is a min over findings, so it goes *up* when the plan
         // holds less: a revision that quietly drops two days audits clean and

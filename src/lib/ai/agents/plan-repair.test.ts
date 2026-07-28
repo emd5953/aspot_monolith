@@ -422,3 +422,103 @@ describe('repairPlan — meals are defaults', () => {
     expect(repairs.some((r) => r.includes('added lunch'))).toBe(false);
   });
 });
+
+/**
+ * The anchor: the thing the user actually asked for, in the slot it belongs to.
+ * A real house-music run returned The Elevated Acre, Smorgasburg, and Coney
+ * Island — every one of which passes every other check in the audit.
+ */
+describe('repairPlan — the theme anchor', () => {
+  const INTENT = 'house music';
+
+  const clubPool = (names: string[]): DayPool => ({
+    attractions: [],
+    restaurants: [],
+    activities: names.map((n) => ({
+      name: n,
+      description: 'A nightlife venue known for themed parties',
+      category: 'nightlife',
+      duration: 120,
+      adventureLevel: 5,
+      priceRange: '$$',
+    })),
+  });
+
+  it('anchors a day that serves the theme nowhere', () => {
+    const { plan: fixed, repairs } = repairPlan(
+      plan([{}]),
+      research(),
+      [clubPool(['Nowadays'])],
+      INTENT
+    );
+
+    const anchor = fixed.days[0].evening.find((i) => i.name === 'Nowadays');
+    expect(anchor).toBeDefined();
+    expect(anchor?.time).toBe('21:00');
+    expect(repairs.some((r) => r.includes('anchored'))).toBe(true);
+  });
+
+  // Present is not the same as load-bearing: a real run anchored a night-out
+  // theme on a bar at 10:00.
+  it('moves an on-theme item out of the morning into the evening', () => {
+    const { plan: fixed, repairs } = repairPlan(
+      plan([
+        {
+          morning: [
+            item('The Panorama Room', {
+              time: '10:00',
+              description: 'A rooftop cocktail bar',
+            }),
+          ],
+        },
+      ]),
+      research(),
+      [clubPool([])],
+      INTENT
+    );
+
+    expect(fixed.days[0].morning.some((i) => i.name === 'The Panorama Room')).toBe(false);
+    const moved = fixed.days[0].evening.find((i) => i.name === 'The Panorama Room');
+    expect(moved?.time).toBe('21:00');
+    expect(repairs.some((r) => r.includes('what the day is for'))).toBe(true);
+  });
+
+  it('leaves a day alone when the anchor is already in the right slot', () => {
+    const { repairs } = repairPlan(
+      plan([
+        {
+          evening: [
+            item('House of Yes', {
+              time: '21:00',
+              description: 'A nightlife venue in Bushwick',
+            }),
+          ],
+        },
+      ]),
+      research(),
+      [clubPool(['Should Not Be Used'])],
+      INTENT
+    );
+
+    expect(repairs.some((r) => r.includes('anchored'))).toBe(false);
+  });
+
+  it('never reuses the same venue as the anchor on two days', () => {
+    const { plan: fixed } = repairPlan(
+      plan([{}, {}]),
+      research(),
+      [clubPool(['Only Club']), clubPool(['Only Club'])],
+      INTENT
+    );
+
+    const uses = fixed.days.flatMap((d) =>
+      [...d.morning, ...d.afternoon, ...d.evening].filter((i) => i.name === 'Only Club')
+    );
+    expect(uses).toHaveLength(1);
+  });
+
+  it('does nothing when there is no theme', () => {
+    const { repairs } = repairPlan(plan([{}]), research(), [clubPool(['Nowadays'])]);
+    expect(repairs.some((r) => r.includes('anchored'))).toBe(false);
+  });
+});

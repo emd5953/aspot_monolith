@@ -12,6 +12,7 @@ Specialized AI agents and the orchestration strategies that coordinate them. Thi
 - Per-day pool slicing and model-free day assembly: `pool-partition.ts`
 - Deterministic quality gate: `plan-audit.ts`
 - Deterministic quality *fixes*: `plan-repair.ts`
+- The user's theme as structure: `theme.ts`
 - The inter-agent contract: `types.ts`
 
 ## Local Contracts
@@ -23,6 +24,9 @@ Specialized AI agents and the orchestration strategies that coordinate them. Thi
 - Both orchestrators read cached research via `../research-cache` and curate it through `@/lib/preferences/score-research` before planning.
 - `userIntent` / original prompt are optional free-text inputs that bias research toward the user's theme; profile is the floor, prompt is the steering wheel.
 - **Mechanical quality is decided in code, not by the model.** `auditPlan` (`plan-audit.ts`) computes duplicate venues, per-day geographic spread, out-of-region outliers, empty buckets, missing dinners, backwards clocks, and off-pool (invented) items. It returns a `scoreCeiling`, and the reviewer may not score above it. Left to itself the LLM reviewer scored 92/100 for a plan that booked one venue twice and 85/100 for a day that crossed Lisbon four times — and because the orchestrator stops the moment its threshold is met, those inflated scores meant deep mode's five iterations always ended after one. Add a new mechanical check here, not to the reviewer prompt.
+- **The theme is structure, not prompt advice** (`theme.ts`). A stated intent decides two things in code: the day's *rhythm* (a late theme overrides the quiz `timeRhythm` — profile is the floor, prompt is the steering wheel) and the day's *anchor slot*. Every day must carry an on-theme item **in that slot**; present-but-misplaced is a finding, because a night-out theme anchored on a bar at 10:00 is on-theme and useless.
+- **`isOnTheme` needs both halves.** Phrase-first scoring alone rejects "Louis Armstrong House Museum" for a *house music* trip — correctly — and rejects "House of Yes" for the same reason, since the pool records it only as `category: nightlife`. So a late theme also accepts a late-venue *kind*. Keep `LATE_VENUE_MARKERS` to words that mean "a place you go at night": "live music", "party" and "dance" were in there and matched "Museum Mile Festival", which repair then moved to 21:00.
+- **Fixed points are placed before fill, in priority order**: theme anchor → meals → generic fill. Fill ran first once and spent the day's only restaurant on a 14:00 slot, leaving the evening with nowhere to eat.
 - **Detect in `plan-audit`, fix in `plan-repair`.** A finding whose fix is mechanical belongs in `repairPlan`, which runs between planning and review on every iteration. It matters because fast mode (`maxIterations = 1`, the default) stops before any decision reasoning happens: the audit ceiling can cap a flawed plan but nothing ever acts on it, and the reviewer's revision only fires on an unapproved review carrying a high-severity issue. Repair is pure, idempotent, and model-free — a backwards clock, an empty bucket, a duplicate venue, and a venue booked while it is shut all have known-correct answers, so none of them should cost a `gpt-4o` round-trip. Adding a check without adding its repair means shipping the defect.
 - `repairPlan` takes the per-day `pools` that `runAgenticPlanner` returns, so replacements and refills come from the same geo-clustered slice the day was planned against. Don't recompute the partition at the call site.
 - **Opening hours beat the name heuristic.** When a research item carries `openingHours` (Place Details, stamped in `tavily-service`), `plan-audit` judges the schedule against the published week and skips the nightlife word-match entirely. Absent hours mean *unknown*, never *closed* — no finding, no repair.
@@ -39,5 +43,5 @@ Specialized AI agents and the orchestration strategies that coordinate them. Thi
 
 ## Verification
 
-- `npm test` (Vitest) — `agentic-orchestrator.test.ts`, `agentic-orchestrator-repair.test.ts`, `agentic-planner.test.ts`, `plan-audit.test.ts`, `plan-repair.test.ts`, `pool-partition.test.ts`, `reviewer.test.ts`.
+- `npm test` (Vitest) — `agentic-orchestrator.test.ts`, `agentic-orchestrator-repair.test.ts`, `agentic-planner.test.ts`, `plan-audit.test.ts`, `plan-repair.test.ts`, `pool-partition.test.ts`, `theme.test.ts`, `reviewer.test.ts`.
 - `agentic-orchestrator-repair.test.ts` drives the real orchestrator with every model seam mocked and asserts on the plan the reviewer is *handed*. That's what pins "repair runs before review on the fast path" — the claim the whole pass exists for.

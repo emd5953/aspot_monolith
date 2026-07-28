@@ -19,7 +19,7 @@ import {
  * Tokenize a free-text intent string into useful keywords for matching against
  * candidate names/descriptions/categories. Drops stopwords and noise.
  */
-function intentKeywords(userIntent?: string): string[] {
+export function intentKeywords(userIntent?: string): string[] {
   if (!userIntent) return [];
   const stop = new Set([
     'and', 'or', 'the', 'a', 'an', 'of', 'in', 'on', 'for', 'to', 'with',

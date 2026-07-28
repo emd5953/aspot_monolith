@@ -79,7 +79,7 @@ export async function runReviewerAgent(request: ReviewRequest): Promise<{
 
   // Mechanical checks run first, in code. The model is told what they found so
   // it doesn't have to (and demonstrably can't) do this arithmetic itself.
-  const audit = auditPlan(plan, research);
+  const audit = auditPlan(plan, research, userIntent);
   thoughts.push(
     `🔍 Automated audit: ${audit.findings.length} finding(s), score ceiling ${audit.scoreCeiling}/100 ` +
       `(max day spread ${audit.stats.maxDaySpreadKm}km, ${audit.stats.offPoolItems}/${audit.stats.totalItems} items off-pool)`

@@ -38,6 +38,7 @@ import {
   type PlanningStrategySchemaT,
 } from '../schemas/plan';
 import { dedupeKey } from '../provenance';
+import { effectiveRhythm, anchorBucket } from './theme';
 import {
   partitionResearchAcrossDays,
   refillBucket,
@@ -125,7 +126,7 @@ USER PROFILE:
 - Interests: ${preferences.activityTypes?.join(', ') || 'general activities'}
 - Budget: ${preferences.budgetRange || 'moderate'}
 - Pace: ${preferences.travelPace || 'moderate'}
-- Time Rhythm: ${preferences.timeRhythm || 'daytime'}
+- Time Rhythm: ${effectiveRhythm(preferences.timeRhythm, userIntent)}
 - Comfort Zone: ${preferences.comfortZone || 5}/10
 - Social Style: ${preferences.socialPreferences || 'couple'}
 
@@ -136,7 +137,7 @@ AVAILABLE OPTIONS:
 
 STRATEGIC QUESTIONS:
 ${userIntent ? `0. ⚠️ HOW will every day clearly serve "${userIntent}"? Each day's theme should reflect this.` : ''}
-1. Pacing for their ${preferences.travelPace} pace and ${preferences.timeRhythm || 'daytime'} energy.
+1. Pacing for their ${preferences.travelPace} pace and ${effectiveRhythm(preferences.timeRhythm, userIntent)} energy.
 2. A theme per day that matches their motivations.
 3. Activity-vs-rest balance for comfort zone ${preferences.comfortZone || 5}/10.
 4. ${preferences.authenticityPreference || 'balanced'} (tourist vs local) emphasis.
@@ -182,8 +183,15 @@ async function buildDayWithReasoning(
   day: DayPlan;
   reasoning: string[];
 }> {
+  // The stated theme outranks the quiz profile on rhythm: someone who asked
+  // for house music this trip has said something more specific, and more
+  // recent, than a quiz answer they gave once. Scheduling their club night
+  // around an "early_bird" profile serves neither signal.
+  const rhythm = effectiveRhythm(preferences.timeRhythm, userIntent);
+  const anchorSlot = anchorBucket(userIntent);
+
   const intentBlock = userIntent
-    ? `\n🎯 PRIMARY OBJECTIVE FOR THE WHOLE TRIP — must show up TODAY:\nUser said: "${rawPrompt ?? userIntent}"\nFocus: "${userIntent}"\nThis day MUST include at least one item that obviously serves this focus.\n`
+    ? `\n🎯 PRIMARY OBJECTIVE FOR THE WHOLE TRIP — must show up TODAY:\nUser said: "${rawPrompt ?? userIntent}"\nFocus: "${userIntent}"\nThis day MUST include at least one item that obviously serves this focus, and it belongs in the ${anchorSlot}. Build the rest of the day around it — that item is the point of the day, not a bonus at the end.\n`
     : '';
 
   const issuesBlock =
@@ -202,7 +210,7 @@ THEME: ${theme}
 USER PERSONALITY:
 - Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
 - Authenticity: ${preferences.authenticityPreference || 'balanced'}
-- Time Rhythm: ${preferences.timeRhythm || 'steady_daytime'}
+- Time Rhythm: ${rhythm}
 - Comfort Zone: ${preferences.comfortZone || 5}/10
 - Social: ${preferences.socialPreferences || 'couple'}
 - Interests: ${preferences.activityTypes.slice(0, 3).join(', ')}
@@ -251,12 +259,16 @@ ${
 }
 
 ${
-  preferences.timeRhythm === 'early_bird'
-    ? '- Early Morning (7-9am): 1 sunrise/early activity\n- Morning (9-12): 1-2 activities'
-    : preferences.timeRhythm === 'night_owl'
-      ? '- Late Morning (10-1): 1-2 activities (they sleep in)\n- Afternoon (1-6): lunch + 2 activities\n- Evening/Night (6-11): 2 activities + dinner (their peak)'
-      : '- Morning (9-12): 1-2 activities\n- Afternoon (12-5): lunch + 1-2 activities\n- Evening (5-9): 1 activity + dinner'
+  rhythm === 'early_bird'
+    ? '- Early Morning (7-9am): 1 sunrise/early activity\n- Morning (9-12): 1-2 activities\n- Afternoon (12-5): LUNCH + 1-2 activities\n- Evening (5-9): 1 activity + DINNER'
+    : rhythm === 'night_owl'
+      ? '- Late Morning (11-1): 1 activity — they were out late, do NOT schedule anything before 11:00\n- Afternoon (1-6): LUNCH + 1-2 activities\n- Evening/Night (7-late): DINNER around 8pm, then the night out — this is their peak, put the best of the day here'
+      : '- Morning (9-12): 1-2 activities\n- Afternoon (12-5): LUNCH + 1-2 activities\n- Evening (5-9): 1 activity + DINNER'
 }
+
+MEALS ARE NOT OPTIONAL. Every day needs a lunch (11:00-15:00) and a dinner
+(17:00-22:00), both type "restaurant". They are the scaffold of the day;
+sightseeing fills the gaps between them.
 
 GEOGRAPHIC RULES (CRITICAL):
 0. Options above carry "@ location" when known — use it to group, don't guess.
