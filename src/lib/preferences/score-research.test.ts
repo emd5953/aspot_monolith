@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { diversifyByCuisine, intentMatchScore } from './score-research';
-import type { RestaurantData } from '@/lib/ai/agents/types';
+import { diversifyByCuisine, intentMatchScore, scoreAttraction } from './score-research';
+import type { RestaurantData, AttractionData } from '@/lib/ai/agents/types';
+import type { UserPreferences } from '@/types/quiz';
 
 const r = (name: string, cuisine: string[]): RestaurantData => ({
   name,
@@ -98,5 +99,52 @@ describe('intentMatchScore — phrase-first matching', () => {
 
   it('is zero without keywords', () => {
     expect(intentMatchScore('anything at all', [])).toBe(0);
+  });
+});
+
+/**
+ * Theme fit is judged by the model at extraction, with the source page in
+ * front of it. Curation ranks on that judgement rather than on word overlap,
+ * because word overlap cannot tell House of Yes from the Louis Armstrong
+ * House Museum.
+ */
+describe('scoring on the model theme judgement', () => {
+  const prefs = {
+    activityTypes: [],
+    travelMotivations: [],
+    cuisinePreferences: [],
+  } as unknown as UserPreferences;
+
+  const attraction = (name: string, themeFit?: 'direct' | 'adjacent' | 'none') =>
+    ({
+      name,
+      description: '',
+      category: 'x',
+      estimatedDuration: 90,
+      priceRange: '$$',
+      themeFit,
+    }) as AttractionData;
+
+  it('ranks a direct match above an adjacent one above an unrelated one', () => {
+    const direct = scoreAttraction(attraction('A', 'direct'), prefs);
+    const adjacent = scoreAttraction(attraction('B', 'adjacent'), prefs);
+    const none = scoreAttraction(attraction('C', 'none'), prefs);
+    expect(direct).toBeGreaterThan(adjacent);
+    expect(adjacent).toBeGreaterThan(none);
+  });
+
+  it('outweighs a coincidental keyword match', () => {
+    // "Louis Armstrong House Museum" shares a word with "house music" and is
+    // judged unrelated; a real club shares no words and is judged direct.
+    const kw = ['house', 'music'];
+    const museum = scoreAttraction(attraction('Louis Armstrong House Museum', 'none'), prefs, kw);
+    const club = scoreAttraction(attraction('Nowadays', 'direct'), prefs, kw);
+    expect(club).toBeGreaterThan(museum);
+  });
+
+  it('leaves an untagged pool ranking on its other signals', () => {
+    const untagged = scoreAttraction(attraction('A'), prefs);
+    const explicitNone = scoreAttraction(attraction('A', 'none'), prefs);
+    expect(untagged).toBe(explicitNone);
   });
 });

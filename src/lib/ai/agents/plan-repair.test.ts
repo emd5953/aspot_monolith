@@ -431,23 +431,44 @@ describe('repairPlan — meals are defaults', () => {
 describe('repairPlan — the theme anchor', () => {
   const INTENT = 'house music';
 
+  /** A pool of clubs the model judged as directly serving the theme. */
   const clubPool = (names: string[]): DayPool => ({
     attractions: [],
     restaurants: [],
     activities: names.map((n) => ({
       name: n,
-      description: 'A nightlife venue known for themed parties',
+      description: 'A nightlife venue',
       category: 'nightlife',
       duration: 120,
       adventureLevel: 5,
       priceRange: '$$',
+      themeFit: 'direct' as const,
     })),
+  });
+
+  /** Research carrying the model's judgement for named venues. */
+  const tagged = (
+    entries: Array<{ name: string; themeFit: 'direct' | 'adjacent' | 'none' }>
+  ): ResearchResult => ({
+    destination: 'Testville',
+    attractions: entries.map((e) => ({
+      name: e.name,
+      description: '',
+      category: 'x',
+      estimatedDuration: 90,
+      priceRange: '$$',
+      themeFit: e.themeFit,
+    })),
+    restaurants: [],
+    activities: [],
+    localInsights: [],
+    sources: [],
   });
 
   it('anchors a day that serves the theme nowhere', () => {
     const { plan: fixed, repairs } = repairPlan(
       plan([{}]),
-      research(),
+      tagged([{ name: 'Some Museum', themeFit: 'none' }]),
       [clubPool(['Nowadays'])],
       INTENT
     );
@@ -458,21 +479,12 @@ describe('repairPlan — the theme anchor', () => {
     expect(repairs.some((r) => r.includes('anchored'))).toBe(true);
   });
 
-  // Present is not the same as load-bearing: a real run anchored a night-out
-  // theme on a bar at 10:00.
+  // Present is not load-bearing: a real run anchored a night-out theme on a
+  // bar at 10:00.
   it('moves an on-theme item out of the morning into the evening', () => {
     const { plan: fixed, repairs } = repairPlan(
-      plan([
-        {
-          morning: [
-            item('The Panorama Room', {
-              time: '10:00',
-              description: 'A rooftop cocktail bar',
-            }),
-          ],
-        },
-      ]),
-      research(),
+      plan([{ morning: [item('The Panorama Room', { time: '10:00' })] }]),
+      tagged([{ name: 'The Panorama Room', themeFit: 'direct' }]),
       [clubPool([])],
       INTENT
     );
@@ -485,17 +497,8 @@ describe('repairPlan — the theme anchor', () => {
 
   it('leaves a day alone when the anchor is already in the right slot', () => {
     const { repairs } = repairPlan(
-      plan([
-        {
-          evening: [
-            item('House of Yes', {
-              time: '21:00',
-              description: 'A nightlife venue in Bushwick',
-            }),
-          ],
-        },
-      ]),
-      research(),
+      plan([{ evening: [item('House of Yes', { time: '21:00' })] }]),
+      tagged([{ name: 'House of Yes', themeFit: 'direct' }]),
       [clubPool(['Should Not Be Used'])],
       INTENT
     );
@@ -503,10 +506,23 @@ describe('repairPlan — the theme anchor', () => {
     expect(repairs.some((r) => r.includes('anchored'))).toBe(false);
   });
 
+  // Adjacent is worth having in the day, but it is not what the day is built
+  // around — so it must not satisfy the anchor.
+  it('does not treat an adjacent place as the anchor', () => {
+    const { repairs } = repairPlan(
+      plan([{ evening: [item('A Record Bar', { time: '21:00' })] }]),
+      tagged([{ name: 'A Record Bar', themeFit: 'adjacent' }]),
+      [clubPool(['Nowadays'])],
+      INTENT
+    );
+
+    expect(repairs.some((r) => r.includes('anchored'))).toBe(true);
+  });
+
   it('never reuses the same venue as the anchor on two days', () => {
     const { plan: fixed } = repairPlan(
       plan([{}, {}]),
-      research(),
+      tagged([{ name: 'Only Club', themeFit: 'direct' }]),
       [clubPool(['Only Club']), clubPool(['Only Club'])],
       INTENT
     );
@@ -517,8 +533,38 @@ describe('repairPlan — the theme anchor', () => {
     expect(uses).toHaveLength(1);
   });
 
+  // Absent is unknown, not "none". An untagged pool means nobody judged it.
+  it('does nothing when the pool was never theme-tagged', () => {
+    const { repairs } = repairPlan(
+      plan([{}]),
+      research(),
+      [
+        {
+          attractions: [],
+          restaurants: [],
+          activities: [
+            {
+              name: 'Nowadays',
+              description: 'A nightlife venue',
+              category: 'nightlife',
+              duration: 120,
+              adventureLevel: 5,
+              priceRange: '$$',
+            },
+          ],
+        },
+      ],
+      INTENT
+    );
+    expect(repairs.some((r) => r.includes('anchored'))).toBe(false);
+  });
+
   it('does nothing when there is no theme', () => {
-    const { repairs } = repairPlan(plan([{}]), research(), [clubPool(['Nowadays'])]);
+    const { repairs } = repairPlan(
+      plan([{}]),
+      tagged([{ name: 'Nowadays', themeFit: 'direct' }]),
+      [clubPool(['Nowadays'])]
+    );
     expect(repairs.some((r) => r.includes('anchored'))).toBe(false);
   });
 });

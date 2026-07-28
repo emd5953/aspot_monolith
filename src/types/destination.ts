@@ -1,6 +1,7 @@
 // Types for destination data fetched via Tavily search
 
 import type { WeeklyHours } from '@/lib/maps/place-verification';
+import type { ThemeFit } from '@/lib/ai/agents/theme';
 
 /**
  * Provenance signal shared by every candidate type: how many Reddit search
@@ -17,6 +18,8 @@ export interface Attraction {
   coordinates?: { lat: number; lng: number };
   /** Weekly opening hours from Place Details. Absent means unknown, not closed. */
   openingHours?: WeeklyHours;
+  /** Model-judged fit against the user's theme. Absent means unknown. */
+  themeFit?: ThemeFit;
   estimatedDuration: number; // minutes
   priceRange: string;
   rating?: number;
@@ -33,6 +36,8 @@ export interface Restaurant {
   coordinates?: { lat: number; lng: number };
   /** Weekly opening hours from Place Details. Absent means unknown, not closed. */
   openingHours?: WeeklyHours;
+  /** Model-judged fit against the user's theme. Absent means unknown. */
+  themeFit?: ThemeFit;
   rating?: number;
   url?: string;
   imageUrl?: string;
@@ -56,6 +61,8 @@ export interface ActivityOption {
   coordinates?: { lat: number; lng: number };
   /** Weekly opening hours from Place Details. Absent means unknown, not closed. */
   openingHours?: WeeklyHours;
+  /** Model-judged fit against the user's theme. Absent means unknown. */
+  themeFit?: ThemeFit;
   url?: string;
   imageUrl?: string;
   redditMentions?: number;

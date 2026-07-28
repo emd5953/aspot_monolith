@@ -237,13 +237,43 @@ async function extractStructured<T>(
   hits: SearchHit[],
   destination: string,
   itemType: 'attraction' | 'restaurant' | 'activity' | 'event',
-  schemaHint: string
+  schemaHint: string,
+  userIntent?: string
 ): Promise<T[]> {
   if (hits.length === 0) return [];
 
   const corpus = hits
     .map((h, i) => `[${i + 1}] ${h.title}\n${h.content}\nSource: ${h.url}`)
     .join('\n\n');
+
+  // Theme fit is decided HERE, by the model, with the source page in front of
+  // it — not downstream by string matching.
+  //
+  // "Does this place serve house music?" is world knowledge, not text overlap.
+  // A keyword layer cannot know that House of Yes is a club and the Louis
+  // Armstrong House Museum is not; it can only know that both contain the word
+  // "house". Every attempt to patch that with stemmers, category rules and
+  // marker lists broke something else ("shop" matching "shopping", "views"
+  // missing "viewpoint"), because it was the wrong tool for a judgement call.
+  //
+  // The model reading this page already knows. Ask it once, store the answer,
+  // and let everything downstream stay deterministic on a judgement rather than
+  // guess at morphology.
+  const themeBlock = userIntent
+    ? `
+
+THE TRAVELLER ASKED FOR: "${userIntent}"
+
+For each item also set "themeFit":
+- "direct"   — this IS the thing they asked for (for "house music": a club or party that plays house; for "vintage shopping": a vintage/thrift store)
+- "adjacent" — not the thing itself, but genuinely serves the same trip (for "house music": a late record bar, a venue with DJ nights)
+- "none"     — unrelated to what they asked for, however good it is
+
+Judge what the place actually IS, not whether its name shares a word.
+"Louis Armstrong House Museum" is "none" for "house music" — it is a jazz museum.
+A nightclub described only as "nightlife" may still be "direct" if the sources suggest it fits.
+Most items in a general search will be "none". That is expected — do not inflate.`
+    : '';
 
   const prompt = `You are extracting ${itemType}s from web search results about ${destination}.
 
@@ -256,7 +286,8 @@ Extract a JSON array of ${itemType}s mentioned. Each item must:
 - NOT be made up if it isn't clearly named in the sources
 
 Schema for each item:
-${schemaHint}
+${schemaHint}${userIntent ? '\n  "themeFit": "direct" | "adjacent" | "none"' : ''}
+${themeBlock}
 
 Return up to 12 items. Pick the most distinct, well-described, and well-rated. Skip mentions that are too vague.
 
@@ -404,13 +435,15 @@ export async function fetchDestinationDataWithPrefs(
       [...attractionHits, ...redditAttractionHits, ...intentHits],
       destination,
       'attraction',
-      ATTRACTION_SCHEMA
+      ATTRACTION_SCHEMA,
+      userIntent
     ),
     extractStructured<Restaurant>(
       [...restaurantHits, ...redditRestaurantHits],
       destination,
       'restaurant',
-      RESTAURANT_SCHEMA
+      RESTAURANT_SCHEMA,
+      userIntent
     ),
     // Theme hits join the activity corpus: a themed pick is usually a venue or
     // an experience ("House of Yes", a listening bar, a night market), which is
@@ -420,10 +453,11 @@ export async function fetchDestinationDataWithPrefs(
       [...activityHits, ...redditActivityHits, ...intentHits],
       destination,
       'activity',
-      ACTIVITY_SCHEMA
+      ACTIVITY_SCHEMA,
+      userIntent
     ),
     eventHits.length > 0
-      ? extractStructured<ActivityOption>(eventHits, destination, 'event', EVENT_SCHEMA)
+      ? extractStructured<ActivityOption>(eventHits, destination, 'event', EVENT_SCHEMA, userIntent)
       : Promise.resolve([] as ActivityOption[]),
   ]);
 

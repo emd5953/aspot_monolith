@@ -20,7 +20,7 @@ import { ItineraryPlan, ResearchResult, ReviewIssue, ScheduledItem } from './typ
 import { dedupeKey } from '../provenance';
 import { haversineKm, LatLng } from '@/lib/itinerary/geo';
 import { isOpenAt, type WeeklyHours } from '@/lib/maps/place-verification';
-import { isOnTheme, anchorBucket } from './theme';
+import { anchorBucket, isAnchor, poolWasThemeTagged, type ThemeFit } from './theme';
 
 export interface AuditFinding extends ReviewIssue {
   /** Highest score a plan carrying this finding may be awarded. */
@@ -110,28 +110,21 @@ function buildCoordIndex(research: ResearchResult): Map<string, LatLng> {
 }
 
 /**
- * name → research's own category for it.
+ * name → the model's theme judgement for it.
  *
- * `ScheduledItem` carries only a coarse `type` (attraction/restaurant/activity),
- * but the theme check needs research's finer classification — "museum",
- * "nightlife", "shopping" — which is the strongest signal for whether a stop
- * serves the user's theme. The planner drops it, so recover it by name.
+ * `ScheduledItem` carries no theme information — the planner emits names — so
+ * recover the tag from the research pool the plan was built from. Deciding fit
+ * here by matching text was tried and abandoned; see theme.ts.
  */
-function buildCategoryIndex(research: ResearchResult): Map<string, string> {
-  const index = new Map<string, string>();
+function buildThemeIndex(research: ResearchResult): Map<string, ThemeFit> {
+  const index = new Map<string, ThemeFit>();
   for (const item of [
     ...(research.attractions ?? []),
     ...(research.restaurants ?? []),
     ...(research.activities ?? []),
   ]) {
     const key = dedupeKey(item.name);
-    const category =
-      'category' in item && item.category
-        ? item.category
-        : 'cuisine' in item && item.cuisine?.length
-          ? item.cuisine.join(' ')
-          : undefined;
-    if (key && category && !index.has(key)) index.set(key, category);
+    if (key && item.themeFit && !index.has(key)) index.set(key, item.themeFit);
   }
   return index;
 }
@@ -232,7 +225,7 @@ export function auditPlan(
   const findings: AuditFinding[] = [];
   const coords = buildCoordIndex(research);
   const hoursIndex = buildHoursIndex(research);
-  const categoryIndex = buildCategoryIndex(research);
+  const themeIndex = buildThemeIndex(research);
   const poolKeys = buildPoolKeys(research);
   const days = plan.days ?? [];
 
@@ -427,23 +420,29 @@ export function auditPlan(
   // Severity is high because it is a miss on the explicit request, not a
   // rough edge. Anchoring is checked per day: a themed trip where the theme
   // appears once on day 2 is not a themed trip.
-  if (userIntent && isOnTheme(userIntent, userIntent)) {
-    const slot = anchorBucket(userIntent);
-    for (const day of days) {
-      const themeOf = (i: ScheduledItem) =>
-        isOnTheme(
-          `${i.name} ${i.description ?? ''}`,
-          userIntent,
-          categoryIndex.get(dedupeKey(i.name))
-        );
-      const onTheme = dayItems(day).filter(themeOf);
+  // Only when the pool was actually judged. An untagged pool means nobody
+  // looked, and reporting "nothing serves your theme" from a missing field is
+  // the same mistake as calling a venue closed because its hours are unknown.
+  const themeTagged = poolWasThemeTagged([
+    ...(research.attractions ?? []),
+    ...(research.restaurants ?? []),
+    ...(research.activities ?? []),
+  ]);
 
-      if (onTheme.length === 0) {
+  if (userIntent && themeTagged) {
+    const slot = anchorBucket(userIntent);
+    const anchorAt = (i: ScheduledItem) =>
+      isAnchor({ themeFit: themeIndex.get(dedupeKey(i.name)) });
+
+    for (const day of days) {
+      const anchors = dayItems(day).filter(anchorAt);
+
+      if (anchors.length === 0) {
         findings.push({
           severity: 'high',
           dayNumber: day.dayNumber,
           issue: `Day ${day.dayNumber} has nothing that serves "${userIntent}" — the thing the trip was asked for.`,
-          suggestion: `Give day ${day.dayNumber} at least one stop that obviously serves "${userIntent}", and build the day around it.`,
+          suggestion: `Give day ${day.dayNumber} at least one stop that is actually "${userIntent}", and build the day around it.`,
           scoreCeiling: 70,
         });
         continue;
@@ -451,9 +450,8 @@ export function auditPlan(
 
       // Present but misplaced. A night-out theme anchored on a bar at 10:00 is
       // on-theme and unusable — the anchor has to sit where the theme belongs.
-      const inSlot = (day[slot] ?? []).some(themeOf);
-      if (!inSlot) {
-        const stray = onTheme[0];
+      if (!(day[slot] ?? []).some(anchorAt)) {
+        const stray = anchors[0];
         findings.push({
           severity: 'medium',
           dayNumber: day.dayNumber,

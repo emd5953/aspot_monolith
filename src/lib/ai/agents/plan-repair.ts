@@ -32,7 +32,14 @@ import { ItineraryPlan, ResearchResult, ScheduledItem, DayPlan } from './types';
 import { dedupeKey } from '../provenance';
 import { refillBucket, type DayPool } from './pool-partition';
 import { isOpenAt, type WeeklyHours } from '@/lib/maps/place-verification';
-import { isOnTheme, themeScore, anchorBucket, ANCHOR_TIME } from './theme';
+import {
+  anchorBucket,
+  isAnchor,
+  themeWeight,
+  poolWasThemeTagged,
+  ANCHOR_TIME,
+  type ThemeFit,
+} from './theme';
 
 export interface RepairResult {
   plan: ItineraryPlan;
@@ -193,31 +200,26 @@ export function repairPlan(
 
   // A theme only counts if it is specific enough to match anything. A vague
   // intent would otherwise flag every day and anchor them all on noise.
-  // Research's own classification for each candidate, recovered by name — the
-  // planner drops it, and it is the strongest signal for theme fit.
-  const categoryIndex = new Map<string, string>();
-  for (const c of [
+  // The model's theme judgement for each candidate, recovered by name — the
+  // planner emits names only. Fit is decided at extraction (see theme.ts);
+  // nothing here tries to work it out from text.
+  const poolAll = [
     ...(research.attractions ?? []),
     ...(research.restaurants ?? []),
     ...(research.activities ?? []),
-  ]) {
+  ];
+  const themeIndex = new Map<string, ThemeFit>();
+  for (const c of poolAll) {
     const key = dedupeKey(c.name);
-    const category =
-      'category' in c && c.category
-        ? c.category
-        : 'cuisine' in c && c.cuisine?.length
-          ? c.cuisine.join(' ')
-          : undefined;
-    if (key && category && !categoryIndex.has(key)) categoryIndex.set(key, category);
+    if (key && c.themeFit && !themeIndex.has(key)) themeIndex.set(key, c.themeFit);
   }
-  const itemOnTheme = (i: ScheduledItem) =>
-    isOnTheme(
-      `${i.name} ${i.description ?? ''}`,
-      userIntent,
-      categoryIndex.get(dedupeKey(i.name))
-    );
+  const itemIsAnchor = (i: ScheduledItem) =>
+    isAnchor({ themeFit: themeIndex.get(dedupeKey(i.name)) });
 
-  const themed = Boolean(userIntent) && isOnTheme(userIntent!, userIntent);
+  // Only act when the pool was actually judged — an untagged pool means nobody
+  // looked, not that nothing fits.
+  const themed = Boolean(userIntent) && poolWasThemeTagged(poolAll);
+
   const anchorSlot = anchorBucket(userIntent);
   const anchorMinutes =
     Number(ANCHOR_TIME[anchorSlot].slice(0, 2)) * 60 +
@@ -326,7 +328,7 @@ export function repairPlan(
     // looks — a real house-music run returned The Elevated Acre, Smorgasburg,
     // and Coney Island, every one of which passes every other check.
     if (themed) {
-      const onThemeIn = (b: Bucket) => next[b].findIndex(itemOnTheme);
+      const onThemeIn = (b: Bucket) => next[b].findIndex(itemIsAnchor);
 
       // Being present is not the same as being the spine. A real run anchored
       // a night-out theme on a bar at 10:00 — technically on-theme, useless as
@@ -376,22 +378,12 @@ export function repairPlan(
           null;
         for (const c of candidates) {
           if (used.has(dedupeKey(c.name))) continue;
-          const category =
-            'category' in c && c.category
-              ? c.category
-              : 'cuisine' in c && c.cuisine?.length
-                ? c.cuisine.join(' ')
-                : undefined;
-          const text = `${c.name} ${'description' in c ? (c.description ?? '') : ''}`;
-          if (!isOnTheme(text, userIntent, category)) continue;
-          // Rank by literal match so a venue that names the theme outright
-          // beats one that merely qualifies by venue kind. Both are eligible;
-          // the wording is just better evidence.
-          const score = themeScore(text, userIntent, category);
+          if (!isAnchor(c)) continue;
           if (weekday !== null) {
             const hours = hoursIndex.get(dedupeKey(c.name));
             if (hours?.length && !isOpenAt(hours, weekday, anchorMinutes)) continue;
           }
+          const score = themeWeight(c);
           if (!best || score > best.score) {
             best = {
               name: c.name,

@@ -1,4 +1,5 @@
 import { UserPreferences } from '@/types/quiz';
+import { themeWeight } from '@/lib/ai/agents/theme';
 import {
   ResearchResult,
   AttractionData,
@@ -175,8 +176,15 @@ export function scoreAttraction(
     if (cat.includes(interest) || desc.includes(interest)) score += 8;
   }
 
-  // User-intent match (free-text from prompt). Heavily weighted because this
-  // is the user explicitly asking for a theme, which beats default prefs.
+  // The model's own judgement of theme fit, made at extraction with the source
+  // page in front of it. Weighted above every other signal: it is the closest
+  // thing here to knowing what a place actually is, where the keyword score
+  // below only knows what words it shares. 0 when nothing judged it, so an
+  // untagged pool ranks on the other signals rather than being flattened.
+  score += themeWeight(attraction) * 25;
+
+  // User-intent match (free-text from prompt). Kept as a weaker secondary
+  // signal for pools with no judgement.
   const intentHits = intentMatchScore(
     `${attraction.name} ${attraction.description ?? ''} ${attraction.category ?? ''}`,
     intentKw
@@ -222,6 +230,8 @@ export function scoreRestaurant(
       }
     }
   }
+
+  score += themeWeight(restaurant) * 25;
 
   // User-intent match — important for restaurants because the prompt often
   // names a vibe ("ramen", "cocktail", "rooftop") that's not in quiz prefs.
@@ -271,6 +281,8 @@ export function scoreActivity(
   for (const interest of [...activityTypes, ...motivations]) {
     if (cat.includes(interest) || desc.includes(interest)) score += 8;
   }
+
+  score += themeWeight(activity) * 25;
 
   // User-intent match.
   const intentHits = intentMatchScore(

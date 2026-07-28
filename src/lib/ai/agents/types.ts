@@ -7,6 +7,7 @@
 import { UserPreferences } from '@/types/quiz';
 import type { ItemSource } from '@/lib/ai/provenance';
 import type { WeeklyHours } from '@/lib/maps/place-verification';
+import type { ThemeFit } from './theme';
 
 // Agent message types for inter-agent communication
 export interface AgentMessage {
@@ -78,6 +79,13 @@ interface ResearchProvenance {
    * closed-when-scheduled check in plan-audit.ts.
    */
   openingHours?: WeeklyHours;
+  /**
+   * How well this candidate serves the user's stated theme, judged by the model
+   * during extraction with the source page in front of it. Absent when the
+   * request carried no theme, or when the pool predates this field — consumers
+   * must read absent as "unknown", never as "none". See tavily-service.
+   */
+  themeFit?: ThemeFit;
 }
 
 export interface AttractionData extends ResearchProvenance {
