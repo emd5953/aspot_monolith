@@ -121,19 +121,80 @@ export const ANCHOR_TIME: Record<ThemeBucket, string> = {
 };
 
 /**
+ * Crude singular form. "museums" → "museum", "bookstores" → "bookstore".
+ *
+ * Not a real stemmer, and it does not need to be — it exists because people
+ * type themes in the plural and research records categories in the singular.
+ * Measured across the five real pools, that mismatch alone produced ZERO
+ * anchors for "museums and galleries", "bookstores", and "coffee shops",
+ * including in a pool that contains the Frist Art Museum.
+ */
+function singular(token: string): string {
+  if (token.length > 4 && token.endsWith('ies')) return `${token.slice(0, -3)}y`;
+  // "-es" is only a plural suffix after a sibilant (buses, boxes, churches).
+  // Applying it everywhere turned "bookstores" into "bookstor", which matched
+  // nothing at all.
+  if (token.length > 4 && /(?:s|x|z|ch|sh)es$/.test(token)) return token.slice(0, -2);
+  if (token.length > 3 && token.endsWith('s') && !token.endsWith('ss')) {
+    return token.slice(0, -1);
+  }
+  return token;
+}
+
+/**
+ * Does an intent token name the candidate's own category?
+ *
+ * This is the general form of what the nightlife bridge was doing by hand. A
+ * candidate's `category` is research's own classification of what the thing
+ * *is* — "museum", "shopping", "nightlife", "cultural" — so a theme token
+ * landing there is strong evidence, categorically different from the same word
+ * turning up in a sentence of marketing prose.
+ *
+ * It is also what separates the two hard cases. "museums and galleries" vs
+ * `category: museum` matches and should score high. "house music" vs
+ * `category: museum` matches nothing, so Louis Armstrong House Museum stays
+ * where it belongs — a coincidence in the name, not a classification.
+ */
+function matchesCategory(category: string | undefined, keywords: string[]): boolean {
+  const cat = (category || '').toLowerCase().trim();
+  if (!cat) return false;
+  const catTokens = cat.split(/[\s,/&_-]+/).filter(Boolean).map(singular);
+  if (catTokens.length === 0) return false;
+  // Exact token equality, not substring. Substring matching made "coffee
+  // shops" match `category: shopping` and anchor a coffee theme on a taxidermy
+  // store — "shop" is inside "shopping" and means something else entirely.
+  return keywords.some((kw) => {
+    const k = singular(kw);
+    return k.length >= 3 && catTokens.some((c) => c === k);
+  });
+}
+
+/**
  * How strongly a candidate serves the theme.
  *
- * Delegates to the same phrase-first scorer the research curation uses, so
- * "on theme" means one thing across the pipeline. A jazz museum does not count
- * as house music here for exactly the same reason it does not count there.
+ * Text matching delegates to the same phrase-first scorer the research curation
+ * uses, so "on theme" means one thing across the pipeline. On top of it, a
+ * category hit scores as a strong match — that is the general mechanism that
+ * lets any theme find its own kind of place, rather than only the nightlife
+ * themes a hand-written marker list happened to cover.
  */
 export function themeScore(
   text: string,
-  userIntent?: string
+  userIntent?: string,
+  category?: string
 ): number {
   const kw = intentKeywords(userIntent);
   if (kw.length === 0) return 0;
-  return intentMatchScore(text, kw);
+
+  const textScore = intentMatchScore(text, kw);
+  // Also try the singular forms against the text, so "bookstores" finds a
+  // "bookstore" in a description.
+  const stemmed = kw.map(singular);
+  const stemScore =
+    stemmed.join(' ') === kw.join(' ') ? 0 : intentMatchScore(text, stemmed);
+
+  const categoryScore = matchesCategory(category, kw) ? 1 : 0;
+  return Math.max(textScore, stemScore, categoryScore);
 }
 
 /**
@@ -197,7 +258,14 @@ export function servesLateTheme(text: string): boolean {
  * Requiring more than that means a match has to be a phrase or a genuine
  * single-word hit — with `servesLateTheme` supplying recall by venue kind.
  */
-export function isOnTheme(text: string, userIntent?: string): boolean {
-  if (themeScore(text, userIntent) > 0.5) return true;
-  return isLateTheme(userIntent) && servesLateTheme(text);
+export function isOnTheme(
+  text: string,
+  userIntent?: string,
+  category?: string
+): boolean {
+  if (themeScore(text, userIntent, category) >= 1) return true;
+  // Genre themes stay the exception that needs a bridge: "house music" names a
+  // sound, and no venue's category or copy says "house music". Everything else
+  // is carried by the category match above.
+  return isLateTheme(userIntent) && servesLateTheme(`${text} ${category ?? ''}`);
 }

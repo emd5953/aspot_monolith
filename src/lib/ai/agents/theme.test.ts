@@ -145,3 +145,53 @@ describe('themeScore', () => {
     expect(themeScore('anything', undefined)).toBe(0);
   });
 });
+
+/**
+ * The theme mechanism has to work for *any* prompt, not just nightlife.
+ *
+ * Measured across the five real pools, the first version found 1-8 anchors for
+ * "house music" and "jazz bars" and exactly ZERO for "museums and galleries",
+ * "vintage shopping", "ramen", "coffee shops" and "bookstores" — in pools that
+ * contain the Frist Art Museum and The Cloisters. It was a nightlife special
+ * case wearing a general name.
+ */
+describe('themes in general, not just nightlife', () => {
+  it('matches a plural theme against a singular category', () => {
+    // "museums" never substring-matched "Museum". This one mismatch produced
+    // zero anchors for every museum theme in every pool.
+    expect(isOnTheme('Frist Art Museum', 'museums and galleries', 'museum')).toBe(true);
+    expect(isOnTheme('The Cloisters', 'museums and galleries', 'museum')).toBe(true);
+  });
+
+  it('works for daytime themes with no nightlife markers at all', () => {
+    expect(isOnTheme('The Evolution Store', 'vintage shopping', 'shopping')).toBe(true);
+    expect(isOnTheme('Strand', 'bookstores', 'bookstore')).toBe(true);
+    expect(isOnTheme('Yoyogi Park', 'parks and gardens', 'park')).toBe(true);
+  });
+
+  it('treats a category hit as strong evidence and prose as weak', () => {
+    const byCategory = themeScore('Some Place', 'museums and galleries', 'museum');
+    const byProse = themeScore(
+      'A cafe near the museum district',
+      'museums and galleries',
+      'cafe'
+    );
+    expect(byCategory).toBeGreaterThanOrEqual(1);
+    expect(byProse).toBeLessThan(1);
+  });
+
+  // "shop" is inside "shopping" and means something else. Substring matching
+  // on categories anchored a coffee theme on a taxidermy store.
+  it('does not match a category by substring', () => {
+    expect(isOnTheme('The Evolution Store', 'coffee shops', 'shopping')).toBe(false);
+  });
+
+  // The category signal must not resurrect the original false positive.
+  it('still rejects the house museum for a house music theme', () => {
+    expect(isOnTheme('Louis Armstrong House Museum', 'house music', 'museum')).toBe(false);
+  });
+
+  it('falls back to text when the candidate has no category', () => {
+    expect(isOnTheme('Ajitama ramen bar', 'ramen', undefined)).toBe(true);
+  });
+});

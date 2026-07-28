@@ -193,6 +193,30 @@ export function repairPlan(
 
   // A theme only counts if it is specific enough to match anything. A vague
   // intent would otherwise flag every day and anchor them all on noise.
+  // Research's own classification for each candidate, recovered by name — the
+  // planner drops it, and it is the strongest signal for theme fit.
+  const categoryIndex = new Map<string, string>();
+  for (const c of [
+    ...(research.attractions ?? []),
+    ...(research.restaurants ?? []),
+    ...(research.activities ?? []),
+  ]) {
+    const key = dedupeKey(c.name);
+    const category =
+      'category' in c && c.category
+        ? c.category
+        : 'cuisine' in c && c.cuisine?.length
+          ? c.cuisine.join(' ')
+          : undefined;
+    if (key && category && !categoryIndex.has(key)) categoryIndex.set(key, category);
+  }
+  const itemOnTheme = (i: ScheduledItem) =>
+    isOnTheme(
+      `${i.name} ${i.description ?? ''}`,
+      userIntent,
+      categoryIndex.get(dedupeKey(i.name))
+    );
+
   const themed = Boolean(userIntent) && isOnTheme(userIntent!, userIntent);
   const anchorSlot = anchorBucket(userIntent);
   const anchorMinutes =
@@ -302,10 +326,7 @@ export function repairPlan(
     // looks — a real house-music run returned The Elevated Acre, Smorgasburg,
     // and Coney Island, every one of which passes every other check.
     if (themed) {
-      const onThemeIn = (b: Bucket) =>
-        next[b].findIndex((i) =>
-          isOnTheme(`${i.name} ${i.description ?? ''}`, userIntent)
-        );
+      const onThemeIn = (b: Bucket) => next[b].findIndex(itemOnTheme);
 
       // Being present is not the same as being the spine. A real run anchored
       // a night-out theme on a bar at 10:00 — technically on-theme, useless as
@@ -355,12 +376,18 @@ export function repairPlan(
           null;
         for (const c of candidates) {
           if (used.has(dedupeKey(c.name))) continue;
-          const text = `${c.name} ${'description' in c ? (c.description ?? '') : ''} ${'category' in c ? (c.category ?? '') : ''}`;
-          if (!isOnTheme(text, userIntent)) continue;
+          const category =
+            'category' in c && c.category
+              ? c.category
+              : 'cuisine' in c && c.cuisine?.length
+                ? c.cuisine.join(' ')
+                : undefined;
+          const text = `${c.name} ${'description' in c ? (c.description ?? '') : ''}`;
+          if (!isOnTheme(text, userIntent, category)) continue;
           // Rank by literal match so a venue that names the theme outright
           // beats one that merely qualifies by venue kind. Both are eligible;
           // the wording is just better evidence.
-          const score = themeScore(text, userIntent);
+          const score = themeScore(text, userIntent, category);
           if (weekday !== null) {
             const hours = hoursIndex.get(dedupeKey(c.name));
             if (hours?.length && !isOpenAt(hours, weekday, anchorMinutes)) continue;

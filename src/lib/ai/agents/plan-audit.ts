@@ -109,6 +109,33 @@ function buildCoordIndex(research: ResearchResult): Map<string, LatLng> {
   return index;
 }
 
+/**
+ * name → research's own category for it.
+ *
+ * `ScheduledItem` carries only a coarse `type` (attraction/restaurant/activity),
+ * but the theme check needs research's finer classification — "museum",
+ * "nightlife", "shopping" — which is the strongest signal for whether a stop
+ * serves the user's theme. The planner drops it, so recover it by name.
+ */
+function buildCategoryIndex(research: ResearchResult): Map<string, string> {
+  const index = new Map<string, string>();
+  for (const item of [
+    ...(research.attractions ?? []),
+    ...(research.restaurants ?? []),
+    ...(research.activities ?? []),
+  ]) {
+    const key = dedupeKey(item.name);
+    const category =
+      'category' in item && item.category
+        ? item.category
+        : 'cuisine' in item && item.cuisine?.length
+          ? item.cuisine.join(' ')
+          : undefined;
+    if (key && category && !index.has(key)) index.set(key, category);
+  }
+  return index;
+}
+
 /** name → published weekly hours, for everything Place Details resolved. */
 function buildHoursIndex(research: ResearchResult): Map<string, WeeklyHours> {
   const index = new Map<string, WeeklyHours>();
@@ -205,6 +232,7 @@ export function auditPlan(
   const findings: AuditFinding[] = [];
   const coords = buildCoordIndex(research);
   const hoursIndex = buildHoursIndex(research);
+  const categoryIndex = buildCategoryIndex(research);
   const poolKeys = buildPoolKeys(research);
   const days = plan.days ?? [];
 
@@ -402,9 +430,13 @@ export function auditPlan(
   if (userIntent && isOnTheme(userIntent, userIntent)) {
     const slot = anchorBucket(userIntent);
     for (const day of days) {
-      const onTheme = dayItems(day).filter((i) =>
-        isOnTheme(`${i.name} ${i.description ?? ''}`, userIntent)
-      );
+      const themeOf = (i: ScheduledItem) =>
+        isOnTheme(
+          `${i.name} ${i.description ?? ''}`,
+          userIntent,
+          categoryIndex.get(dedupeKey(i.name))
+        );
+      const onTheme = dayItems(day).filter(themeOf);
 
       if (onTheme.length === 0) {
         findings.push({
@@ -419,9 +451,7 @@ export function auditPlan(
 
       // Present but misplaced. A night-out theme anchored on a bar at 10:00 is
       // on-theme and unusable — the anchor has to sit where the theme belongs.
-      const inSlot = (day[slot] ?? []).some((i) =>
-        isOnTheme(`${i.name} ${i.description ?? ''}`, userIntent)
-      );
+      const inSlot = (day[slot] ?? []).some(themeOf);
       if (!inSlot) {
         const stray = onTheme[0];
         findings.push({
