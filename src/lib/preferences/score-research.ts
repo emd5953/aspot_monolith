@@ -35,18 +35,42 @@ function intentKeywords(userIntent?: string): string[] {
 }
 
 /**
- * Count how many intent keywords appear in the candidate's text. Substring
- * match is intentional so "bar" matches "speakeasy bar" and "r&b" matches
- * "r&b lounge".
+ * Score how well a candidate matches the intent, phrase first.
+ *
+ * Counting loose token hits is what put "Louis Armstrong House Museum" and
+ * "The Merchant House Museum" at the top of a *house music* trip: "house" is a
+ * real word in both, so both scored the full keyword bonus. Word boundaries do
+ * not help — it is a whole word there. The signal that separates them is the
+ * phrase: "house music" appears in neither.
+ *
+ * So an intact phrase match is worth far more than the sum of its tokens, and a
+ * lone token is worth little on its own. Substring matching is kept *within*
+ * this scheme, because it is genuinely wanted for the single-token case ("bar"
+ * should match "speakeasy bar", "r&b" should match "r&b lounge").
+ *
+ * Returns a weight multiplier, not a count — callers scale it by their own
+ * intent weight.
  */
-function intentMatchCount(text: string, keywords: string[]): number {
+export function intentMatchScore(text: string, keywords: string[]): number {
   if (keywords.length === 0) return 0;
   const haystack = text.toLowerCase();
-  let hits = 0;
-  for (const kw of keywords) {
-    if (haystack.includes(kw)) hits++;
+
+  // Whole intent, intact. The strongest possible signal.
+  if (keywords.length > 1 && haystack.includes(keywords.join(' '))) {
+    return keywords.length * 2;
   }
-  return hits;
+
+  // Any adjacent pair intact ("house music" out of "deep house music clubs").
+  let pairHits = 0;
+  for (let i = 0; i < keywords.length - 1; i++) {
+    if (haystack.includes(`${keywords[i]} ${keywords[i + 1]}`)) pairHits++;
+  }
+  if (pairHits > 0) return pairHits * 2;
+
+  // Fall back to loose tokens, deliberately weak. A multi-word intent that only
+  // matches on one of its words is usually a coincidence, not a fit.
+  const tokenHits = keywords.filter((kw) => haystack.includes(kw)).length;
+  return keywords.length === 1 ? tokenHits : tokenHits * 0.25;
 }
 
 const FAMOUS_LANDMARK_HINTS = [
@@ -153,7 +177,7 @@ export function scoreAttraction(
 
   // User-intent match (free-text from prompt). Heavily weighted because this
   // is the user explicitly asking for a theme, which beats default prefs.
-  const intentHits = intentMatchCount(
+  const intentHits = intentMatchScore(
     `${attraction.name} ${attraction.description ?? ''} ${attraction.category ?? ''}`,
     intentKw
   );
@@ -201,7 +225,7 @@ export function scoreRestaurant(
 
   // User-intent match — important for restaurants because the prompt often
   // names a vibe ("ramen", "cocktail", "rooftop") that's not in quiz prefs.
-  const intentHits = intentMatchCount(
+  const intentHits = intentMatchScore(
     `${restaurant.name} ${restCuisines.join(' ')}`,
     intentKw
   );
@@ -249,7 +273,7 @@ export function scoreActivity(
   }
 
   // User-intent match.
-  const intentHits = intentMatchCount(
+  const intentHits = intentMatchScore(
     `${activity.name} ${activity.description ?? ''} ${activity.category ?? ''}`,
     intentKw
   );

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildRedditSearchQueries,
+  buildIntentQueries,
   countRedditMentions,
   type SearchHit,
 } from './tavily-service';
@@ -103,5 +104,34 @@ describe('countRedditMentions', () => {
 
   it('returns 0 when there are no hits', () => {
     expect(countRedditMentions('Attaboy', [])).toBe(0);
+  });
+});
+
+describe('buildIntentQueries', () => {
+  it('returns null without an intent, so nothing extra is searched', () => {
+    expect(buildIntentQueries('New York City', undefined)).toBeNull();
+    expect(buildIntentQueries('New York City', '  ')).toBeNull();
+  });
+
+  // The generic queries bury the theme: "house music best local hidden gems
+  // culture museums food things to do attractions in New York City" comes back
+  // as tourist listicles. These must not repeat that mistake.
+  it('asks for the theme without the generic tourist filler', () => {
+    const q = buildIntentQueries('New York City', 'house music');
+    expect(q?.venues).toContain('house music');
+    expect(q?.venues).toContain('New York City');
+    expect(q?.venues).not.toContain('things to do');
+    expect(q?.venues).not.toContain('attractions');
+  });
+
+  it('leads with the theme rather than boilerplate', () => {
+    const q = buildIntentQueries('Lisbon', 'fado bars');
+    expect(q?.venues.indexOf('fado bars')).toBeLessThan(q!.venues.indexOf('Lisbon'));
+  });
+
+  it('scopes the second query to reddit for local truth', () => {
+    const q = buildIntentQueries('Tokyo', 'listening bars');
+    expect(q?.reddit).toContain('site:reddit.com');
+    expect(q?.reddit).toContain('listening bars');
   });
 });

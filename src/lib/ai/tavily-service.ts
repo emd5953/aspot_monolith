@@ -111,6 +111,42 @@ function buildSearchQueries(
 }
 
 /**
+ * Build searches that are ONLY about the user's theme.
+ *
+ * The queries above mix the intent into a generic request, which sounds
+ * reasonable and does not work. For intent "house music" the attractions query
+ * reads `house music best local hidden gems culture museums food things to do
+ * attractions in New York City` — two theme words against fifteen generic ones,
+ * and Tavily answers the generic ones. A real run produced 46 NYC candidates
+ * containing exactly one house venue, so no amount of downstream ranking or
+ * prompting could have saved the itinerary: the places were never in the pool.
+ *
+ * These queries ask for the theme and nothing else, and their hits are added to
+ * the corpus rather than replacing it — a themed trip still needs somewhere to
+ * eat and something to do before the evening.
+ *
+ * Exported for unit testing — a pure function of its inputs.
+ */
+export function buildIntentQueries(
+  destination: string,
+  userIntent?: string
+): { venues: string; reddit: string } | null {
+  const intent = (userIntent || '').trim();
+  if (!intent) return null;
+
+  return {
+    // No "attractions"/"things to do" filler: those words are what pull the
+    // results back toward tourist listicles.
+    venues: `best ${intent} in ${destination} venues spots guide`
+      .replace(/\s+/g, ' ')
+      .trim(),
+    reddit: `site:reddit.com ${intent} in ${destination} where to go recommendations`
+      .replace(/\s+/g, ' ')
+      .trim(),
+  };
+}
+
+/**
  * Build Reddit-biased search queries. Travel SEO buries the long-tail local
  * truth that Redditors post in earnest ("where do locals actually drink in
  * X?"), so we issue a parallel pass scoped to reddit.com. The `site:reddit.com`
@@ -305,6 +341,20 @@ export async function fetchDestinationDataWithPrefs(
   const queries = buildSearchQueries(destination, preferences, userIntent);
   const redditQueries = buildRedditSearchQueries(destination, preferences, userIntent);
 
+  // Theme-only searches, when the user gave a theme. The queries above dilute
+  // the intent into a generic request and come back with tourist listicles;
+  // these ask for the theme and nothing else. Their hits are ADDED to the
+  // corpus — an itinerary is not a search result page, and a themed trip still
+  // needs meals and daytime. The theme should be the spine of the day, not the
+  // whole skeleton.
+  const intentQueries = buildIntentQueries(destination, userIntent);
+  const intentSearch = intentQueries
+    ? Promise.all([
+        tavilySearch(intentQueries.venues, 8),
+        tavilySearch(intentQueries.reddit, 6),
+      ]).then(([venues, reddit]) => [...venues, ...reddit])
+    : Promise.resolve([] as SearchHit[]);
+
   // Date-aware events: only worth a (paid) search when the trip is actually
   // upcoming and close enough that schedules exist. When it's not, we resolve
   // an empty hit list so the rest of the fan-out is unchanged.
@@ -330,6 +380,7 @@ export async function fetchDestinationDataWithPrefs(
     redditRestaurantHits,
     redditActivityHits,
     eventHits,
+    intentHits,
   ] = await Promise.all([
     tavilySearch(queries.attractions, 10),
     tavilySearch(queries.restaurants, 10),
@@ -338,10 +389,11 @@ export async function fetchDestinationDataWithPrefs(
     tavilySearch(redditQueries.restaurants, 6),
     tavilySearch(redditQueries.activities, 6),
     eventsSearch,
+    intentSearch,
   ]);
 
   console.log(
-    `[tavily] Search hits — attractions:${attractionHits.length} restaurants:${restaurantHits.length} activities:${activityHits.length} | reddit:${redditAttractionHits.length}/${redditRestaurantHits.length}/${redditActivityHits.length} | events:${eventHits.length}${runEvents ? '' : ' (skipped)'}`
+    `[tavily] Search hits — attractions:${attractionHits.length} restaurants:${restaurantHits.length} activities:${activityHits.length} | reddit:${redditAttractionHits.length}/${redditRestaurantHits.length}/${redditActivityHits.length} | events:${eventHits.length} | intent:${intentHits.length}${runEvents ? '' : ' (skipped)'}`
   );
 
   // Extract structured data in parallel too. Reddit hits join the corpus so
@@ -349,7 +401,7 @@ export async function fetchDestinationDataWithPrefs(
   // their own extraction pass (different schema) and only when we searched.
   const [attractions, restaurants, activities, events] = await Promise.all([
     extractStructured<Attraction>(
-      [...attractionHits, ...redditAttractionHits],
+      [...attractionHits, ...redditAttractionHits, ...intentHits],
       destination,
       'attraction',
       ATTRACTION_SCHEMA
@@ -360,8 +412,12 @@ export async function fetchDestinationDataWithPrefs(
       'restaurant',
       RESTAURANT_SCHEMA
     ),
+    // Theme hits join the activity corpus: a themed pick is usually a venue or
+    // an experience ("House of Yes", a listening bar, a night market), which is
+    // what the activity schema models. Attractions get them too, since a themed
+    // daytime stop (a record shop, a music museum) belongs there.
     extractStructured<ActivityOption>(
-      [...activityHits, ...redditActivityHits],
+      [...activityHits, ...redditActivityHits, ...intentHits],
       destination,
       'activity',
       ACTIVITY_SCHEMA
