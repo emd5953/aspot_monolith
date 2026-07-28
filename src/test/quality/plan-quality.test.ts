@@ -38,11 +38,23 @@ interface Baseline {
   withHours: number;
 }
 
+/**
+ * Rebaselined when meals became first-class.
+ *
+ * Some `findings` counts went UP here, which is not a regression — new checks
+ * arrived (lunch, dinner, day span, day overflow) and found defects that were
+ * always shipping, they just had no detector. 17 of these 20 days had no lunch
+ * at all. Repair now inserts the missing meals, which is why `scheduledItems`
+ * rose across every pool at the same time: more content AND fewer findings.
+ *
+ * The residual findings are mostly day-span and geography, which repair
+ * deliberately does not touch — rearranging stops across days is a re-plan.
+ */
 const BASELINES: Record<string, Baseline> = {
   'lisbon-portugal': {
     ceiling: 80,
     findings: 1,
-    scheduledItems: 24,
+    scheduledItems: 26,
     emptyBuckets: 0,
     geoClustered: true,
     located: 27,
@@ -50,8 +62,8 @@ const BASELINES: Record<string, Baseline> = {
   },
   'nashville-tennessee': {
     ceiling: 80,
-    findings: 2,
-    scheduledItems: 19,
+    findings: 3,
+    scheduledItems: 20,
     emptyBuckets: 0,
     geoClustered: true,
     located: 30,
@@ -59,8 +71,8 @@ const BASELINES: Record<string, Baseline> = {
   },
   'new-york-city': {
     ceiling: 80,
-    findings: 4,
-    scheduledItems: 23,
+    findings: 5,
+    scheduledItems: 24,
     emptyBuckets: 1,
     geoClustered: true,
     located: 29,
@@ -71,7 +83,7 @@ const BASELINES: Record<string, Baseline> = {
   'new-york-city-unlocated': {
     ceiling: 100,
     findings: 0,
-    scheduledItems: 24,
+    scheduledItems: 28,
     emptyBuckets: 0,
     geoClustered: false,
     located: 0,
@@ -79,8 +91,8 @@ const BASELINES: Record<string, Baseline> = {
   },
   'tokyo-japan': {
     ceiling: 65,
-    findings: 4,
-    scheduledItems: 24,
+    findings: 5,
+    scheduledItems: 26,
     emptyBuckets: 0,
     geoClustered: true,
     located: 26,

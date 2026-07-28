@@ -52,6 +52,16 @@ const OUT_OF_REGION_KM = 40;
 const OFF_POOL_WARN_RATIO = 0.4;
 
 /**
+ * A day has an end. Past this, an activity is not something a traveller does
+ * that day — it is the planner appending to an array. Generous on purpose: a
+ * club night legitimately runs to 01:00, so the limit sits past midnight and
+ * only catches what is plainly unschedulable.
+ */
+const DAY_END_LIMIT_MIN = 26 * 60; // 02:00 the following morning
+/** First start to last finish. Beyond this the day is not a day, it is a list. */
+const DAY_SPAN_LIMIT_MIN = 15 * 60;
+
+/**
  * Words that mark a venue as evening-only. Matched on word boundaries so
  * "Barcelona" and "Barbara" don't trip the bar rule. Kept narrow on purpose —
  * a false positive here caps a good plan's score.
@@ -288,13 +298,86 @@ export function auditPlan(plan: ItineraryPlan, research: ResearchResult): PlanAu
         });
       }
     }
-    const hasDinner = (day.evening ?? []).some((i) => i.type === 'restaurant');
-    if (!hasDinner && (day.evening ?? []).length > 0) {
+  }
+
+  // ── 3b. Meals, by the clock ──────────────────────────────────────────────
+  //
+  // A day in a city has a shape: you eat around midday and you eat in the
+  // evening. Those are not nice-to-haves the planner may skip when it finds
+  // something more interesting — they are the scaffold the rest of the day
+  // hangs off. Sightseeing is what fills the gaps *between* them.
+  //
+  // This replaces a bucket-based check that asked "does the `evening` array
+  // contain a restaurant, and only if that array is non-empty". It missed a
+  // day with no lunch entirely, and it counted a 22:00 late-night bar as
+  // dinner because both live in `evening`. Meals are a time-of-day fact, so
+  // check the clock, not the bucket.
+  //
+  // Breakfast is deliberately NOT required. Plenty of travellers skip it or
+  // eat at the hotel, and for a late-night theme the honest answer is brunch,
+  // not an 08:00 booking — requiring it would manufacture filler.
+  for (const day of days) {
+    const meals = dayItems(day)
+      .filter((i) => i.type === 'restaurant')
+      .map((i) => ({ item: i, at: toMinutes(i.time) }))
+      .filter((m): m is { item: ScheduledItem; at: number } => m.at !== null);
+
+    const hasLunch = meals.some((m) => m.at >= 11 * 60 && m.at <= 15 * 60);
+    const hasDinner = meals.some((m) => m.at >= 17 * 60 && m.at <= 22 * 60);
+
+    if (!hasLunch) {
       findings.push({
         severity: 'medium',
         dayNumber: day.dayNumber,
-        issue: `Day ${day.dayNumber} has no dinner.`,
+        issue: `Day ${day.dayNumber} has no lunch — nothing to eat between 11:00 and 15:00.`,
+        suggestion: `Add a midday restaurant to day ${day.dayNumber}, near its morning stops.`,
+        scoreCeiling: 85,
+      });
+    }
+    if (!hasDinner) {
+      findings.push({
+        severity: 'medium',
+        dayNumber: day.dayNumber,
+        issue: `Day ${day.dayNumber} has no dinner — nothing to eat between 17:00 and 22:00.`,
         suggestion: `Add an evening restaurant to day ${day.dayNumber}, near its last activity.`,
+        scoreCeiling: 85,
+      });
+    }
+  }
+
+  // ── 3c. Days that do not fit in a day ────────────────────────────────────
+  //
+  // Nothing upstream models a day as finite hours: `DayPlan` is three
+  // unbounded arrays, so items are appended until the planner stops. That is
+  // how a real run put Coney Island after a 20:00–23:00 club. A day has an
+  // end, and something scheduled past it is not a plan anyone can follow.
+  for (const day of days) {
+    const timed = dayItems(day)
+      .map((i) => ({ item: i, at: toMinutes(i.time) }))
+      .filter((t): t is { item: ScheduledItem; at: number } => t.at !== null);
+    if (timed.length === 0) continue;
+
+    const starts = timed.map((t) => t.at);
+    const first = Math.min(...starts);
+    const last = timed.reduce((latest, t) =>
+      t.at > latest.at ? t : latest
+    );
+    const endsAt = last.at + (last.item.duration ?? 0);
+
+    if (endsAt > DAY_END_LIMIT_MIN) {
+      findings.push({
+        severity: 'medium',
+        dayNumber: day.dayNumber,
+        issue: `Day ${day.dayNumber} runs until ${fmtMinutes(endsAt)} — "${last.item.name}" finishes past a realistic end of day.`,
+        suggestion: `Move "${last.item.name}" to another day, or start day ${day.dayNumber} later so it fits.`,
+        scoreCeiling: 85,
+      });
+    } else if (endsAt - first > DAY_SPAN_LIMIT_MIN) {
+      findings.push({
+        severity: 'medium',
+        dayNumber: day.dayNumber,
+        issue: `Day ${day.dayNumber} is ${((endsAt - first) / 60).toFixed(1)} hours long, from ${fmtMinutes(first)} to ${fmtMinutes(endsAt)}.`,
+        suggestion: `Drop a stop from day ${day.dayNumber} — this is more day than anyone actually has.`,
         scoreCeiling: 85,
       });
     }

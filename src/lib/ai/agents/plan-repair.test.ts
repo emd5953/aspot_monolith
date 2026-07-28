@@ -330,3 +330,95 @@ describe('repairPlan — invariants', () => {
     expect(fixed.days).toHaveLength(3);
   });
 });
+
+/**
+ * Meals are the scaffold a day hangs off, not extras the planner may skip.
+ * Measured across the five real research pools, 17 of 20 generated days had no
+ * lunch at all — dinner only appeared because the evening refill happens to
+ * prefer restaurants.
+ */
+describe('repairPlan — meals are defaults', () => {
+  const withRestaurants = (names: string[]): DayPool => ({
+    attractions: [],
+    restaurants: names.map((n) => ({ name: n, cuisine: ['local'], priceRange: '$$' })),
+    activities: [],
+  });
+
+  it('adds lunch when the day has none', () => {
+    const { plan: fixed, repairs } = repairPlan(
+      plan([{ afternoon: [item('Museum', { time: '14:00' })] }]),
+      research(),
+      [withRestaurants(['Midday Spot'])]
+    );
+
+    const lunch = fixed.days[0].afternoon.find((i) => i.name === 'Midday Spot');
+    expect(lunch?.type).toBe('restaurant');
+    expect(lunch?.time).toBe('13:00');
+    expect(repairs.some((r) => r.includes('added lunch'))).toBe(true);
+  });
+
+  it('adds dinner when the day has none', () => {
+    const { plan: fixed, repairs } = repairPlan(
+      plan([{ evening: [item('Night Walk', { time: '19:00' })] }]),
+      research(),
+      [withRestaurants(['Spot A', 'Spot B'])]
+    );
+
+    const dinner = fixed.days[0].evening.find(
+      (i) => i.type === 'restaurant' && i.time === '19:00'
+    );
+    expect(dinner).toBeDefined();
+    expect(repairs.some((r) => r.includes('added dinner'))).toBe(true);
+  });
+
+  it('does not add a second lunch when one is already booked', () => {
+    const { repairs } = repairPlan(
+      plan([{ afternoon: [item('Already Eating', { type: 'restaurant', time: '12:30' })] }]),
+      research(),
+      [withRestaurants(['Should Not Be Used'])]
+    );
+    expect(repairs.some((r) => r.includes('added lunch'))).toBe(false);
+  });
+
+  // A 22:00 bar is not dinner. The old check was bucket-based and counted it.
+  it('does not count a late-night stop as dinner', () => {
+    const { repairs } = repairPlan(
+      plan([{ evening: [item('Late Bar', { type: 'restaurant', time: '23:30' })] }]),
+      research(),
+      [withRestaurants(['Lunch Spot', 'Actual Dinner'])]
+    );
+    expect(repairs.some((r) => r.includes('added dinner'))).toBe(true);
+  });
+
+  it('never books the same restaurant for lunch and dinner', () => {
+    const { plan: fixed } = repairPlan(
+      plan([{ afternoon: [], evening: [] }]),
+      research(),
+      [withRestaurants(['Only One'])]
+    );
+    const all = [...fixed.days[0].afternoon, ...fixed.days[0].evening];
+    expect(all.filter((i) => i.name === 'Only One')).toHaveLength(1);
+  });
+
+  // Meals are filled dinner-first, so a scarce pool feeds the evening. One
+  // sit-down meal in a day should be dinner, not a 13:00 lunch that leaves
+  // the evening empty.
+  it('spends the last restaurant on dinner rather than lunch', () => {
+    const { plan: fixed } = repairPlan(
+      plan([{ afternoon: [], evening: [] }]),
+      research(),
+      [withRestaurants(['Only One'])]
+    );
+    expect(fixed.days[0].evening.some((i) => i.name === 'Only One')).toBe(true);
+    expect(fixed.days[0].afternoon.some((i) => i.name === 'Only One')).toBe(false);
+  });
+
+  it('skips the meal rather than inventing one when no restaurant is available', () => {
+    const { repairs } = repairPlan(
+      plan([{ afternoon: [item('Museum', { time: '14:00' })] }]),
+      research(),
+      emptyPools(1)
+    );
+    expect(repairs.some((r) => r.includes('added lunch'))).toBe(false);
+  });
+});

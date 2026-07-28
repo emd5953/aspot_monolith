@@ -27,9 +27,14 @@ function plan(days: Partial<ItineraryPlan['days'][number]>[]): ItineraryPlan {
     days: days.map((d, i) => ({
       dayNumber: d.dayNumber ?? i + 1,
       date: `2026-09-${10 + i}`,
+      // A default day now has to be a real day: lunch and dinner are part of
+      // the shape, so a fixture without them is legitimately faulty.
       morning: d.morning ?? [item(`M${i}`)],
-      afternoon: d.afternoon ?? [item(`A${i}`)],
-      evening: d.evening ?? [item(`E${i}`, { type: 'restaurant' })],
+      afternoon: d.afternoon ?? [
+        item(`A${i}`),
+        item(`Lunch${i}`, { type: 'restaurant', time: '13:00' }),
+      ],
+      evening: d.evening ?? [item(`E${i}`, { type: 'restaurant', time: '19:00' })],
       notes: '',
       estimatedCost: '$$',
       theme: d.theme,

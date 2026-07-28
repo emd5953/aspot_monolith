@@ -273,7 +273,10 @@ export async function runAgenticOrchestrator(
       preferences,
       {
         attractionLimit: Math.max(12, tripDays * 4),
-        restaurantLimit: Math.max(10, tripDays * 3),
+        // Two meals a day are now a hard requirement, not a nice-to-have, so
+        // the pool has to carry at least that many plus room to choose. At
+        // three per day the later days ran dry and shipped without lunch.
+        restaurantLimit: Math.max(12, tripDays * 4),
         activityLimit: Math.max(8, tripDays * 2),
       },
       userIntent

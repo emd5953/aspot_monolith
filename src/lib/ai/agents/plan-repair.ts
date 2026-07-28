@@ -59,6 +59,42 @@ const BUCKET_MINUTES: Record<Bucket, number> = {
   evening: 19 * 60,
 };
 
+/**
+ * The meal scaffold.
+ *
+ * A day in a city has a shape, and meals are the fixed points it hangs off —
+ * not optional extras the planner may skip when it finds something more
+ * interesting. Sightseeing is what fills the gaps *between* them.
+ *
+ * Breakfast is deliberately absent. Plenty of travellers skip it or eat at the
+ * hotel, and for a late theme the honest answer is brunch rather than an 08:00
+ * booking, so requiring it would manufacture filler nobody uses.
+ *
+ * `window` is what counts as that meal (matching the audit's check); `at` is
+ * where a missing one gets inserted.
+ *
+ * Dinner is listed first on purpose. Meals are filled in this order and the
+ * pool can run dry, so the order decides who wins when only one restaurant is
+ * left — and if a traveller gets exactly one sit-down meal that day, it should
+ * be dinner. Lunch-first quietly spent the last restaurant at 13:00 and left
+ * the evening with nowhere to eat.
+ */
+const MEALS: Array<{
+  name: 'lunch' | 'dinner';
+  bucket: Bucket;
+  window: [number, number];
+  at: number;
+}> = [
+  { name: 'dinner', bucket: 'evening', window: [17 * 60, 22 * 60], at: 19 * 60 },
+  { name: 'lunch', bucket: 'afternoon', window: [11 * 60, 15 * 60], at: 13 * 60 },
+];
+
+/** 780 → "13:00". */
+function fmtMinutes(minutes: number): string {
+  const m = ((minutes % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
+
 /** "HH:MM" → minutes since midnight, or null when unparseable. */
 function toMinutes(time: string): number | null {
   const m = /^(\d{1,2}):(\d{2})/.exec(time?.trim() ?? '');
@@ -246,6 +282,54 @@ export function repairPlan(
         }
         next[bucket] = staying;
       }
+    }
+
+    // ── 3b. Meals are defaults, not extras ─────────────────────────────────
+    // Measured across the five real research pools, 17 of 20 generated days
+    // had no lunch at all — dinner only appeared because the evening refill
+    // happens to prefer restaurants. Nothing in the pipeline treated a midday
+    // meal as part of a day's shape, so nothing produced one.
+    for (const meal of MEALS) {
+      const alreadyEating = BUCKETS.some((b) =>
+        next[b].some((item) => {
+          if (item.type !== 'restaurant') return false;
+          const at = toMinutes(item.time);
+          return at !== null && at >= meal.window[0] && at <= meal.window[1];
+        })
+      );
+      if (alreadyEating) continue;
+
+      const eligible = (r: { name: string }) => {
+        if (used.has(dedupeKey(r.name))) return false;
+        if (weekday === null) return true;
+        const hours = hoursIndex.get(dedupeKey(r.name));
+        if (!hours || hours.length === 0) return true;
+        return isOpenAt(hours, weekday, meal.at);
+      };
+
+      // The day's own geo-cluster slice first, so the meal stays near the rest
+      // of the day. But a partitioned slice holds only a few restaurants and
+      // can simply run out — which is why five days still had no lunch after
+      // the scaffold went in. Meals are defaults; geography is the
+      // optimization. So fall back to the whole pool rather than skip eating.
+      const candidate =
+        pool.restaurants.find(eligible) ?? (research.restaurants ?? []).find(eligible);
+      if (!candidate) continue;
+
+      used.add(dedupeKey(candidate.name));
+      next[meal.bucket].push({
+        time: fmtMinutes(meal.at),
+        name: candidate.name,
+        type: 'restaurant',
+        duration: 75,
+        description: candidate.mustTry ? `Known for: ${candidate.mustTry}` : undefined,
+      });
+      // The meal is a fixed point, so it raises the bucket's target rather
+      // than consuming a slot that fill was going to use for something else.
+      target[meal.bucket] = Math.max(target[meal.bucket], next[meal.bucket].length);
+      repairs.push(
+        `Day ${day.dayNumber}: added ${meal.name} at ${fmtMinutes(meal.at)} — "${candidate.name}".`
+      );
     }
 
     // ── 3. Refill back up to target ────────────────────────────────────────

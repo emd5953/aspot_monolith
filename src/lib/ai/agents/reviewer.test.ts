@@ -38,7 +38,12 @@ function cleanPlan(): ItineraryPlan {
       date: `2026-09-0${n}`,
       theme: 'day',
       morning: [item(`Museum ${n}`)],
-      afternoon: [item(`Park ${n}`)],
+      // Lunch and dinner are part of a day's shape, so a "clean" plan needs
+      // both — without them the audit rightly caps the score.
+      afternoon: [
+        item(`Park ${n}`),
+        item(`Trattoria ${n}`, { type: 'restaurant', time: '13:00' }),
+      ],
       evening: [item(`Osteria ${n}`, { type: 'restaurant', time: '19:00' })],
       notes: '',
       estimatedCost: '$$',
