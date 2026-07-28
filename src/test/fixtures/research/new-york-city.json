@@ -1,0 +1,1438 @@
+{
+  "destination": "New York City",
+  "attractions": [
+    {
+      "name": "The Cloisters",
+      "description": "A branch of the Metropolitan Museum of Art, The Cloisters is dedicated to the art and architecture of medieval Europe, set in a serene garden environment that feels like a step back in time.",
+      "category": "museum",
+      "address": "99 Margaret Corbin Dr, New York, NY 10040",
+      "estimatedDuration": 120,
+      "priceRange": "$$",
+      "rating": 4.7,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.8648628,
+        "lng": -73.9317274
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 1,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 2,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 4,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 5,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 6,
+          "open": 600,
+          "close": 1020
+        }
+      ]
+    },
+    {
+      "name": "Brooklyn Flea",
+      "description": "An iconic weekend flea market in DUMBO, Brooklyn Flea offers a curated selection of vintage clothing, antiques, and artisanal food, making it a treasure trove for unique finds.",
+      "category": "market",
+      "address": "80 Pearl St, Brooklyn, NY 11201",
+      "estimatedDuration": 90,
+      "priceRange": "$",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.703266,
+        "lng": -73.9880852
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 6,
+          "open": 600,
+          "close": 1020
+        }
+      ]
+    },
+    {
+      "name": "Louis Armstrong House Museum",
+      "description": "The former home of jazz legend Louis Armstrong, this museum offers a glimpse into his life and legacy, featuring personal artifacts and guided tours of the house.",
+      "category": "museum",
+      "address": "34-56 107th St, Corona, NY 11368",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7545794,
+        "lng": -73.861519
+      },
+      "openingHours": [
+        {
+          "day": 4,
+          "open": 660,
+          "close": 960
+        },
+        {
+          "day": 5,
+          "open": 660,
+          "close": 960
+        },
+        {
+          "day": 6,
+          "open": 660,
+          "close": 960
+        }
+      ]
+    },
+    {
+      "name": "Elizabeth Street Garden",
+      "description": "A hidden gem in SoHo, this community garden features beautiful sculptures and a peaceful atmosphere, perfect for a quiet escape from the bustling city.",
+      "category": "park",
+      "address": "Elizabeth St, New York, NY",
+      "estimatedDuration": 30,
+      "priceRange": "free",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7205373,
+        "lng": -73.9950097
+      }
+    },
+    {
+      "name": "The Back Room",
+      "description": "One of the few remaining speakeasies from the Prohibition era, The Back Room serves drinks in teacups and offers a unique, historic atmosphere for a night out.",
+      "category": "entertainment",
+      "address": "102 Norfolk St, New York, NY 10002",
+      "estimatedDuration": 120,
+      "priceRange": "$$",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.71876260000001,
+        "lng": -73.9870042
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 1080,
+          "close": 1500
+        },
+        {
+          "day": 1,
+          "open": 1080,
+          "close": 1500
+        },
+        {
+          "day": 2,
+          "open": 1080,
+          "close": 1560
+        },
+        {
+          "day": 3,
+          "open": 1080,
+          "close": 1560
+        },
+        {
+          "day": 4,
+          "open": 1080,
+          "close": 1560
+        },
+        {
+          "day": 5,
+          "open": 1080,
+          "close": 1620
+        },
+        {
+          "day": 6,
+          "open": 1080,
+          "close": 1620
+        }
+      ]
+    },
+    {
+      "name": "Rockaway Beach",
+      "description": "A popular beach destination with a vibrant boardwalk, Rockaway Beach offers surf lessons and a laid-back atmosphere, making it a perfect summer getaway.",
+      "category": "park",
+      "address": "Rockaway Beach, Queens, NY",
+      "estimatedDuration": 180,
+      "priceRange": "free",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.5860224,
+        "lng": -73.81662589999999
+      }
+    },
+    {
+      "name": "Coney Island",
+      "description": "Famous for its amusement park and boardwalk, Coney Island is a nostalgic seaside destination where visitors can enjoy rides, games, and classic beach fare.",
+      "category": "entertainment",
+      "address": "Coney Island, Brooklyn, NY",
+      "estimatedDuration": 120,
+      "priceRange": "$",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.5755438,
+        "lng": -73.9707016
+      }
+    },
+    {
+      "name": "City Hall Station",
+      "description": "An abandoned subway station known for its stunning architecture, City Hall Station is a hidden historical gem that offers a glimpse into New York's transit history.",
+      "category": "landmark",
+      "address": "New York, NY 10007",
+      "estimatedDuration": 30,
+      "priceRange": "free",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.71328,
+        "lng": -74.00698
+      }
+    },
+    {
+      "name": "The Evolution Store",
+      "description": "A unique shop in SoHo specializing in natural history and science-themed items, The Evolution Store features taxidermy, fossils, and a variety of educational gifts.",
+      "category": "shopping",
+      "address": "687 Broadway, New York, NY 10012",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7281384,
+        "lng": -73.9947995
+      }
+    },
+    {
+      "name": "The Panorama Room",
+      "description": "Located on Roosevelt Island, this rooftop bar offers stunning panoramic views of Manhattan and Queens, making it a perfect spot for sunset drinks.",
+      "category": "viewpoint",
+      "address": "22 N Loop Rd, New York, NY 10044",
+      "estimatedDuration": 90,
+      "priceRange": "$$",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7563494,
+        "lng": -73.955607
+      }
+    },
+    {
+      "name": "The High Line",
+      "description": "An elevated linear park built on a former railway line, The High Line features beautiful gardens, art installations, and stunning views of the Hudson River.",
+      "category": "park",
+      "address": "New York, NY 10011",
+      "estimatedDuration": 60,
+      "priceRange": "free",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7479925,
+        "lng": -74.0047649
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 1,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 2,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 3,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 4,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 5,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 6,
+          "open": 420,
+          "close": 1320
+        }
+      ]
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "Xi’an Famous Foods",
+      "cuisine": [
+        "chinese",
+        "noodles"
+      ],
+      "priceRange": "$",
+      "address": "45 Bayard St, New York, NY 10013",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7150822,
+        "lng": -73.997342
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 660,
+          "close": 1260
+        },
+        {
+          "day": 1,
+          "open": 660,
+          "close": 1260
+        },
+        {
+          "day": 2,
+          "open": 660,
+          "close": 1260
+        },
+        {
+          "day": 3,
+          "open": 660,
+          "close": 1260
+        },
+        {
+          "day": 4,
+          "open": 660,
+          "close": 1260
+        },
+        {
+          "day": 5,
+          "open": 660,
+          "close": 1260
+        },
+        {
+          "day": 6,
+          "open": 660,
+          "close": 1260
+        }
+      ]
+    },
+    {
+      "name": "Leo’s Bagels",
+      "cuisine": [
+        "bagels",
+        "breakfast"
+      ],
+      "priceRange": "$",
+      "address": "3 Hanover Square, New York, NY 10004",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7049369,
+        "lng": -74.0097345
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 420,
+          "close": 1020
+        },
+        {
+          "day": 1,
+          "open": 360,
+          "close": 960
+        },
+        {
+          "day": 2,
+          "open": 360,
+          "close": 960
+        },
+        {
+          "day": 3,
+          "open": 360,
+          "close": 960
+        },
+        {
+          "day": 4,
+          "open": 360,
+          "close": 960
+        },
+        {
+          "day": 5,
+          "open": 360,
+          "close": 960
+        },
+        {
+          "day": 6,
+          "open": 420,
+          "close": 1020
+        }
+      ]
+    },
+    {
+      "name": "Open Market",
+      "cuisine": [
+        "various"
+      ],
+      "priceRange": "$",
+      "address": "75 9th Ave, New York, NY 10011",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7424396,
+        "lng": -74.0061439
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 1,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 2,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 3,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 4,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 5,
+          "open": 420,
+          "close": 1320
+        },
+        {
+          "day": 6,
+          "open": 420,
+          "close": 1320
+        }
+      ]
+    },
+    {
+      "name": "Maxi’s Noodle 3",
+      "cuisine": [
+        "chinese",
+        "noodles"
+      ],
+      "priceRange": "$",
+      "address": "68 Mott St, New York, NY 10013",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7161595,
+        "lng": -73.9979061
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 600,
+          "close": 1200
+        },
+        {
+          "day": 1,
+          "open": 600,
+          "close": 1200
+        },
+        {
+          "day": 2,
+          "open": 600,
+          "close": 1200
+        },
+        {
+          "day": 3,
+          "open": 600,
+          "close": 1200
+        },
+        {
+          "day": 4,
+          "open": 600,
+          "close": 1200
+        },
+        {
+          "day": 5,
+          "open": 600,
+          "close": 1200
+        },
+        {
+          "day": 6,
+          "open": 600,
+          "close": 1200
+        }
+      ]
+    },
+    {
+      "name": "Via Carota",
+      "cuisine": [
+        "italian"
+      ],
+      "priceRange": "$$",
+      "address": "51 Grove St, New York, NY 10014",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7331959,
+        "lng": -74.00364940000001
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 600,
+          "close": 1380
+        },
+        {
+          "day": 1,
+          "open": 660,
+          "close": 1380
+        },
+        {
+          "day": 2,
+          "open": 660,
+          "close": 1380
+        },
+        {
+          "day": 3,
+          "open": 660,
+          "close": 1380
+        },
+        {
+          "day": 4,
+          "open": 660,
+          "close": 1380
+        },
+        {
+          "day": 5,
+          "open": 600,
+          "close": 1380
+        },
+        {
+          "day": 6,
+          "open": 600,
+          "close": 1380
+        }
+      ]
+    },
+    {
+      "name": "Somtum Der",
+      "cuisine": [
+        "thai"
+      ],
+      "priceRange": "$$",
+      "address": "85 Avenue A, New York, NY 10009",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7252385,
+        "lng": -73.984342
+      }
+    },
+    {
+      "name": "Left Bank",
+      "cuisine": [
+        "french"
+      ],
+      "priceRange": "$$",
+      "address": "117 Perry St, New York, NY 10014",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.73515,
+        "lng": -74.0067814
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 660,
+          "close": 1260
+        },
+        {
+          "day": 1,
+          "open": 1020,
+          "close": 1320
+        },
+        {
+          "day": 2,
+          "open": 1020,
+          "close": 1320
+        },
+        {
+          "day": 3,
+          "open": 1020,
+          "close": 1320
+        },
+        {
+          "day": 4,
+          "open": 1020,
+          "close": 1320
+        },
+        {
+          "day": 5,
+          "open": 1020,
+          "close": 1380
+        },
+        {
+          "day": 6,
+          "open": 660,
+          "close": 1380
+        }
+      ]
+    },
+    {
+      "name": "Sao Mai",
+      "cuisine": [
+        "vietnamese"
+      ],
+      "priceRange": "$",
+      "address": "203 1st Ave, New York, NY 10003",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7303656,
+        "lng": -73.98350909999999
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 690,
+          "close": 1290
+        },
+        {
+          "day": 1,
+          "open": 690,
+          "close": 1290
+        },
+        {
+          "day": 2,
+          "open": 690,
+          "close": 1290
+        },
+        {
+          "day": 3,
+          "open": 690,
+          "close": 1290
+        },
+        {
+          "day": 4,
+          "open": 690,
+          "close": 1290
+        },
+        {
+          "day": 5,
+          "open": 690,
+          "close": 1290
+        },
+        {
+          "day": 6,
+          "open": 690,
+          "close": 1290
+        }
+      ]
+    },
+    {
+      "name": "Mamoun’s Falafel",
+      "cuisine": [
+        "middle eastern",
+        "falafel"
+      ],
+      "priceRange": "$",
+      "address": "119 MacDougal St, New York, NY 10012",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7302174,
+        "lng": -74.0004276
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 660,
+          "close": 1500
+        },
+        {
+          "day": 1,
+          "open": 660,
+          "close": 1560
+        },
+        {
+          "day": 2,
+          "open": 660,
+          "close": 1560
+        },
+        {
+          "day": 3,
+          "open": 660,
+          "close": 1560
+        },
+        {
+          "day": 4,
+          "open": 660,
+          "close": 1620
+        },
+        {
+          "day": 5,
+          "open": 660,
+          "close": 1680
+        },
+        {
+          "day": 6,
+          "open": 660,
+          "close": 1680
+        }
+      ]
+    },
+    {
+      "name": "Spicy Village",
+      "cuisine": [
+        "chinese"
+      ],
+      "priceRange": "$",
+      "address": "68 Forsyth St B, New York, NY 10002",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.7170028,
+        "lng": -73.9934222
+      },
+      "openingHours": [
+        {
+          "day": 1,
+          "open": 630,
+          "close": 1320
+        },
+        {
+          "day": 2,
+          "open": 630,
+          "close": 1320
+        },
+        {
+          "day": 3,
+          "open": 630,
+          "close": 1320
+        },
+        {
+          "day": 4,
+          "open": 630,
+          "close": 1320
+        },
+        {
+          "day": 5,
+          "open": 630,
+          "close": 1320
+        },
+        {
+          "day": 6,
+          "open": 630,
+          "close": 1320
+        }
+      ]
+    },
+    {
+      "name": "Eataly",
+      "cuisine": [
+        "italian"
+      ],
+      "priceRange": "$$",
+      "address": "200 5th Ave, New York, NY 10010",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.742045,
+        "lng": -73.9900845
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 420,
+          "close": 1380
+        },
+        {
+          "day": 1,
+          "open": 420,
+          "close": 1380
+        },
+        {
+          "day": 2,
+          "open": 420,
+          "close": 1380
+        },
+        {
+          "day": 3,
+          "open": 420,
+          "close": 1380
+        },
+        {
+          "day": 4,
+          "open": 420,
+          "close": 1380
+        },
+        {
+          "day": 5,
+          "open": 420,
+          "close": 1380
+        },
+        {
+          "day": 6,
+          "open": 420,
+          "close": 1380
+        }
+      ]
+    },
+    {
+      "name": "Pasta Louise",
+      "cuisine": [
+        "italian",
+        "pasta"
+      ],
+      "priceRange": "$$",
+      "address": "1114 8th Ave, Brooklyn, NY 11215",
+      "rating": null,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 40.6642062,
+        "lng": -73.9807532
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 540,
+          "close": 1320
+        },
+        {
+          "day": 1,
+          "open": 1020,
+          "close": 1320
+        },
+        {
+          "day": 2,
+          "open": 1020,
+          "close": 1320
+        },
+        {
+          "day": 3,
+          "open": 1020,
+          "close": 1320
+        },
+        {
+          "day": 4,
+          "open": 1020,
+          "close": 1320
+        },
+        {
+          "day": 5,
+          "open": 480,
+          "close": 1350
+        },
+        {
+          "day": 6,
+          "open": 540,
+          "close": 1350
+        }
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "name": "House of Yes",
+      "description": "A vibrant nightlife venue in Bushwick known for its eclectic performances and themed parties.",
+      "category": "nightlife",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 7,
+      "redditMentions": 0,
+      "address": "2 Wyckoff Ave, Brooklyn, NY 11237",
+      "coordinates": {
+        "lat": 40.7068,
+        "lng": -73.9236
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 1320,
+          "close": 1680
+        },
+        {
+          "day": 4,
+          "open": 1110,
+          "close": 1680
+        },
+        {
+          "day": 5,
+          "open": 1110,
+          "close": 1680
+        },
+        {
+          "day": 6,
+          "open": 1110,
+          "close": 1680
+        }
+      ]
+    },
+    {
+      "name": "Museum of the Moving Image",
+      "description": "Located in Astoria, this museum offers a deep dive into film, television, and digital media with interactive exhibits.",
+      "category": "cultural",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 3,
+      "redditMentions": 0,
+      "address": "36-01 35th Ave, Queens, NY 11106",
+      "coordinates": {
+        "lat": 40.7563454,
+        "lng": -73.9239496
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 660,
+          "close": 1080
+        },
+        {
+          "day": 4,
+          "open": 840,
+          "close": 1080
+        },
+        {
+          "day": 5,
+          "open": 840,
+          "close": 1200
+        },
+        {
+          "day": 6,
+          "open": 660,
+          "close": 1080
+        }
+      ]
+    },
+    {
+      "name": "Coney Island Museum",
+      "description": "A small museum dedicated to the history of Coney Island, featuring exhibits on its amusement parks and boardwalk.",
+      "category": "cultural",
+      "duration": 90,
+      "priceRange": "$",
+      "adventureLevel": 2,
+      "redditMentions": 0,
+      "address": "1208 Surf Ave, Brooklyn, NY 11224",
+      "coordinates": {
+        "lat": 40.5752758,
+        "lng": -73.9798512
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 720,
+          "close": 1140
+        },
+        {
+          "day": 1,
+          "open": 720,
+          "close": 1080
+        },
+        {
+          "day": 4,
+          "open": 720,
+          "close": 1080
+        },
+        {
+          "day": 5,
+          "open": 720,
+          "close": 1410
+        },
+        {
+          "day": 6,
+          "open": 720,
+          "close": 1410
+        }
+      ]
+    },
+    {
+      "name": "Louis Armstrong House Museum",
+      "description": "The former home of jazz legend Louis Armstrong, now a museum showcasing his life and music.",
+      "category": "cultural",
+      "duration": 90,
+      "priceRange": "$",
+      "adventureLevel": 2,
+      "redditMentions": 0,
+      "address": "34-56 107th St, Corona, NY 11368",
+      "coordinates": {
+        "lat": 40.7545794,
+        "lng": -73.861519
+      },
+      "openingHours": [
+        {
+          "day": 4,
+          "open": 660,
+          "close": 960
+        },
+        {
+          "day": 5,
+          "open": 660,
+          "close": 960
+        },
+        {
+          "day": 6,
+          "open": 660,
+          "close": 960
+        }
+      ]
+    },
+    {
+      "name": "Brooklyn Flea",
+      "description": "A massive outdoor market featuring vintage goods, handmade crafts, and delicious food vendors.",
+      "category": "food",
+      "duration": 180,
+      "priceRange": "$",
+      "adventureLevel": 4,
+      "redditMentions": 0,
+      "address": "80 Pearl St, Brooklyn, NY 11201",
+      "coordinates": {
+        "lat": 40.703266,
+        "lng": -73.9880852
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 6,
+          "open": 600,
+          "close": 1020
+        }
+      ]
+    },
+    {
+      "name": "Grand Bazaar NYC",
+      "description": "A weekly market on the Upper West Side featuring a variety of vendors selling unique goods and food.",
+      "category": "food",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 3,
+      "redditMentions": 0,
+      "address": "100 W 77th St, New York, NY 10024",
+      "coordinates": {
+        "lat": 40.7803915,
+        "lng": -73.9770625
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 600,
+          "close": 1020
+        }
+      ]
+    },
+    {
+      "name": "The Morgan Library and Museum",
+      "description": "A stunning library and museum showcasing rare manuscripts and beautiful architecture.",
+      "category": "cultural",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 3,
+      "redditMentions": 0,
+      "address": "225 Madison Ave, New York, NY 10016",
+      "coordinates": {
+        "lat": 40.7492258,
+        "lng": -73.9813971
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 630,
+          "close": 1020
+        },
+        {
+          "day": 2,
+          "open": 630,
+          "close": 1020
+        },
+        {
+          "day": 3,
+          "open": 630,
+          "close": 1020
+        },
+        {
+          "day": 4,
+          "open": 630,
+          "close": 1020
+        },
+        {
+          "day": 5,
+          "open": 630,
+          "close": 1200
+        },
+        {
+          "day": 6,
+          "open": 630,
+          "close": 1020
+        }
+      ]
+    },
+    {
+      "name": "The Back Room",
+      "description": "One of NYC's last remaining speakeasies from the Prohibition era, serving drinks in teacups.",
+      "category": "nightlife",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 5,
+      "redditMentions": 0,
+      "address": "102 Norfolk St, New York, NY 10002",
+      "coordinates": {
+        "lat": 40.71876260000001,
+        "lng": -73.9870042
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 1080,
+          "close": 1500
+        },
+        {
+          "day": 1,
+          "open": 1080,
+          "close": 1500
+        },
+        {
+          "day": 2,
+          "open": 1080,
+          "close": 1560
+        },
+        {
+          "day": 3,
+          "open": 1080,
+          "close": 1560
+        },
+        {
+          "day": 4,
+          "open": 1080,
+          "close": 1560
+        },
+        {
+          "day": 5,
+          "open": 1080,
+          "close": 1620
+        },
+        {
+          "day": 6,
+          "open": 1080,
+          "close": 1620
+        }
+      ]
+    },
+    {
+      "name": "Queens County Farm Museum",
+      "description": "A historic farm in Queens showcasing agricultural heritage and offering seasonal activities.",
+      "category": "outdoor",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 2,
+      "redditMentions": 0,
+      "address": "73-50 Little Neck Pkwy, Queens, NY 11004",
+      "coordinates": {
+        "lat": 40.7474785,
+        "lng": -73.7220059
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 1,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 2,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 3,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 4,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 5,
+          "open": 600,
+          "close": 1020
+        },
+        {
+          "day": 6,
+          "open": 600,
+          "close": 1020
+        }
+      ]
+    },
+    {
+      "name": "Walk on the Wild Side NYC",
+      "description": "Guided walking tours led by music historians exploring the musical history of lower Manhattan.",
+      "category": "tour",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 4,
+      "redditMentions": 0
+    },
+    {
+      "name": "Coney Island Sideshows by the Seashore",
+      "description": "A unique performance venue featuring eccentric acts and sideshow performances.",
+      "category": "adventure",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 6,
+      "redditMentions": 0,
+      "address": "1208 Surf Ave, Brooklyn, NY 11224",
+      "coordinates": {
+        "lat": 40.5752893,
+        "lng": -73.9799038
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 840,
+          "close": 1065
+        },
+        {
+          "day": 1,
+          "open": 840,
+          "close": 960
+        },
+        {
+          "day": 4,
+          "open": 840,
+          "close": 960
+        },
+        {
+          "day": 5,
+          "open": 840,
+          "close": 960
+        },
+        {
+          "day": 6,
+          "open": 840,
+          "close": 1065
+        }
+      ]
+    },
+    {
+      "name": "MoMA PS1 Warm Up (through September)",
+      "description": "A rollicking outdoor concert featuring live music, DJs, and dancing at MoMA PS1 in Long Island City, Queens, with access to all exhibitions.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "$",
+      "adventureLevel": 7,
+      "address": "22-25 Jackson Ave, Queens, NY 11101",
+      "coordinates": {
+        "lat": 40.7456014,
+        "lng": -73.947097
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 720,
+          "close": 1080
+        },
+        {
+          "day": 1,
+          "open": 720,
+          "close": 1080
+        },
+        {
+          "day": 4,
+          "open": 720,
+          "close": 1080
+        },
+        {
+          "day": 5,
+          "open": 720,
+          "close": 1080
+        },
+        {
+          "day": 6,
+          "open": 600,
+          "close": 1080
+        }
+      ]
+    },
+    {
+      "name": "NYC Restaurant Week (into August)",
+      "description": "A culinary celebration featuring special prix-fixe menus at various restaurants across the city, including French Louie in Boerum Hill, Brooklyn.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 5
+    },
+    {
+      "name": "Midsummer Night Swing (Summer for the City)",
+      "description": "An outdoor dance event at Lincoln Center, offering dance lessons and live music under the stars.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "Museum Mile Festival",
+      "description": "A car-free block party on the Upper East Side with free admission to some of the city's finest museums, live music, and street performers.",
+      "category": "event",
+      "duration": 240,
+      "priceRange": "free",
+      "adventureLevel": 4
+    },
+    {
+      "name": "River to River Festival",
+      "description": "A downtown festival featuring free dance performances, concerts, and events, showcasing site-specific pieces and live music.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "free",
+      "adventureLevel": 5,
+      "address": "78 South St, New York, NY 10006",
+      "coordinates": {
+        "lat": 40.7043756,
+        "lng": -74.0029654
+      },
+      "openingHours": [
+        {
+          "day": 0,
+          "open": 360,
+          "close": 1440
+        },
+        {
+          "day": 1,
+          "open": 360,
+          "close": 1440
+        },
+        {
+          "day": 2,
+          "open": 360,
+          "close": 1440
+        },
+        {
+          "day": 3,
+          "open": 360,
+          "close": 1440
+        },
+        {
+          "day": 4,
+          "open": 360,
+          "close": 1440
+        },
+        {
+          "day": 5,
+          "open": 360,
+          "close": 1440
+        },
+        {
+          "day": 6,
+          "open": 360,
+          "close": 1440
+        }
+      ]
+    },
+    {
+      "name": "All Things Go Music Festival (September 27-28)",
+      "description": "A music festival at Forest Hills Stadium featuring an all-female lineup, including Brandi Carlile and Carly Rae Jepsen.",
+      "category": "event",
+      "duration": 360,
+      "priceRange": "$$",
+      "adventureLevel": 8
+    },
+    {
+      "name": "Great New York State Fair (August 26-September 7)",
+      "description": "A 13-day celebration at the New York State Fairgrounds in Syracuse featuring food, exhibits, rides, and free concerts with artists like The All-American Rejects.",
+      "category": "event",
+      "duration": 720,
+      "priceRange": "$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "Candlelight: Vivaldi's Four Seasons (August 14 - September 25)",
+      "description": "A unique concert experience featuring Vivaldi's music performed by a string ensemble in a candlelit setting at The Sky Room at Saint Peter's University.",
+      "category": "event",
+      "duration": 60,
+      "priceRange": "$$",
+      "adventureLevel": 7
+    },
+    {
+      "name": "Brandi Carlile (August 16)",
+      "description": "A concert at Bethel Woods Center for The Arts featuring Brandi Carlile, known for her powerful vocals and versatile songwriting.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 8
+    },
+    {
+      "name": "Ladyland (June 10–October)",
+      "description": "A summer music festival series featuring various artists across parks in NYC, celebrating diverse musical genres.",
+      "category": "event",
+      "duration": 360,
+      "priceRange": "free",
+      "adventureLevel": 5
+    },
+    {
+      "name": "Great South Bay Music Festival (July 23-26)",
+      "description": "A music festival in Patchogue featuring a variety of genres and activities, including workshops and camping.",
+      "category": "event",
+      "duration": 720,
+      "priceRange": "$$",
+      "adventureLevel": 7
+    },
+    {
+      "name": "Phish Concert (2026 Tour Dates)",
+      "description": "A concert by Phish at Madison Square Garden, known for their improvisational style and dedicated fanbase.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 9
+    }
+  ],
+  "localInsights": [],
+  "sources": [
+    "https://www.tripadvisor.com/Attractions-g60763-Activities-zft12156-New_York_City_New_York.html",
+    "https://www.youtube.com/watch?v=8jrtg1jNnNs",
+    "https://www.lemon8-app.com/@travelwithsudipa/7594857530057916958?region=us"
+  ]
+}

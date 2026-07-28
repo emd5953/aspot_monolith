@@ -1,0 +1,596 @@
+{
+  "destination": "Nashville, Tennessee",
+  "attractions": [
+    {
+      "name": "The Listening Room Cafe",
+      "description": "A unique venue where songwriters perform their original music in an intimate setting, encouraging audience engagement and appreciation.",
+      "category": "entertainment",
+      "address": "618 4th Ave S, Nashville, TN 37210",
+      "estimatedDuration": 120,
+      "priceRange": "$$",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.153835,
+        "lng": -86.772268
+      }
+    },
+    {
+      "name": "The Bluebird Cafe",
+      "description": "A legendary spot for songwriters to showcase their original works, offering a cozy atmosphere and a chance to hear music in its purest form.",
+      "category": "entertainment",
+      "address": "4104 Hillsboro Pike, Nashville, TN 37215",
+      "estimatedDuration": 90,
+      "priceRange": "$$",
+      "rating": 4.7,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1020761,
+        "lng": -86.8168645
+      }
+    },
+    {
+      "name": "Frist Art Museum",
+      "description": "A beautiful art museum featuring rotating exhibits from international and local artists, housed in a stunning historic building.",
+      "category": "museum",
+      "address": "919 Broadway, Nashville, TN 37203",
+      "estimatedDuration": 120,
+      "priceRange": "$$",
+      "rating": 4.6,
+      "redditMentions": 1,
+      "coordinates": {
+        "lat": 36.1578972,
+        "lng": -86.78385279999999
+      }
+    },
+    {
+      "name": "Johnny Cash Museum",
+      "description": "Dedicated to the life and career of Johnny Cash, this museum offers a deep dive into his music and legacy with numerous artifacts.",
+      "category": "museum",
+      "address": "Lower Level, 119 3rd Ave S, Nashville, TN 37201",
+      "estimatedDuration": 90,
+      "priceRange": "$$",
+      "rating": 4.8,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1609385,
+        "lng": -86.77575709999999
+      }
+    },
+    {
+      "name": "Centennial Park",
+      "description": "A large urban park featuring a full-scale replica of the Parthenon, perfect for picnics, strolls, and enjoying the outdoors.",
+      "category": "park",
+      "address": "2500 West End Ave, Nashville, TN 37203",
+      "estimatedDuration": 60,
+      "priceRange": "free",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1489459,
+        "lng": -86.81274979999999
+      }
+    },
+    {
+      "name": "Ryman Auditorium",
+      "description": "Known as the 'Mother Church of Country Music,' this historic venue offers an intimate concert experience and guided tours.",
+      "category": "entertainment",
+      "address": "116 Rep. John Lewis Way N, Nashville, TN 37219",
+      "estimatedDuration": 120,
+      "priceRange": "$$$",
+      "rating": 4.9,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1612481,
+        "lng": -86.7784714
+      }
+    },
+    {
+      "name": "Cheekwood Estate & Gardens",
+      "description": "A stunning estate featuring beautiful gardens and art exhibits, perfect for a leisurely day of exploration and relaxation.",
+      "category": "landmark",
+      "address": "1200 Forrest Park Dr, Nashville, TN 37205",
+      "estimatedDuration": 180,
+      "priceRange": "$$$",
+      "rating": 4.7,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.0884471,
+        "lng": -86.8759749
+      }
+    },
+    {
+      "name": "Lane Motor Museum",
+      "description": "A unique museum showcasing a diverse collection of automobiles, including many rare and unusual models from around the world.",
+      "category": "museum",
+      "address": "702 Murfreesboro Pike, Nashville, TN 37210",
+      "estimatedDuration": 90,
+      "priceRange": "$",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1401967,
+        "lng": -86.73457979999999
+      }
+    },
+    {
+      "name": "The 5 Spot",
+      "description": "A beloved local venue in East Nashville known for its eclectic music lineup and vibrant atmosphere, perfect for discovering new artists.",
+      "category": "entertainment",
+      "address": "1006 Forest Ave, Nashville, TN 37206",
+      "estimatedDuration": 120,
+      "priceRange": "$",
+      "rating": 4.4,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1784111,
+        "lng": -86.7503972
+      }
+    },
+    {
+      "name": "Hatch Show Print",
+      "description": "One of the oldest working letterpress print shops in America, known for its iconic concert posters and rich history in music culture.",
+      "category": "gallery",
+      "address": "224 Rep. John Lewis Way S, Nashville, TN 37203",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "rating": 4.6,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1577547,
+        "lng": -86.7763954
+      }
+    },
+    {
+      "name": "Music City Roots",
+      "description": "A weekly concert and live radio show featuring a variety of musical genres, held in a charming venue that celebrates Nashville's music scene.",
+      "category": "entertainment",
+      "address": "201 Rep. John Lewis Way S, Nashville, TN 37203",
+      "estimatedDuration": 120,
+      "priceRange": "$$",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1577902,
+        "lng": -86.7778496
+      }
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "Arnold's Country Kitchen",
+      "cuisine": [
+        "southern"
+      ],
+      "priceRange": "$",
+      "address": "605 8th Ave S, Nashville, TN 37203",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1514659,
+        "lng": -86.7796094
+      }
+    },
+    {
+      "name": "Rolf and Daughters",
+      "cuisine": [
+        "italian",
+        "american"
+      ],
+      "priceRange": "$$",
+      "address": "700 Taylor St, Nashville, TN 37208",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1775447,
+        "lng": -86.7928888
+      }
+    },
+    {
+      "name": "The Listening Room Cafe",
+      "cuisine": [
+        "american"
+      ],
+      "priceRange": "$$",
+      "address": "618 4th Ave S, Nashville, TN 37210",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.153835,
+        "lng": -86.772268
+      }
+    },
+    {
+      "name": "Loveless Cafe",
+      "cuisine": [
+        "southern"
+      ],
+      "priceRange": "$$",
+      "address": "8400 TN-100, Nashville, TN 37221",
+      "redditMentions": 1,
+      "coordinates": {
+        "lat": 36.0352782,
+        "lng": -86.9720191
+      }
+    },
+    {
+      "name": "Pancake Pantry",
+      "cuisine": [
+        "breakfast",
+        "brunch"
+      ],
+      "priceRange": "$",
+      "address": "220 Molloy St, Nashville, TN 37201",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.158897,
+        "lng": -86.7741047
+      }
+    },
+    {
+      "name": "Bluebird Cafe",
+      "cuisine": [
+        "american"
+      ],
+      "priceRange": "$$",
+      "address": "4104 Hillsboro Pike, Nashville, TN 37215",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1020761,
+        "lng": -86.8168645
+      }
+    },
+    {
+      "name": "Puckett's Grocery & Restaurant",
+      "cuisine": [
+        "southern"
+      ],
+      "priceRange": "$$",
+      "address": "500 Church St, Nashville, TN 37219",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1632246,
+        "lng": -86.78046309999999
+      }
+    },
+    {
+      "name": "City Winery",
+      "cuisine": [
+        "american"
+      ],
+      "priceRange": "$$",
+      "address": "609 Lafayette St, Nashville, TN 37203",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.152287,
+        "lng": -86.7762891
+      }
+    },
+    {
+      "name": "Tin Roof",
+      "cuisine": [
+        "american"
+      ],
+      "priceRange": "$",
+      "address": "1516 Demonbreun St, Nashville, TN 37203",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.153189,
+        "lng": -86.789934
+      }
+    },
+    {
+      "name": "Commodore Grille",
+      "cuisine": [
+        "american"
+      ],
+      "priceRange": "$",
+      "address": "2613 West End Ave, Nashville, TN 37203",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1449923,
+        "lng": -86.81099139999999
+      }
+    },
+    {
+      "name": "Attaboy",
+      "cuisine": [
+        "cocktails"
+      ],
+      "priceRange": "$$",
+      "address": "8 Mcferrin Ave, Nashville, TN 37206",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 36.1761096,
+        "lng": -86.75544029999999
+      }
+    }
+  ],
+  "activities": [
+    {
+      "name": "The Listening Room Cafe",
+      "description": "An intimate venue known for its songwriter circles, where artists perform in a cozy setting, creating a campfire-like atmosphere.",
+      "category": "nightlife",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 3,
+      "redditMentions": 0,
+      "address": "618 4th Ave S, Nashville, TN 37210",
+      "coordinates": {
+        "lat": 36.153835,
+        "lng": -86.772268
+      }
+    },
+    {
+      "name": "Bluebird Cafe",
+      "description": "A legendary venue where many country stars began their careers, offering an intimate setting for live music performances.",
+      "category": "nightlife",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 4,
+      "redditMentions": 1,
+      "address": "4104 Hillsboro Pike, Nashville, TN 37215",
+      "coordinates": {
+        "lat": 36.1020761,
+        "lng": -86.8168645
+      }
+    },
+    {
+      "name": "Loveless Cafe",
+      "description": "Famous for its Southern breakfast and homemade biscuits, this cafe is a must-visit for authentic Southern cuisine.",
+      "category": "food",
+      "duration": 90,
+      "priceRange": "$$",
+      "adventureLevel": 2,
+      "redditMentions": 0,
+      "address": "8400 TN-100, Nashville, TN 37221",
+      "coordinates": {
+        "lat": 36.0352782,
+        "lng": -86.9720191
+      }
+    },
+    {
+      "name": "Printer's Alley",
+      "description": "A historic bar district with a Prohibition-era vibe, offering unique speakeasies and cocktail experiences away from the tourist crowds.",
+      "category": "nightlife",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 5,
+      "redditMentions": 0,
+      "address": "Printers Alley, Nashville, TN",
+      "coordinates": {
+        "lat": 36.1639761,
+        "lng": -86.7783616
+      }
+    },
+    {
+      "name": "Radnor Lake State Park",
+      "description": "A serene natural area perfect for hiking and enjoying the outdoors, featuring beautiful trails and wildlife.",
+      "category": "outdoor",
+      "duration": 180,
+      "priceRange": "free",
+      "adventureLevel": 6,
+      "redditMentions": 1,
+      "address": "1160 Otter Creek Rd, Nashville, TN 37220",
+      "coordinates": {
+        "lat": 36.0630891,
+        "lng": -86.8096497
+      }
+    },
+    {
+      "name": "Frist Art Museum",
+      "description": "An art museum housed in a stunning Art Deco building, featuring rotating exhibitions and beautiful gardens.",
+      "category": "cultural",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 2,
+      "redditMentions": 0,
+      "address": "919 Broadway, Nashville, TN 37203",
+      "coordinates": {
+        "lat": 36.1578972,
+        "lng": -86.78385279999999
+      }
+    },
+    {
+      "name": "12 South",
+      "description": "A trendy neighborhood known for its boutiques, vintage shops, and local eateries, perfect for shopping and exploring.",
+      "category": "tour",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 3,
+      "redditMentions": 1,
+      "address": "12 South, Nashville, TN",
+      "coordinates": {
+        "lat": 36.1244968,
+        "lng": -86.7864015
+      }
+    },
+    {
+      "name": "Music City Roots",
+      "description": "A weekly concert and live radio show held at the Loveless Cafe Barn, showcasing a variety of musical acts.",
+      "category": "nightlife",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 4,
+      "redditMentions": 0,
+      "address": "201 Rep. John Lewis Way S, Nashville, TN 37203",
+      "coordinates": {
+        "lat": 36.1577902,
+        "lng": -86.7778496
+      }
+    },
+    {
+      "name": "Cheekwood Estate & Gardens",
+      "description": "A beautiful estate featuring art exhibitions and stunning gardens, ideal for a leisurely cultural outing.",
+      "category": "cultural",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 2,
+      "redditMentions": 0,
+      "address": "1200 Forrest Park Dr, Nashville, TN 37205",
+      "coordinates": {
+        "lat": 36.0884471,
+        "lng": -86.8759749
+      }
+    },
+    {
+      "name": "Attaboy",
+      "description": "A speakeasy-style bar known for its creative cocktails and low-key atmosphere, perfect for a quiet night out.",
+      "category": "nightlife",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 3,
+      "redditMentions": 0,
+      "address": "8 Mcferrin Ave, Nashville, TN 37206",
+      "coordinates": {
+        "lat": 36.1761096,
+        "lng": -86.75544029999999
+      }
+    },
+    {
+      "name": "Pancake Pantry",
+      "description": "A popular breakfast spot known for its delicious pancakes and quick service, often with a line out the door.",
+      "category": "food",
+      "duration": 60,
+      "priceRange": "$",
+      "adventureLevel": 2,
+      "redditMentions": 0,
+      "address": "220 Molloy St, Nashville, TN 37201",
+      "coordinates": {
+        "lat": 36.158897,
+        "lng": -86.7741047
+      }
+    },
+    {
+      "name": "Flaw at Hop Springs (October 27, 2026)",
+      "description": "Flaw will perform at Hop Springs Beer Park in Nashville, offering a night of hard rock music.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 7
+    },
+    {
+      "name": "Dan Reeder at The Basement East (March 2, 2027)",
+      "description": "Dan Reeder, known for his unique style, will be performing at The Basement East in Nashville.",
+      "category": "event",
+      "duration": 90,
+      "priceRange": "$",
+      "adventureLevel": 6,
+      "address": "917 Woodland St, Nashville, TN 37206",
+      "coordinates": {
+        "lat": 36.175686,
+        "lng": -86.75559
+      }
+    },
+    {
+      "name": "Tamar Braxton at City Winery - Nashville (August 15, 2026)",
+      "description": "Tamar Braxton will grace the stage at City Winery, delivering an evening of soulful music.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 8,
+      "address": "609 Lafayette St, Nashville, TN 37203",
+      "coordinates": {
+        "lat": 36.152287,
+        "lng": -86.7762891
+      }
+    },
+    {
+      "name": "Galactic Empire at Exit/In (September 4, 2026)",
+      "description": "Galactic Empire, a band known for their Star Wars-themed music, will perform at Exit/In.",
+      "category": "event",
+      "duration": 90,
+      "priceRange": "$",
+      "adventureLevel": 7,
+      "address": "2208 Elliston Pl, Nashville, TN 37203",
+      "coordinates": {
+        "lat": 36.1513996,
+        "lng": -86.80434
+      }
+    },
+    {
+      "name": "The Rumjacks at The Cobra (November 5, 2026)",
+      "description": "The Rumjacks will bring their energetic performance to The Cobra in Nashville.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 7,
+      "address": "2511 Gallatin Ave, Nashville, TN 37206",
+      "coordinates": {
+        "lat": 36.1955993,
+        "lng": -86.74311159999999
+      }
+    },
+    {
+      "name": "Hunter Metts at AmericanaFest (September 18, 2026)",
+      "description": "Hunter Metts will perform at the renowned AmericanaFest, showcasing his talent among other artists.",
+      "category": "event",
+      "duration": 90,
+      "priceRange": "$$",
+      "adventureLevel": 8
+    },
+    {
+      "name": "Jon Langston at Dixie Carter Performing Arts Center (August 29, 2026)",
+      "description": "Jon Langston will perform at the Dixie Carter Performing Arts Center, offering a night of country music.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "The Mavericks at Ryman Auditorium (December 4, 2026)",
+      "description": "The Mavericks will take the stage at the historic Ryman Auditorium, known for its rich musical heritage.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 9,
+      "address": "116 Rep. John Lewis Way N, Nashville, TN 37219",
+      "coordinates": {
+        "lat": 36.1612481,
+        "lng": -86.7784714
+      }
+    },
+    {
+      "name": "VNV Nation at Exit/In (March 9, 2027)",
+      "description": "VNV Nation will perform at Exit/In, bringing their electronic music to Nashville.",
+      "category": "event",
+      "duration": 90,
+      "priceRange": "$",
+      "adventureLevel": 7,
+      "address": "2208 Elliston Pl, Nashville, TN 37203",
+      "coordinates": {
+        "lat": 36.1513996,
+        "lng": -86.80434
+      }
+    },
+    {
+      "name": "Bebel Gilberto at City Winery - Nashville (August 14, 2026)",
+      "description": "Bebel Gilberto will perform at City Winery, offering a night of Brazilian music.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 8,
+      "address": "609 Lafayette St, Nashville, TN 37203",
+      "coordinates": {
+        "lat": 36.152287,
+        "lng": -86.7762891
+      }
+    },
+    {
+      "name": "Ingrid Andress at Bluebird Café (August 12, 2026)",
+      "description": "Ingrid Andress will perform at the iconic Bluebird Café, known for its intimate setting and songwriter rounds.",
+      "category": "event",
+      "duration": 90,
+      "priceRange": "$$",
+      "adventureLevel": 8,
+      "address": "4104 Hillsboro Pike, Nashville, TN 37215",
+      "coordinates": {
+        "lat": 36.1020761,
+        "lng": -86.8168645
+      }
+    }
+  ],
+  "localInsights": [],
+  "sources": [
+    "https://www.countrypolitannashville.com/post/off-the-beaten-path-nashville-unique-tours-hidden-gems-local-experiences",
+    "https://www.runrocknroll.com/news/top-15-nashville-honky-tonks-music-venues",
+    "https://www.trolleytours.com/nashville/first-timers-guide"
+  ]
+}

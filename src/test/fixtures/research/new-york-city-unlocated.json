@@ -1,0 +1,434 @@
+{
+  "destination": "New York City",
+  "attractions": [
+    {
+      "name": "Tom's Restaurant",
+      "description": "Iconic diner known for its appearance in Seinfeld, serving classic American fare and featuring displays related to the show.",
+      "category": "restaurant",
+      "address": "2880 Broadway, Morningside Heights",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 0
+    },
+    {
+      "name": "Py Park",
+      "description": "A tiny oasis in Midtown featuring a cascading waterfall, perfect for a peaceful escape among the skyscrapers.",
+      "category": "park",
+      "address": "Midtown Manhattan",
+      "estimatedDuration": 30,
+      "priceRange": "free",
+      "redditMentions": 0
+    },
+    {
+      "name": "Socrates Sculpture Park",
+      "description": "An outdoor museum and public park in Queens featuring large sculptures and art installations, ideal for picnics and family outings.",
+      "category": "park",
+      "address": "32-01 Vernon Blvd, Long Island City",
+      "estimatedDuration": 90,
+      "priceRange": "free",
+      "redditMentions": 0
+    },
+    {
+      "name": "Mmuseumm",
+      "description": "A tiny museum housed in a freight elevator, showcasing overlooked and dismissed objects in a quirky and unique setting.",
+      "category": "museum",
+      "address": "4 Cortlandt Alley, Manhattan",
+      "estimatedDuration": 30,
+      "priceRange": "$",
+      "redditMentions": 0
+    },
+    {
+      "name": "The Back Room",
+      "description": "A hidden speakeasy that operated during Prohibition, offering a unique atmosphere and cocktails in a historic setting.",
+      "category": "entertainment",
+      "address": "102 Norfolk St, Lower East Side",
+      "estimatedDuration": 120,
+      "priceRange": "$$",
+      "redditMentions": 0
+    },
+    {
+      "name": "The Elevated Acre",
+      "description": "A hidden park located on a rooftop in the Financial District, offering stunning views and a quiet escape from the city below.",
+      "category": "park",
+      "address": "55 Water St, Manhattan",
+      "estimatedDuration": 30,
+      "priceRange": "free",
+      "redditMentions": 0
+    },
+    {
+      "name": "Katz's Deli",
+      "description": "Famous deli known for its pastrami sandwiches and iconic scenes from 'When Harry Met Sally', featuring a sign marking the table where the scene was filmed.",
+      "category": "restaurant",
+      "address": "205 E Houston St, Lower East Side",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 0
+    },
+    {
+      "name": "91st Street Garden",
+      "description": "A charming garden in Riverside Park, known for its romantic film scenes, providing a lovely spot for relaxation.",
+      "category": "park",
+      "address": "91st St & Riverside Dr, Manhattan",
+      "estimatedDuration": 30,
+      "priceRange": "free",
+      "redditMentions": 0
+    },
+    {
+      "name": "Governor's Ball",
+      "description": "An annual music festival held in New York City, featuring a diverse lineup of artists and a vibrant atmosphere.",
+      "category": "entertainment",
+      "address": "Randall's Island Park, New York",
+      "estimatedDuration": 360,
+      "priceRange": "$$$",
+      "redditMentions": 0
+    },
+    {
+      "name": "Lexington Candy Shop",
+      "description": "A classic New York diner known for its nostalgic charm and delicious breakfast options, perfect for a casual meal.",
+      "category": "restaurant",
+      "address": "1226 Lexington Ave, Manhattan",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 0
+    },
+    {
+      "name": "The Lunchbox",
+      "description": "A small shop selling bagels, coffee, and sandwiches out of a window, located near Py Park, ideal for a quick bite.",
+      "category": "market",
+      "address": "Midtown Manhattan",
+      "estimatedDuration": 30,
+      "priceRange": "$",
+      "redditMentions": 0
+    },
+    {
+      "name": "City Hall Station",
+      "description": "An abandoned subway station known for its stunning architecture, offering a glimpse into New York's transit history.",
+      "category": "landmark",
+      "address": "City Hall Park, Manhattan",
+      "estimatedDuration": 30,
+      "priceRange": "free",
+      "redditMentions": 0
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "Left Bank",
+      "cuisine": [
+        "french"
+      ],
+      "priceRange": "$$",
+      "address": "117 Perry Street",
+      "rating": 4.5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Sao Mai",
+      "cuisine": [
+        "vietnamese"
+      ],
+      "priceRange": "$",
+      "address": "203 First Ave",
+      "rating": 4.5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Via Carota",
+      "cuisine": [
+        "italian"
+      ],
+      "priceRange": "$$",
+      "address": "51 Grove St",
+      "rating": 5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Somtum Der",
+      "cuisine": [
+        "thai"
+      ],
+      "priceRange": "$$",
+      "address": "85 Avenue A",
+      "rating": 4.5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Mamoun’s Falafel",
+      "cuisine": [
+        "middle eastern",
+        "falafel"
+      ],
+      "priceRange": "$",
+      "address": "119 MacDougal St",
+      "rating": 4.5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Xi’an Famous Foods",
+      "cuisine": [
+        "chinese",
+        "noodles"
+      ],
+      "priceRange": "$",
+      "address": "various locations",
+      "rating": 4.5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Sticky’s Finger Joint",
+      "cuisine": [
+        "american",
+        "fried chicken"
+      ],
+      "priceRange": "$",
+      "address": "various locations",
+      "rating": 4.5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Leo’s Bagels",
+      "cuisine": [
+        "bagels"
+      ],
+      "priceRange": "$",
+      "address": "3 Hanover Square",
+      "rating": 4.5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Wakky’s African Restaurant",
+      "cuisine": [
+        "nigerian"
+      ],
+      "priceRange": "$",
+      "address": "1174 Saint Marks Avenue",
+      "rating": 4.5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Ba Xuyên",
+      "cuisine": [
+        "vietnamese"
+      ],
+      "priceRange": "$",
+      "address": "Sunset Park",
+      "rating": 4.5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Montague Diner",
+      "cuisine": [
+        "american",
+        "diner"
+      ],
+      "priceRange": "$$",
+      "address": "148 Montague St",
+      "rating": 4.5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Panna II Garden Indian Restaurant",
+      "cuisine": [
+        "indian"
+      ],
+      "priceRange": "$",
+      "address": "205 E Houston St",
+      "rating": 4.5,
+      "redditMentions": 0
+    }
+  ],
+  "activities": [
+    {
+      "name": "Teardrop Park",
+      "description": "A small park in Battery Park City featuring unique landscaping, a playground, and beautiful views of the Hudson River, perfect for escaping the crowds.",
+      "category": "outdoor",
+      "duration": 60,
+      "priceRange": "free",
+      "adventureLevel": 2,
+      "redditMentions": 0
+    },
+    {
+      "name": "Queens County Farm Museum",
+      "description": "One of the last remaining working farms in NYC, showcasing agricultural heritage and offering a unique experience for visitors.",
+      "category": "cultural",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 3,
+      "redditMentions": 0
+    },
+    {
+      "name": "Roosevelt Island Tramway",
+      "description": "A scenic tram ride offering stunning views of the Manhattan skyline and the East River, connecting Roosevelt Island to Manhattan.",
+      "category": "adventure",
+      "duration": 30,
+      "priceRange": "$",
+      "adventureLevel": 5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Coney Island Sideshow by the Seashore",
+      "description": "A unique performance venue featuring a variety of sideshow acts, offering entertainment throughout the year.",
+      "category": "nightlife",
+      "duration": 90,
+      "priceRange": "$",
+      "adventureLevel": 6,
+      "redditMentions": 0
+    },
+    {
+      "name": "Grand Central Terminal Secrets Tour",
+      "description": "A guided tour revealing hidden features of Grand Central, including a tennis court and a private apartment, that most visitors never see.",
+      "category": "tour",
+      "duration": 90,
+      "priceRange": "$$",
+      "adventureLevel": 4,
+      "redditMentions": 0
+    },
+    {
+      "name": "Brooklyn Bridge & DUMBO Secrets Tour",
+      "description": "Explore the hidden gems and secrets of the iconic Brooklyn Bridge and the surrounding DUMBO neighborhood.",
+      "category": "tour",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Greenwich Village Coffee Tour",
+      "description": "A tasting tour exploring the history of coffee in Greenwich Village, the birthplace of coffee culture in NYC.",
+      "category": "food",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 3,
+      "redditMentions": 0
+    },
+    {
+      "name": "Remnants of New Amsterdam Tour",
+      "description": "A walking tour that uncovers the hidden Dutch relics and history of New York City south of Wall Street.",
+      "category": "cultural",
+      "duration": 90,
+      "priceRange": "$$",
+      "adventureLevel": 4,
+      "redditMentions": 0
+    },
+    {
+      "name": "Chimney Bluffs State Park",
+      "description": "A unique geological formation on Lake Ontario featuring surreal earthen spires shaped by glaciers, perfect for quiet exploration.",
+      "category": "outdoor",
+      "duration": 180,
+      "priceRange": "free",
+      "adventureLevel": 7,
+      "redditMentions": 0
+    },
+    {
+      "name": "The Fake Gilded Age Mansion",
+      "description": "A modern building designed to complement historic neighbors on Manhattan's Upper East Side, showcasing unique architectural style.",
+      "category": "cultural",
+      "duration": 60,
+      "priceRange": "$$",
+      "adventureLevel": 3,
+      "redditMentions": 0
+    },
+    {
+      "name": "The Sideshow at Coney Island",
+      "description": "A seasonal attraction featuring a variety of unique performances and acts, making it a must-visit for those seeking quirky entertainment.",
+      "category": "nightlife",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 6,
+      "redditMentions": 0
+    },
+    {
+      "name": "DJ Boris (August 15)",
+      "description": "Join DJ Boris for an electrifying night at Listen, featuring a mix of house and electronic music.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "$",
+      "adventureLevel": 7
+    },
+    {
+      "name": "Saved By The 90's (August 14)",
+      "description": "Relive the nostalgia of the 90s with live music at Brooklyn Bowl, featuring hits from the decade.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "A Very Special Episode and Red Meat (August 30)",
+      "description": "Enjoy a night of comedy at TV Eye with performances from A Very Special Episode and Red Meat.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 5
+    },
+    {
+      "name": "Brett Goldstein and Mo Welch (August 8)",
+      "description": "Catch comedians Brett Goldstein and Mo Welch live at The Bell House for a night of laughter.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "Eliza Spear with Molly Murphy (August 19)",
+      "description": "Experience a captivating performance by Eliza Spear at Bowery Palace, accompanied by Molly Murphy.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 5
+    },
+    {
+      "name": "Porch Couch and Dylan Taganas (August 16)",
+      "description": "Enjoy a night of live music at Mercury Lounge featuring Porch Couch and Dylan Taganas.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "Frock with Voodoo Baby Aliens (September 15)",
+      "description": "Catch Frock live at Bowery Palace, performing alongside Voodoo Baby Aliens.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 5
+    },
+    {
+      "name": "Michael Eliran with Heaviness Fell (August 2)",
+      "description": "Join Michael Eliran for a live performance at Baby's All Right, featuring Heaviness Fell.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "Topaz, Fuck You Tammy, and 12090 AD (August 1)",
+      "description": "Enjoy a night of live music at Rockaway Beach Amphitheater with Topaz, Fuck You Tammy, and 12090 AD.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "$",
+      "adventureLevel": 7
+    },
+    {
+      "name": "NY Comedy Festival Presents Jordan Jensen (2026)",
+      "description": "Catch comedian Jordan Jensen live during the New York Comedy Festival at various venues across the city.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "NY Comedy Festival Presents Adam Friedland (2026)",
+      "description": "Join Adam Friedland for a night of comedy during the New York Comedy Festival at multiple venues.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 6
+    }
+  ],
+  "localInsights": [],
+  "sources": [
+    "https://www.wheretonau.com/post/non-touristy-things-to-do-in-nyc-to-avoid-the-crowds",
+    "https://www.youtube.com/watch?v=8jrtg1jNnNs",
+    "https://www.iloveny.com/blog/post/romantic-movie-locations"
+  ]
+}

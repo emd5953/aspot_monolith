@@ -1,0 +1,566 @@
+{
+  "destination": "Lisbon, Portugal",
+  "attractions": [
+    {
+      "name": "Prazeres Cemetery",
+      "description": "This cemetery features beautiful mausoleums and is the final resting place of notable Portuguese figures, making it a unique and serene spot to explore.",
+      "category": "landmark",
+      "address": "Praça São João Bosco 568, 1350-297 Lisboa, Portugal",
+      "estimatedDuration": 60,
+      "priceRange": "free",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.7138134,
+        "lng": -9.1705863
+      }
+    },
+    {
+      "name": "Museu Nacional do Azulejo",
+      "description": "Housed in a former monastery, this museum showcases the history of Portuguese tiles, offering a charming experience through its beautiful cloisters.",
+      "category": "museum",
+      "address": "R. Me. Deus 4, 1900-312 Lisboa, Portugal",
+      "estimatedDuration": 90,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.7250559,
+        "lng": -9.113539
+      }
+    },
+    {
+      "name": "Carmo Convent Ruins",
+      "description": "These haunting ruins from the 1755 earthquake serve as a poignant reminder of Lisbon's history and are now home to an archaeological museum.",
+      "category": "landmark",
+      "address": "Largo do Carmo, 1200-092 Lisboa, Portugal",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.7120383,
+        "lng": -9.140612899999999
+      }
+    },
+    {
+      "name": "LX Factory",
+      "description": "An industrial complex transformed into a creative hub, LX Factory is filled with shops, cafes, and art installations, making it a vibrant place to explore.",
+      "category": "neighborhood",
+      "address": "R. Rodrigues de Faria 103 Piso 3, 1300-501 Lisboa, Portugal",
+      "estimatedDuration": 120,
+      "priceRange": "$",
+      "redditMentions": 1,
+      "coordinates": {
+        "lat": 38.70346019999999,
+        "lng": -9.1787831
+      }
+    },
+    {
+      "name": "Cultural Center of Belém",
+      "description": "This cultural center features a variety of exhibitions and performances, including the renowned Berardo Collection of modern and contemporary art.",
+      "category": "gallery",
+      "address": "Praça do Império, 1449-003 Lisboa, Portugal",
+      "estimatedDuration": 90,
+      "priceRange": "$$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.6955029,
+        "lng": -9.208354199999999
+      }
+    },
+    {
+      "name": "Estufa Fria",
+      "description": "A stunning greenhouse located in Eduardo VII Park, Estufa Fria is home to a diverse collection of plants and provides a tranquil escape from the city.",
+      "category": "park",
+      "address": "Parque Eduardo VII, Parque Eduardo VII, 1070-051 Lisboa, Portugal",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.7287078,
+        "lng": -9.155125
+      }
+    },
+    {
+      "name": "Bordalo Pinheiro Museum",
+      "description": "This museum showcases the unique ceramics of Bordalo Pinheiro, along with beautiful gardens that enhance the artistic experience.",
+      "category": "museum",
+      "address": "Campo Grande 382, 1700-097 Lisboa, Portugal",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 1,
+      "coordinates": {
+        "lat": 38.758899,
+        "lng": -9.1541742
+      }
+    },
+    {
+      "name": "Santa Justa Lift",
+      "description": "This iconic lift offers panoramic views of Lisbon and is a remarkable piece of engineering from the early 20th century.",
+      "category": "landmark",
+      "address": "R. de Santa Justa, 1150-060 Lisboa, Portugal",
+      "estimatedDuration": 30,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.7121301,
+        "lng": -9.139429699999999
+      }
+    },
+    {
+      "name": "Museum of Contemporary Art",
+      "description": "Opened in 2023, this museum features works by iconic artists and is a must-visit for art lovers looking for something different.",
+      "category": "gallery",
+      "address": "Praça do Império, 1449-003 Lisboa, Portugal",
+      "estimatedDuration": 90,
+      "priceRange": "$$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.6958741,
+        "lng": -9.2090914
+      }
+    },
+    {
+      "name": "Downstairs at Betty's",
+      "description": "This lively piano bar invites guests to sing along to their favorite tunes in a fun, judgment-free environment.",
+      "category": "entertainment",
+      "address": "Rua da Glória 53, 1250-092 Lisboa, Portugal",
+      "estimatedDuration": 120,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.7167897,
+        "lng": -9.1442908
+      }
+    },
+    {
+      "name": "Anjos70",
+      "description": "A cultural hub that hosts jam sessions and open mics, Anjos70 is a great place to experience local music and community vibes.",
+      "category": "entertainment",
+      "address": "Av. Alm. Reis 238A, 1000-056 Lisboa, Portugal",
+      "estimatedDuration": 120,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.7393597,
+        "lng": -9.1334524
+      }
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "Yakuza by Olivier",
+      "cuisine": [
+        "japanese",
+        "sushi"
+      ],
+      "priceRange": "$$$$",
+      "address": "R. Júlio César Machado 7, 1250-135 Lisboa, Portugal",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.7206052,
+        "lng": -9.1474643
+      }
+    },
+    {
+      "name": "Hikidashi",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$$$",
+      "address": "R. Coelho da Rocha 20A, 1250-088 Lisboa, Portugal",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.716679,
+        "lng": -9.1626525
+      }
+    },
+    {
+      "name": "YŌSO",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$$$",
+      "address": "Rampa das Necessidades 6, 1350-188 Lisboa, Portugal",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.70577,
+        "lng": -9.1706285
+      }
+    },
+    {
+      "name": "Ajitama",
+      "cuisine": [
+        "japanese",
+        "ramen"
+      ],
+      "priceRange": "$$",
+      "address": "Av. Duque de Loulé 36, 1050-091 Lisboa, Portugal",
+      "rating": 4.5,
+      "redditMentions": 1,
+      "coordinates": {
+        "lat": 38.7282999,
+        "lng": -9.145142
+      }
+    },
+    {
+      "name": "Midori",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$$$$",
+      "address": "Quinta da Lagoa Azul, 2714-511 Sintra, Portugal",
+      "rating": 4.5,
+      "redditMentions": 1,
+      "coordinates": {
+        "lat": 38.7613633,
+        "lng": -9.3967637
+      }
+    },
+    {
+      "name": "Kabuki Lisboa",
+      "cuisine": [
+        "japanese",
+        "sushi"
+      ],
+      "priceRange": "$$$$",
+      "address": "Galerias Ritz, R. Castilho 77B, 1070-050 Lisboa, Portugal",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.725546,
+        "lng": -9.154214699999999
+      }
+    },
+    {
+      "name": "AO Paraíso",
+      "cuisine": [
+        "japanese",
+        "sushi"
+      ],
+      "priceRange": "$$$",
+      "address": "Rua de S. Paulo 16, 1200-161 Lisboa, Portugal",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.707393,
+        "lng": -9.1430052
+      }
+    },
+    {
+      "name": "Confraria Lx",
+      "cuisine": [
+        "japanese",
+        "sushi"
+      ],
+      "priceRange": "$$",
+      "address": "Portugal, R. do Alecrim 12A, 1200-161 Lisboa, Portugal",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.7070427,
+        "lng": -9.1433567
+      }
+    },
+    {
+      "name": "Go Juu",
+      "cuisine": [
+        "japanese",
+        "sushi"
+      ],
+      "priceRange": "$$$",
+      "address": "R. Marquês Sá da Bandeira 46A, 1050-165 Lisboa, Portugal",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.7358361,
+        "lng": -9.1521361
+      }
+    },
+    {
+      "name": "Kappo",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$$$$",
+      "address": "Av. Emídio Navarro 23 A, 2750-337 Cascais, Portugal",
+      "rating": 4.5,
+      "redditMentions": 1,
+      "coordinates": {
+        "lat": 38.6971207,
+        "lng": -9.423021499999999
+      }
+    },
+    {
+      "name": "Kanazawa",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$$$$",
+      "address": "R. Damião de Góis 3 A, 1400-088 Lisboa, Portugal",
+      "rating": 4.5,
+      "redditMentions": 1,
+      "coordinates": {
+        "lat": 38.6980061,
+        "lng": -9.225748
+      }
+    },
+    {
+      "name": "Omakase Wa",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$$",
+      "address": "Tv. do Fala-Só 15B, 1250-096 Lisboa, Portugal",
+      "rating": 4.5,
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 38.7161678,
+        "lng": -9.1442329
+      }
+    }
+  ],
+  "activities": [
+    {
+      "name": "Secret Food Tour of Lisbon",
+      "description": "Join a local guide to explore Lisbon's culinary scene, tasting famous petiscos and enjoying Porto wine.",
+      "category": "food",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 3,
+      "redditMentions": 0
+    },
+    {
+      "name": "Pastel de Nata Cooking Class",
+      "description": "Learn the secrets of making Lisbon's famous custard tarts in a 2-hour cooking class.",
+      "category": "workshop",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 2,
+      "redditMentions": 0
+    },
+    {
+      "name": "LX Factory",
+      "description": "A creative hub featuring shops, restaurants, and street art, perfect for exploring local culture.",
+      "category": "cultural",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 4,
+      "redditMentions": 1,
+      "address": "R. Rodrigues de Faria 103 Piso 3, 1300-501 Lisboa, Portugal",
+      "coordinates": {
+        "lat": 38.70346019999999,
+        "lng": -9.1787831
+      }
+    },
+    {
+      "name": "Aqueduto das Águas Livres",
+      "description": "Visit this historic aqueduct, an architectural marvel offering stunning views of Lisbon.",
+      "category": "outdoor",
+      "duration": 90,
+      "priceRange": "$",
+      "adventureLevel": 5,
+      "redditMentions": 0,
+      "address": "CC da Quintinha 6, 1070-225 Lisboa, Portugal",
+      "coordinates": {
+        "lat": 38.72655049999999,
+        "lng": -9.166528099999999
+      }
+    },
+    {
+      "name": "Feira da Ladra",
+      "description": "Explore one of Lisbon's best flea markets, filled with antiques, crafts, and local treasures.",
+      "category": "cultural",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 3,
+      "redditMentions": 0,
+      "address": "Campo de Santa Clara, 1100-472 Lisboa, Portugal",
+      "coordinates": {
+        "lat": 38.715248,
+        "lng": -9.1262075
+      }
+    },
+    {
+      "name": "Jardim da Estrela",
+      "description": "Recharge in this beautiful park, ideal for a relaxing stroll or picnic.",
+      "category": "outdoor",
+      "duration": 60,
+      "priceRange": "free",
+      "adventureLevel": 1,
+      "redditMentions": 0,
+      "address": "Praça da Estrela, 1200-667 Lisboa, Portugal",
+      "coordinates": {
+        "lat": 38.714765,
+        "lng": -9.159257499999999
+      }
+    },
+    {
+      "name": "Mouraria Neighborhood",
+      "description": "Stroll through this multicultural area known for its vibrant street art and local eateries.",
+      "category": "cultural",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 4,
+      "redditMentions": 0
+    },
+    {
+      "name": "Museu Nacional do Azulejo",
+      "description": "Discover the history of Portuguese tiles in this museum housed in a former monastery.",
+      "category": "cultural",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 2,
+      "redditMentions": 0,
+      "address": "R. Me. Deus 4, 1900-312 Lisboa, Portugal",
+      "coordinates": {
+        "lat": 38.7250559,
+        "lng": -9.113539
+      }
+    },
+    {
+      "name": "Cultural Center of Belém",
+      "description": "Visit this cultural hub featuring exhibitions, concerts, and the Berardo Collection of modern art.",
+      "category": "cultural",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 3,
+      "redditMentions": 0,
+      "address": "Praça do Império, 1449-003 Lisboa, Portugal",
+      "coordinates": {
+        "lat": 38.6955029,
+        "lng": -9.208354199999999
+      }
+    },
+    {
+      "name": "Bacalhôa Buddha Eden",
+      "description": "Explore this massive Buddha park filled with beautiful gardens and sculptures, located near Lisbon.",
+      "category": "outdoor",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 4,
+      "redditMentions": 0,
+      "address": "Quinta dos Loridos, 2540-420, Portugal",
+      "coordinates": {
+        "lat": 39.2755559,
+        "lng": -9.138490200000001
+      }
+    },
+    {
+      "name": "Prazeres Cemetery",
+      "description": "Visit this unique cemetery known for its artistic tombs and peaceful atmosphere.",
+      "category": "cultural",
+      "duration": 60,
+      "priceRange": "free",
+      "adventureLevel": 2,
+      "redditMentions": 0,
+      "address": "Praça São João Bosco 568, 1350-297 Lisboa, Portugal",
+      "coordinates": {
+        "lat": 38.7138134,
+        "lng": -9.1705863
+      }
+    },
+    {
+      "name": "Festa do Avante! (September 4-6, 2026)",
+      "description": "A major political-cultural festival organized by the Portuguese Communist Party featuring music, theatre, and cinema at Quinta da Atalaia in Amora, Seixal, across the Tagus from Lisbon.",
+      "category": "event",
+      "duration": 4320,
+      "priceRange": "$",
+      "adventureLevel": 5,
+      "address": "R. dos Operários, 2845-455 Amora, Portugal",
+      "coordinates": {
+        "lat": 38.6331617,
+        "lng": -9.1155011
+      }
+    },
+    {
+      "name": "MOTELx Horror Film Festival (Mid-September 2026)",
+      "description": "Portugal's most important horror film festival featuring premieres, retrospectives, and guest talks at Cinema São Jorge in central Lisbon.",
+      "category": "event",
+      "duration": 4320,
+      "priceRange": "$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "Santa Casa Alfama Music Festival (Mid-Late September 2026)",
+      "description": "An annual fado music festival featuring concerts in historic chapels, palaces, and outdoor squares in the Alfama district.",
+      "category": "event",
+      "duration": 360,
+      "priceRange": "$$",
+      "adventureLevel": 7
+    },
+    {
+      "name": "Super Bock Super Rock (September 5-6, 2026)",
+      "description": "A legendary Portuguese music festival featuring major standalone concerts, kicking off with The Weeknd at Estádio do Restelo in Lisbon.",
+      "category": "event",
+      "duration": 360,
+      "priceRange": "$$$",
+      "adventureLevel": 8,
+      "address": "GV83+CP, 2970-128 Casa do Infantado, Portugal",
+      "coordinates": {
+        "lat": 38.5160625,
+        "lng": -9.1456875
+      }
+    },
+    {
+      "name": "Kizomba Festival Lisboa (September 2026)",
+      "description": "An Afro-Lusophone kizomba dance festival with workshops, socials, and performances across various venues in Lisbon.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 5
+    },
+    {
+      "name": "Misty Fest (September 2026)",
+      "description": "An autumn concert festival featuring intimate shows in venues across Lisbon and Sintra, often in palaces and theatres.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "Lisbon Architecture Triennale (September 2026)",
+      "description": "A major exhibition of architecture and urban design featuring installations and talks across various venues in Lisbon.",
+      "category": "event",
+      "duration": 720,
+      "priceRange": "$$",
+      "adventureLevel": 4,
+      "address": "Office:, Campo de Santa Clara 142, 1100-474 Lisboa, Portugal",
+      "coordinates": {
+        "lat": 38.7160216,
+        "lng": -9.1251148
+      }
+    },
+    {
+      "name": "Chronosphere Festival (September 18-20, 2026)",
+      "description": "A music and arts gathering in Góis, featuring electronic, ambient, and experimental music, with workshops exploring neurodiverse perspectives.",
+      "category": "event",
+      "duration": 4320,
+      "priceRange": "$$",
+      "adventureLevel": 7
+    },
+    {
+      "name": "Rota das Tapas Lisboa (September 2026)",
+      "description": "A citywide tapas route offering promotional small plates in over 100 restaurants across Lisbon.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "$",
+      "adventureLevel": 3
+    },
+    {
+      "name": "Lisbon & Sintra Film Festival (September 2026)",
+      "description": "An auteur-focused film festival featuring screenings and premieres across various cinemas in Lisbon and Estoril.",
+      "category": "event",
+      "duration": 360,
+      "priceRange": "$$",
+      "adventureLevel": 5
+    }
+  ],
+  "localInsights": [],
+  "sources": [
+    "https://www.blocal-travel.com/exhibition/top-5-lisbon-portugal",
+    "https://www.offpathportugal.com/unusual-things-to-do-in-lisbon",
+    "https://www.atlasobscura.com/things-to-do/lisbon-portugal"
+  ]
+}

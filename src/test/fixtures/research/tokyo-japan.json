@@ -1,0 +1,556 @@
+{
+  "destination": "Tokyo, Japan",
+  "attractions": [
+    {
+      "name": "Miyano-Yu",
+      "description": "A charming cafe inside an old neighborhood bathhouse, offering delicious matcha and a local atmosphere.",
+      "category": "cafe",
+      "address": "Japan, 〒113-0031 Tokyo, Bunkyo City, Nezu, 2-chōme−19−８ SENTOビル 1C",
+      "estimatedDuration": 45,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.7183286,
+        "lng": 139.7652279
+      }
+    },
+    {
+      "name": "Yanaka Ginza",
+      "description": "A nostalgic 1950s shopping street filled with local shops, eateries, and cat statues, offering a unique shopping experience away from the tourist crowds.",
+      "category": "shopping",
+      "address": "3-chōme-13-1 Yanaka, Taito City, Tokyo 110-0001, Japan",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.7276934,
+        "lng": 139.7657232
+      }
+    },
+    {
+      "name": "Omoide Yokocho",
+      "description": "Also known as Memory Lane, this bustling alley is packed with tiny izakayas serving yakitori and hearty comfort foods, providing an authentic local dining experience.",
+      "category": "entertainment",
+      "address": "1 Chome-2 Nishishinjuku, Shinjuku City, Tokyo 160-0023, Japan",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6927011,
+        "lng": 139.6995778
+      }
+    },
+    {
+      "name": "Shinjuku Golden Gai",
+      "description": "Famous for its narrow alleys and unique micro-bars, Golden Gai is the perfect spot to sip sake or themed cocktails in an intimate setting.",
+      "category": "entertainment",
+      "address": "Japan, 〒160-0021 Tokyo, Shinjuku City, Kabukichō, 1-chōme−1−６ あかるい花園 五番街",
+      "estimatedDuration": 90,
+      "priceRange": "$$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6941118,
+        "lng": 139.7047611
+      }
+    },
+    {
+      "name": "Ebisu Yokocho",
+      "description": "A vibrant retro alley in Ebisu filled with bars and eateries offering grilled skewers, sashimi, and Japanese tapas, ideal for foodies exploring local cuisine.",
+      "category": "entertainment",
+      "address": "1-chōme-7-4 Ebisu, Shibuya, Tokyo 150-0013, Japan",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6482178,
+        "lng": 139.7106409
+      }
+    },
+    {
+      "name": "Harmonica Yokocho",
+      "description": "A maze-like alley in Kichijoji filled with tiny izakayas offering regional specialties and an authentic local vibe, perfect for a casual night out.",
+      "category": "entertainment",
+      "address": "Harmonica Yokocyo, 1-chōme-1 Kichijōji Honchō, Musashino, Tokyo 180-0004, Japan",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.7037459,
+        "lng": 139.5791738
+      }
+    },
+    {
+      "name": "Gen Yamamoto",
+      "description": "A minimalist cocktail bar offering a seasonal tasting menu inspired by natural Japanese ingredients, known for its bespoke cocktails.",
+      "category": "entertainment",
+      "address": "Japan, 〒106-0045 Tokyo, Minato City, Azabujūban, 1-chōme−6−４ アニバーサリービル 1F",
+      "estimatedDuration": 90,
+      "priceRange": "$$$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6564878,
+        "lng": 139.7342623
+      }
+    },
+    {
+      "name": "Bar Trench",
+      "description": "A cozy speakeasy in Ebisu that offers inventive twists on classic cocktails in a vintage setting, making it a unique spot for cocktail enthusiasts.",
+      "category": "entertainment",
+      "address": "Japan, 〒150-0021 Tokyo, Shibuya, Ebisunishi, 1-chōme−5−８ １０２",
+      "estimatedDuration": 60,
+      "priceRange": "$$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.648418,
+        "lng": 139.707951
+      }
+    },
+    {
+      "name": "Ben Fiddich",
+      "description": "A mixology haven where cocktails are infused with herbs and spices grown by the bartender himself, providing a unique drinking experience.",
+      "category": "entertainment",
+      "address": "Japan, 〒160-0023 Tokyo, Shinjuku City, Nishishinjuku, 1-chōme−13−７ 9F",
+      "estimatedDuration": 60,
+      "priceRange": "$$$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6894823,
+        "lng": 139.6966117
+      }
+    },
+    {
+      "name": "Akabane Yokocho",
+      "description": "A nostalgic Showa-era alleyway offering fresh sashimi, sake, and a lively local atmosphere, perfect for experiencing traditional Japanese dining.",
+      "category": "entertainment",
+      "address": "1 Chome-17 Akabane, Kita City, Tokyo 115-0045, Japan",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.7792547,
+        "lng": 139.7209334
+      }
+    },
+    {
+      "name": "Toranomon HOP",
+      "description": "A standing-style izakaya near Toranomon offering craft beer and modern small plates in a chic, casual setting, ideal for a relaxed dining experience.",
+      "category": "entertainment",
+      "address": "Japan, 〒105-6303 Tokyo, Minato City, Toranomon, 1-chōme−23−３ 虎ノ門ヒルズ森タワー 3F",
+      "estimatedDuration": 60,
+      "priceRange": "$",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6669967,
+        "lng": 139.7491589
+      }
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "Falo",
+      "cuisine": [
+        "japanese",
+        "italian"
+      ],
+      "priceRange": "$$",
+      "address": "B1, 14-10 Daikanyamacho, Shibuya-ku, Tokyo 150-0034",
+      "redditMentions": 0
+    },
+    {
+      "name": "Ginza Shimada",
+      "cuisine": [
+        "japanese",
+        "sake"
+      ],
+      "priceRange": "$$",
+      "address": "Japan, 〒104-0061 Tokyo, Chuo City, Ginza, 8-chōme−2−８ 高坂ビル １F",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6695928,
+        "lng": 139.7595011
+      }
+    },
+    {
+      "name": "Kaikaya by the Sea",
+      "cuisine": [
+        "japanese",
+        "seafood"
+      ],
+      "priceRange": "$$",
+      "address": "Japan, 〒150-0044 Tokyo, Shibuya, Maruyamachō, 23−７ 星野円山ビル １F 渋谷 桑原ビル１F",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6567999,
+        "lng": 139.6941954
+      }
+    },
+    {
+      "name": "Daimasa",
+      "cuisine": [
+        "japanese",
+        "seafood"
+      ],
+      "priceRange": "$$",
+      "address": "63 Hakone, Ashigarashimo District, Kanagawa 250-0521, Japan",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.1906249,
+        "lng": 139.0267942
+      }
+    },
+    {
+      "name": "Suju Dining Rokkaku",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$$",
+      "address": "9-chōme-7-4 Akasaka, Minato City, Tokyo 107-0052, Japan",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6668452,
+        "lng": 139.7306002
+      }
+    },
+    {
+      "name": "Binchoro",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$$",
+      "address": "Toranomon, Tokyo",
+      "redditMentions": 0
+    },
+    {
+      "name": "Shinpo",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$",
+      "address": "3-chōme-38-14 Shōan, Suginami City, Tokyo 167-0054, Japan",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.7030853,
+        "lng": 139.5993771
+      }
+    },
+    {
+      "name": "Iroriya Higashiginzaten",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$$",
+      "address": "Japan, 〒104-0061 Tokyo, Chuo City, Ginza, 3-chōme−11−１１ 参番館Ⅱ B1F",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6705,
+        "lng": 139.768348
+      }
+    },
+    {
+      "name": "Yakitori Bunraku",
+      "cuisine": [
+        "japanese",
+        "yakitori"
+      ],
+      "priceRange": "$$",
+      "address": "6-chōme-12-1 Ueno, Taito City, Tokyo 110-0005, Japan",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.7104562,
+        "lng": 139.7749339
+      }
+    },
+    {
+      "name": "Oidon",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$",
+      "address": "Japan, 〒160-0023 Tokyo, Shinjuku City, Nishishinjuku, 7-chōme−9−１５ Shinjuku Daikanplaza Business, 2F ダイカンプラザビジネス",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6947225,
+        "lng": 139.6982393
+      }
+    },
+    {
+      "name": "MOSS Dining Bar",
+      "cuisine": [
+        "japanese"
+      ],
+      "priceRange": "$$",
+      "address": "4-chōme-28-2 Taishidō, Setagaya City, Tokyo 154-0004, Japan",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.6457921,
+        "lng": 139.6698264
+      }
+    },
+    {
+      "name": "Pizza Marumo",
+      "cuisine": [
+        "italian"
+      ],
+      "priceRange": "$$",
+      "address": "Japan, 〒150-0022 Tokyo, Shibuya, Ebisuminami, 1-chōme−11−１３ 恵比寿ヴェルソービル 1階",
+      "redditMentions": 0,
+      "coordinates": {
+        "lat": 35.645293,
+        "lng": 139.7085094
+      }
+    }
+  ],
+  "activities": [
+    {
+      "name": "Shinjuku Food & Drink Night Tour",
+      "description": "Experience Shinjuku's vibrant nightlife with a local guide, sampling four local dishes and drinks at hidden izakayas and bars.",
+      "category": "tour",
+      "duration": 180,
+      "priceRange": "$$$",
+      "adventureLevel": 5,
+      "redditMentions": 0
+    },
+    {
+      "name": "Eat Like a Tokyoite: Your 3-Hour Izakaya Crawl in Nakano",
+      "description": "Join a local guide to explore Nakano's backstreets, enjoying comforting oden and seasonal sashimi in intimate izakayas.",
+      "category": "tour",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 4,
+      "redditMentions": 0
+    },
+    {
+      "name": "Golden Gai",
+      "description": "A maze of six alleys packed with over 200 tiny bars, perfect for toasting the night with locals in a unique atmosphere.",
+      "category": "nightlife",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 6,
+      "redditMentions": 1,
+      "address": "Japan, 〒160-0021 Tokyo, Shinjuku City, Kabukichō, 1-chōme−1−６ あかるい花園 五番街",
+      "coordinates": {
+        "lat": 35.6941118,
+        "lng": 139.7047611
+      }
+    },
+    {
+      "name": "Omoide Yokocho",
+      "description": "A narrow postwar alley in Shinjuku filled with hidden izakayas, offering a taste of local dishes and a glimpse into Tokyo's history.",
+      "category": "food",
+      "duration": 90,
+      "priceRange": "$",
+      "adventureLevel": 3,
+      "redditMentions": 0,
+      "address": "1 Chome-2 Nishishinjuku, Shinjuku City, Tokyo 160-0023, Japan",
+      "coordinates": {
+        "lat": 35.6927011,
+        "lng": 139.6995778
+      }
+    },
+    {
+      "name": "Iroriya Higashiginzaten",
+      "description": "A cozy low-slung izakaya in Ginza known for its all-you-can-eat and drink options, featuring grilled mackerel and generous servings of ikura.",
+      "category": "food",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 4,
+      "redditMentions": 0,
+      "address": "Japan, 〒104-0061 Tokyo, Chuo City, Ginza, 3-chōme−11−１１ 参番館Ⅱ B1F",
+      "coordinates": {
+        "lat": 35.6705,
+        "lng": 139.768348
+      }
+    },
+    {
+      "name": "Jindaiji Temple",
+      "description": "A historic temple surrounded by lush greenery, offering a peaceful escape from the city's hustle and bustle.",
+      "category": "cultural",
+      "duration": 120,
+      "priceRange": "free",
+      "adventureLevel": 2,
+      "redditMentions": 0,
+      "address": "Japan, 〒182-0017 Tokyo, Chofu, Jindaiji Motomachi, 5-chōme−１５−１",
+      "coordinates": {
+        "lat": 35.6675048,
+        "lng": 139.5503942
+      }
+    },
+    {
+      "name": "Musashino Jindaiji Gama",
+      "description": "A pottery workshop where visitors can craft beautiful pottery while enjoying the serene atmosphere of Jindaiji.",
+      "category": "workshop",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 5,
+      "redditMentions": 0,
+      "address": "Japan, 〒182-0017 Tokyo, Chofu, Jindaiji Motomachi, 5-chōme−１５−１",
+      "coordinates": {
+        "lat": 35.6675048,
+        "lng": 139.5503942
+      }
+    },
+    {
+      "name": "Amo Yako",
+      "description": "Known as the 'piss alley', this nostalgic area features smoky yakitori stalls and tiny eateries, offering a glimpse into post-war Tokyo.",
+      "category": "food",
+      "duration": 90,
+      "priceRange": "$",
+      "adventureLevel": 3,
+      "redditMentions": 0
+    },
+    {
+      "name": "Tsukiji Outer Market",
+      "description": "A bustling market with authentic food options, including wagyu skewers and fresh sushi, perfect for food lovers.",
+      "category": "food",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 4,
+      "redditMentions": 1,
+      "address": "Japan, 〒104-0045 Tokyo, Chuo City, Tsukiji, 4-chōme−16 および６丁目一部",
+      "coordinates": {
+        "lat": 35.6647703,
+        "lng": 139.7702515
+      }
+    },
+    {
+      "name": "Tokyo Whiskey Library",
+      "description": "An aesthetically pleasing bar specializing in whiskey, offering a unique drinking experience in a cozy setting.",
+      "category": "nightlife",
+      "duration": 120,
+      "priceRange": "$$$",
+      "adventureLevel": 5,
+      "redditMentions": 1,
+      "address": "Japan, 〒107-0062 Tokyo, Minato City, Minamiaoyama, 5-chōme−5−２４ 南青山サンタキアラ教会 2階",
+      "coordinates": {
+        "lat": 35.6635031,
+        "lng": 139.7129594
+      }
+    },
+    {
+      "name": "Shinpo",
+      "description": "An izakaya known for creamy crab croquettes and agedashi dōfu, offering a cozy atmosphere and authentic Japanese dishes.",
+      "category": "food",
+      "duration": 90,
+      "priceRange": "$$",
+      "adventureLevel": 4,
+      "redditMentions": 0,
+      "address": "3-chōme-38-14 Shōan, Suginami City, Tokyo 167-0054, Japan",
+      "coordinates": {
+        "lat": 35.7030853,
+        "lng": 139.5993771
+      }
+    },
+    {
+      "name": "Tokyo Bar Hopping Night Tour in Shinjuku",
+      "description": "Enjoy a guided tour visiting 3 bars in Shinjuku, experiencing local izakaya and all-you-can-drink establishments in Kabukicho, with local snacks and drinks.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 7
+    },
+    {
+      "name": "September Grand Sumo Tournament (September 2026)",
+      "description": "Witness the 5th of Japan's six annual sumo tournaments held in Tokyo, showcasing the country's traditional sport.",
+      "category": "event",
+      "duration": 240,
+      "priceRange": "$$",
+      "adventureLevel": 5
+    },
+    {
+      "name": "Candlelight Concert: A Tribute to Joe Hisaishi (September 2026)",
+      "description": "Experience a warm candlelight concert featuring beloved songs from Studio Ghibli composer Joe Hisaishi in a serene setting.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "Akasaka Hikawa Matsuri (September 2026)",
+      "description": "Join the traditional Akasaka Hikawa Matsuri featuring large floats, street food, and Bon Odori dance performances around Hikawa Shrine.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "free",
+      "adventureLevel": 6
+    },
+    {
+      "name": "Tokyo Handmade Marche (September 2026)",
+      "description": "Explore a unique handmade market in Tokyo, perfect for finding one-of-a-kind gifts and crafts.",
+      "category": "event",
+      "duration": 240,
+      "priceRange": "$",
+      "adventureLevel": 4
+    },
+    {
+      "name": "Geisai: Tokyo University of the Arts Festival (September 2026)",
+      "description": "Discover the creative talents of students at the Tokyo University of the Arts during this vibrant festival.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "free",
+      "adventureLevel": 5,
+      "address": "12-8 Uenokōen, Taito City, Tokyo 110-8714, Japan",
+      "coordinates": {
+        "lat": 35.7192016,
+        "lng": 139.7718851
+      }
+    },
+    {
+      "name": "Chōfu City Fireworks Festival (September 2026)",
+      "description": "Enjoy a spectacular fireworks display with over 10,000 fireworks lighting up the sky above Tamagawa River in Chōfu.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 8
+    },
+    {
+      "name": "Ultra Japan (September 19, 2026)",
+      "description": "Experience one of the largest electronic music festivals in Tokyo, featuring top DJs and vibrant performances.",
+      "category": "event",
+      "duration": 480,
+      "priceRange": "$$$",
+      "adventureLevel": 9
+    },
+    {
+      "name": "Weekend Comedy at TCB (September 2026)",
+      "description": "Enjoy a night of laughter at the Tokyo Comedy Bar, featuring some of the best stand-up comedians in the city.",
+      "category": "event",
+      "duration": 120,
+      "priceRange": "$",
+      "adventureLevel": 5
+    },
+    {
+      "name": "Keirin World Series 2026: Kawasaki Velodrome (September 2026)",
+      "description": "Watch international keirin racing return to Japan after seven years at the Kawasaki Velodrome.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "$$",
+      "adventureLevel": 6
+    },
+    {
+      "name": "Shibuya Vintage & Artisan Market (September 2026)",
+      "description": "Browse through unique vintage fashion and artisan goods at this vibrant market in Shibuya.",
+      "category": "event",
+      "duration": 240,
+      "priceRange": "$",
+      "adventureLevel": 4,
+      "address": "16-16 Nanpeidaichō, Shibuya, Tokyo 150-0036, Japan",
+      "coordinates": {
+        "lat": 35.6538871,
+        "lng": 139.6942389
+      }
+    },
+    {
+      "name": "China Festival 2026 (September 2026)",
+      "description": "Celebrate cultural exchange between Japan and China with food, music, and traditional performances.",
+      "category": "event",
+      "duration": 180,
+      "priceRange": "$",
+      "adventureLevel": 5
+    }
+  ],
+  "localInsights": [],
+  "sources": [
+    "https://yourfriendthenomad.com/tokyo-hidden-gems",
+    "https://www.foratravel.com/guides/7ATXBA/discover-tokyo-the-ultimate-guide-for-cultural-and-hidden-gems-sara-chan",
+    "https://www.cityunscripted.com/travel-magazine/hidden-gems-in-tokyo"
+  ]
+}
