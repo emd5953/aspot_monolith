@@ -119,7 +119,7 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
     return (
       <div
         ref={wrapperRef}
-        className="animate-popover-in absolute right-0 top-full mt-3 w-[300px] origin-top-right p-4"
+        className="animate-popover-in absolute right-0 top-full mt-3 w-[min(300px,calc(100vw-2rem))] origin-top-right p-4"
       >
         <p className={`text-base font-bold text-white ${TEXT_SHADOW}`}>
           Check your inbox
@@ -151,12 +151,13 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
   // Solid-ish dark input pill. Strong enough to read clearly, still shows
   // a hint of the sky through. Bumped up from the earlier too-ghostly version.
   const inputClass =
-    'w-full rounded-full border border-white/80 bg-slate-900/65 px-4 py-2.5 text-sm font-medium text-white placeholder:text-white/85 outline-none transition-all backdrop-blur-xl shadow-[0_10px_24px_-10px_rgba(10,25,55,0.55)] focus:border-white focus:bg-slate-900/80';
+    // text-base below md so iOS Safari doesn't zoom the viewport on focus.
+    'w-full rounded-full border border-white/80 bg-slate-900/65 px-4 py-2.5 text-base md:text-sm font-medium text-white placeholder:text-white/85 outline-none transition-all backdrop-blur-xl shadow-[0_10px_24px_-10px_rgba(10,25,55,0.55)] focus:border-white focus:bg-slate-900/80';
 
   return (
     <div
       ref={wrapperRef}
-      className="animate-popover-in absolute right-0 top-full mt-3 w-[300px] origin-top-right p-4"
+      className="animate-popover-in absolute right-0 top-full mt-3 w-[min(300px,calc(100vw-2rem))] origin-top-right p-4"
     >
       <p
         className={`text-xs font-bold uppercase tracking-wider text-white ${TEXT_SHADOW}`}

@@ -27,7 +27,7 @@ const ROLE_TONES: Record<string, string> = {
 };
 
 const SELECT_CLASS =
-  'px-3 py-1.5 rounded-full bg-white border border-[color:var(--border)] text-[color:var(--ink)] text-xs font-medium ' +
+  'px-3 py-2.5 md:py-1.5 rounded-full bg-white border border-[color:var(--border)] text-[color:var(--ink)] text-xs font-medium ' +
   "appearance-none cursor-pointer bg-[url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b1e3c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>\")] " +
   'bg-[length:12px_12px] bg-[right_0.75rem_center] bg-no-repeat pr-8';
 
@@ -105,7 +105,7 @@ export function MemberList({
                   onClick={() => handleRemove(member.userId)}
                   title="Remove member"
                   aria-label="Remove member"
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink-soft)] transition-all hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                  className="tap-target flex items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink-soft)] transition-all md:h-9 md:w-9 md:min-h-0 md:min-w-0 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
                 >
                   <Trash2 className="h-4 w-4" strokeWidth={2} />
                 </button>

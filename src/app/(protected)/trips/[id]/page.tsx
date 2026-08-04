@@ -99,7 +99,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
   if (isLoading) {
     return (
-      <main className="relative mx-auto max-w-2xl px-6 pt-32 pb-24">
+      <main className="relative mx-auto max-w-2xl px-4 pt-32 pb-24 md:px-6">
         <HandDrawnCard className="p-12 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
           <p className="mt-4 text-sm text-[color:var(--ink-muted)]">Loading trip</p>
@@ -110,7 +110,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
   if (error || !trip) {
     return (
-      <main className="relative mx-auto max-w-xl px-6 pt-32 pb-24">
+      <main className="relative mx-auto max-w-xl px-4 pt-32 pb-24 md:px-6">
         <HandDrawnCard className="p-10 text-center">
           <p className="text-sm font-medium text-rose-600">Something went wrong</p>
           <h2 className="mt-3 font-heading text-3xl text-[color:var(--ink)]">
@@ -130,7 +130,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <main className="relative mx-auto max-w-3xl px-6 pt-32 pb-24">
+    <main className="relative mx-auto max-w-3xl px-4 pt-32 pb-24 md:px-6">
       <button
         onClick={() => router.push('/trips')}
         className="mb-6 inline-flex items-center gap-2 text-sm text-white/85 transition-colors hover:text-white [text-shadow:0_1px_3px_rgba(10,30,60,0.5)]"

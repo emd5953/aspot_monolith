@@ -6,6 +6,7 @@ import { ActivityCard } from './activity-card';
 import { TimelineView } from './timeline-view';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { ReorderButtons } from '@/components/ui/reorder-buttons';
 import type { ItemSource } from '@/lib/ai/provenance';
 
 interface Activity {
@@ -84,6 +85,20 @@ export function DaySchedule({
   const handleDragEnd = () => setDraggedId(null);
 
   const sortedActivities = [...activities].sort((a, b) => a.sortOrder - b.sortOrder);
+
+  /**
+   * Touch-path reorder. Moves one activity by `offset` positions and hands the
+   * new id order to the same `onReorder` the drag path uses, so both routes hit
+   * `POST /api/itinerary/[id]/activities/reorder` identically.
+   */
+  const move = (index: number, offset: number) => {
+    if (!onReorder) return;
+    const ids = sortedActivities.map((a) => a.id);
+    const target = index + offset;
+    if (target < 0 || target >= ids.length) return;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    onReorder(ids);
+  };
   const hasTimingInfo = sortedActivities.some((a) => a.startTime && a.endTime);
 
   return (
@@ -145,11 +160,11 @@ export function DaySchedule({
             </p>
           </HandDrawnCard>
         ) : viewMode === 'timeline' && hasTimingInfo ? (
-          <HandDrawnCard className="p-6">
+          <HandDrawnCard className="p-4 md:p-6">
             <TimelineView activities={sortedActivities} />
           </HandDrawnCard>
         ) : (
-          sortedActivities.map((activity) => (
+          sortedActivities.map((activity, index) => (
             <div
               key={activity.id}
               draggable={!!onReorder}
@@ -157,14 +172,30 @@ export function DaySchedule({
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, activity.id)}
               onDragEnd={handleDragEnd}
-              className={onReorder ? 'cursor-move' : ''}
+              // `cursor-move` only from md up — below that there is no drag to
+              // advertise, the arrow buttons do the work instead.
+              className={onReorder ? 'flex items-start gap-2 md:cursor-move' : ''}
             >
-              <ActivityCard
-                activity={activity}
-                onEdit={onEditActivity}
-                onDelete={onDeleteActivity}
-                isDragging={draggedId === activity.id}
-              />
+              <div className="min-w-0 flex-1">
+                <ActivityCard
+                  activity={activity}
+                  onEdit={onEditActivity}
+                  onDelete={onDeleteActivity}
+                  isDragging={draggedId === activity.id}
+                />
+              </div>
+              {onReorder && (
+                <ReorderButtons
+                  className="shrink-0 pt-2 md:hidden"
+                  label={activity.title}
+                  onMoveUp={index > 0 ? () => move(index, -1) : undefined}
+                  onMoveDown={
+                    index < sortedActivities.length - 1
+                      ? () => move(index, 1)
+                      : undefined
+                  }
+                />
+              )}
             </div>
           ))
         )}

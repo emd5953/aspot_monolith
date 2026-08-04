@@ -65,12 +65,12 @@ export default function ItineraryPage() {
   };
 
   return (
-    <main className="relative mx-auto max-w-5xl px-6 pt-16 pb-24">
+    <main className="relative mx-auto max-w-5xl px-4 pt-16 pb-24 md:px-6">
       <section className="animate-fade-up">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
             <PromoChip>Your trips</PromoChip>
-            <h1 className="mt-5 font-heading text-6xl leading-[0.95] text-white md:text-7xl [text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]">
+            <h1 className="mt-5 font-heading text-4xl leading-[0.95] text-white sm:text-5xl md:text-7xl [text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]">
               My <span className="italic">itineraries</span>.
             </h1>
             <p className="mt-4 max-w-md text-base font-medium text-white [text-shadow:0_1px_4px_rgba(10,30,60,0.6),0_4px_18px_rgba(10,30,60,0.5)]">

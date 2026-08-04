@@ -126,7 +126,7 @@ export function QuizQuestionCard({
       {question.type === 'scale' && (
         <div className="mt-10">
           <div className="mb-6 flex items-center justify-center">
-            <span className="font-heading text-7xl text-[color:var(--ink)]">{scaleValue}</span>
+            <span className="font-heading text-6xl text-[color:var(--ink)] md:text-7xl">{scaleValue}</span>
           </div>
           <input
             type="range"
@@ -134,7 +134,7 @@ export function QuizQuestionCard({
             max={question.scaleMax ?? 10}
             value={scaleValue}
             onChange={(e) => handleScaleChange(parseInt(e.target.value))}
-            className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[color:var(--surface-soft)] [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[color:var(--ink)] [&::-webkit-slider-thumb]:shadow-[0_4px_12px_rgba(11,30,60,0.3)]"
+            className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[color:var(--surface-soft)] [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:w-7 md:[&::-webkit-slider-thumb]:h-5 md:[&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[color:var(--ink)] [&::-webkit-slider-thumb]:shadow-[0_4px_12px_rgba(11,30,60,0.3)]"
           />
           <div className="mt-4 flex justify-between text-xs text-[color:var(--ink-muted)]">
             <span>{question.scaleLabels?.min}</span>

@@ -56,8 +56,8 @@ export function RegenerateModal({ isOpen, onClose, onRegenerate }: RegenerateMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--ink)]/35 p-4 backdrop-blur-sm">
-      <HandDrawnCard className="animate-fade-up max-h-[90vh] w-full max-w-lg overflow-y-auto p-7">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[color:var(--ink)]/35 backdrop-blur-sm md:items-center md:p-4">
+      <HandDrawnCard className="animate-fade-up max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-b-none p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:max-h-[90vh] md:rounded-b-3xl md:p-7">
         <div className="mb-5 flex items-start justify-between">
           <div>
             <p className="mb-2 text-sm font-medium text-[color:var(--ink-muted)]">Regenerate</p>
@@ -107,7 +107,7 @@ export function RegenerateModal({ isOpen, onClose, onRegenerate }: RegenerateMod
           <p className="mb-3 text-xs text-[color:var(--ink-soft)]">
             Pick themes to emphasize in the new plan.
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {FOCUS_OPTIONS.map((option) => {
               const selected = selectedFocus.includes(option.value);
               return (

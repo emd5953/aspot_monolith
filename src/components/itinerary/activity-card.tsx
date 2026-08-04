@@ -97,13 +97,15 @@ export function ActivityCard({ activity, onEdit, onDelete, isDragging }: Activit
 
   return (
     <HandDrawnCard
-      className={`p-5 transition-all ${
+      className={`p-4 transition-all md:p-5 ${
         isDragging
           ? 'rotate-1 scale-[1.02] border-[color:var(--accent)]/40 bg-white'
           : 'hover:border-[color:var(--border-strong)] hover:bg-white'
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
+      {/* Below md the actions drop to their own row: three 44px targets plus
+          the reorder arrows do not fit beside the title at 375px. */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span
@@ -131,7 +133,7 @@ export function ActivityCard({ activity, onEdit, onDelete, isDragging }: Activit
             )}
           </div>
 
-          <h4 className="font-heading text-xl leading-tight text-[color:var(--ink)]">
+          <h4 className="font-heading text-lg leading-tight break-words text-[color:var(--ink)] md:text-xl">
             {activity.title}
           </h4>
 
@@ -141,10 +143,10 @@ export function ActivityCard({ activity, onEdit, onDelete, isDragging }: Activit
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.locationName)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm text-[color:var(--ink-muted)] transition-colors hover:text-[color:var(--ink)]"
+                className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-sm text-[color:var(--ink-muted)] transition-colors hover:text-[color:var(--ink)]"
               >
-                <MapPin className="h-3.5 w-3.5" strokeWidth={2} />
-                {activity.locationName}
+                <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+                <span className="truncate">{activity.locationName}</span>
               </a>
             )}
             {activity.bookingUrl && (
@@ -161,7 +163,7 @@ export function ActivityCard({ activity, onEdit, onDelete, isDragging }: Activit
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center justify-end gap-1">
           {onEdit && (
             <IconButton label="Edit" onClick={() => onEdit(activity)}>
               <Edit2 className="h-4 w-4" strokeWidth={2} />
@@ -220,7 +222,7 @@ function IconButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border)] transition-all ${
+      className={`tap-target flex items-center justify-center rounded-full border border-[color:var(--border)] transition-all md:h-8 md:w-8 md:min-h-0 md:min-w-0 ${
         danger
           ? 'text-[color:var(--ink-soft)] hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600'
           : 'text-[color:var(--ink-muted)] hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--ink)]'

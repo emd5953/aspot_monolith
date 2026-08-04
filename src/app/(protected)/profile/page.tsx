@@ -29,7 +29,7 @@ export default async function ProfilePage() {
   const archetype = getArchetype(preferences);
 
   return (
-    <main className="relative mx-auto max-w-3xl px-6 pt-16 pb-24">
+    <main className="relative mx-auto max-w-3xl px-4 pt-16 pb-24 md:px-6">
       {/* Passport-style hero */}
       <HandDrawnCard className="animate-fade-up overflow-hidden p-0">
         <div className="px-8 pt-8 pb-7">

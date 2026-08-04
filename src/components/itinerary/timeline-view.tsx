@@ -70,13 +70,15 @@ export function TimelineView({ activities }: TimelineViewProps) {
   return (
     <div className="relative">
       {/* Time axis */}
+      {/* Seven labels crowd into each other under ~400px, so the odd ones
+          drop out below sm and the axis keeps four evenly spaced marks. */}
       <div className="mb-2 flex justify-between text-xs text-[color:var(--ink-soft)]">
         <span>6 AM</span>
-        <span>9 AM</span>
+        <span className="hidden sm:inline">9 AM</span>
         <span>12 PM</span>
-        <span>3 PM</span>
+        <span className="hidden sm:inline">3 PM</span>
         <span>6 PM</span>
-        <span>9 PM</span>
+        <span className="hidden sm:inline">9 PM</span>
         <span>11 PM</span>
       </div>
 

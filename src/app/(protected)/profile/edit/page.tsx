@@ -231,8 +231,8 @@ export default function EditProfilePage() {
 
   if (loading) {
     return (
-      <main className="relative mx-auto max-w-2xl px-6 pt-16 pb-24">
-        <HandDrawnCard className="p-12 text-center">
+      <main className="relative mx-auto max-w-2xl px-4 pt-16 pb-24 md:px-6">
+        <HandDrawnCard className="p-8 text-center md:p-12">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
           <p className="mt-4 text-sm text-[color:var(--ink-muted)]">Loading</p>
         </HandDrawnCard>
@@ -243,7 +243,7 @@ export default function EditProfilePage() {
   if (!preferences) return null;
 
   return (
-    <main className="relative mx-auto max-w-2xl px-6 pt-16 pb-24">
+    <main className="relative mx-auto max-w-2xl px-4 pt-16 pb-24 md:px-6">
         <div className="flex items-center justify-between gap-3">
           <Link
             href="/profile"
@@ -256,7 +256,7 @@ export default function EditProfilePage() {
         </div>
 
         <section className="animate-fade-up mt-6">
-          <h1 className="font-heading text-5xl leading-[0.95] text-white md:text-6xl [text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]">
+          <h1 className="font-heading text-4xl leading-[0.95] text-white sm:text-5xl md:text-6xl [text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]">
             Tune your <span className="italic">travel self</span>.
           </h1>
           <p className="mt-3 max-w-md text-base font-medium text-white [text-shadow:0_1px_4px_rgba(10,30,60,0.6),0_4px_18px_rgba(10,30,60,0.5)]">
@@ -273,7 +273,7 @@ export default function EditProfilePage() {
         <div className="mt-5 space-y-5">
           {/* Identity */}
           <HandDrawnCard
-            className="animate-fade-up p-7"
+            className="animate-fade-up p-5 md:p-7"
             style={{ animationDelay: '0.05s' }}
           >
             <h3 className="font-heading text-xl text-[color:var(--ink)]">You, in a line</h3>
@@ -303,7 +303,7 @@ export default function EditProfilePage() {
 
           {/* Planning style */}
           <HandDrawnCard
-            className="animate-fade-up p-7"
+            className="animate-fade-up p-5 md:p-7"
             style={{ animationDelay: '0.1s' }}
           >
             <PillPicker
@@ -317,7 +317,7 @@ export default function EditProfilePage() {
 
           {/* Authenticity */}
           <HandDrawnCard
-            className="animate-fade-up p-7"
+            className="animate-fade-up p-5 md:p-7"
             style={{ animationDelay: '0.15s' }}
           >
             <PillPicker
@@ -330,7 +330,7 @@ export default function EditProfilePage() {
 
           {/* Pace */}
           <HandDrawnCard
-            className="animate-fade-up p-7"
+            className="animate-fade-up p-5 md:p-7"
             style={{ animationDelay: '0.2s' }}
           >
             <PillPicker
@@ -343,7 +343,7 @@ export default function EditProfilePage() {
 
           {/* Rhythm */}
           <HandDrawnCard
-            className="animate-fade-up p-7"
+            className="animate-fade-up p-5 md:p-7"
             style={{ animationDelay: '0.25s' }}
           >
             <PillPicker
@@ -357,7 +357,7 @@ export default function EditProfilePage() {
 
           {/* Budget */}
           <HandDrawnCard
-            className="animate-fade-up p-7"
+            className="animate-fade-up p-5 md:p-7"
             style={{ animationDelay: '0.3s' }}
           >
             <PillPicker
@@ -370,7 +370,7 @@ export default function EditProfilePage() {
 
           {/* Social */}
           <HandDrawnCard
-            className="animate-fade-up p-7"
+            className="animate-fade-up p-5 md:p-7"
             style={{ animationDelay: '0.35s' }}
           >
             <PillPicker
@@ -383,7 +383,7 @@ export default function EditProfilePage() {
 
           {/* Comfort zone slider */}
           <HandDrawnCard
-            className="animate-fade-up p-7"
+            className="animate-fade-up p-5 md:p-7"
             style={{ animationDelay: '0.4s' }}
           >
             <div className="flex items-baseline justify-between">
@@ -422,7 +422,7 @@ export default function EditProfilePage() {
 
           {/* Motivations — multi */}
           <HandDrawnCard
-            className="animate-fade-up p-7"
+            className="animate-fade-up p-5 md:p-7"
             style={{ animationDelay: '0.45s' }}
           >
             <PillPicker
@@ -436,7 +436,7 @@ export default function EditProfilePage() {
 
           {/* Activities — multi */}
           <HandDrawnCard
-            className="animate-fade-up p-7"
+            className="animate-fade-up p-5 md:p-7"
             style={{ animationDelay: '0.5s' }}
           >
             <PillPicker
@@ -449,7 +449,7 @@ export default function EditProfilePage() {
 
           {/* Cuisines — multi */}
           <HandDrawnCard
-            className="animate-fade-up p-7"
+            className="animate-fade-up p-5 md:p-7"
             style={{ animationDelay: '0.55s' }}
           >
             <PillPicker

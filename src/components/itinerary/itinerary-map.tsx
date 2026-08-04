@@ -88,6 +88,13 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
           styles: MAP_LIGHT_STYLES,
           disableDefaultUI: false,
           backgroundColor: '#f4f8fd',
+          // A full-width map on a phone is a scroll trap: one-finger drag pans
+          // the map and the page never moves. Cooperative gestures give the
+          // single finger back to the page; two fingers pan the map.
+          gestureHandling: 'cooperative',
+          streetViewControl: false,
+          mapTypeControl: false,
+          fullscreenControl: false,
         });
 
         setMap(newMap);
@@ -276,7 +283,7 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
   }
 
   return (
-    <div className="relative h-[480px] w-full overflow-hidden rounded-2xl border border-[color:var(--border)]">
+    <div className="relative h-[280px] w-full overflow-hidden rounded-2xl border border-[color:var(--border)] md:h-[480px]">
       {isLoading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-sm">
           <div className="text-center">

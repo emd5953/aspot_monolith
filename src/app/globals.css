@@ -55,7 +55,10 @@
 
 html,
 body {
+  /* vh first as the fallback for Safari < 15.4 / Chrome < 108; dvh wins where
+     supported so the page doesn't jump as mobile browser chrome hides. */
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 body {
@@ -74,6 +77,42 @@ body {
     linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 45%, var(--sky-bottom) 100%);
   background-attachment: fixed;
   background-size: cover;
+}
+
+/* iOS Safari renders `background-attachment: fixed` against the *initial*
+   containing block, which makes the wash resize and stutter every time the
+   browser chrome collapses. Scroll-attached is visually equivalent here
+   because the gradient already covers the viewport. */
+@media (max-width: 767px) {
+  body {
+    background-attachment: scroll;
+  }
+}
+
+/* ——— Touch targets ———
+   For icon-only controls that are visually smaller than the 44px a finger
+   needs. Keeps the glyph its designed size and grows only the hit area. */
+.tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ——— Safe areas (notch / home indicator) ——— */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Day tabs and other deliberate horizontal scrollers: the overflow is the
+   affordance, the scrollbar is just noise. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 /* ——— Legacy radius shims ——— */
