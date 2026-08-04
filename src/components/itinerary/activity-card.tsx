@@ -35,6 +35,15 @@ interface ActivityCardProps {
   onEdit?: (activity: Activity) => void;
   onDelete?: (activityId: string) => void;
   isDragging?: boolean;
+  /**
+   * Touch reordering. Undefined means "not reorderable in that direction" —
+   * either the day isn't reorderable at all, or this is the first/last card.
+   * Rendered inside the card's own action row: as a floating column beside
+   * the card they read as detached furniture and push the layout wide.
+   */
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canReorder?: boolean;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -73,7 +82,15 @@ const CATEGORY_CHIP_TONES: Record<string, string> = {
   sports: 'bg-blue-50 text-blue-800 border-blue-200',
 };
 
-export function ActivityCard({ activity, onEdit, onDelete, isDragging }: ActivityCardProps) {
+export function ActivityCard({
+  activity,
+  onEdit,
+  onDelete,
+  isDragging,
+  onMoveUp,
+  onMoveDown,
+  canReorder,
+}: ActivityCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const tone =
@@ -163,7 +180,30 @@ export function ActivityCard({ activity, onEdit, onDelete, isDragging }: Activit
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center justify-end gap-1">
+        {/* Below md this is a footer row divided off from the content, with
+            reordering on the left and the card's own actions on the right —
+            a right-hugging cluster left a wide dead gap beside it. From md up
+            it returns to the inline cluster and drag handles the reordering. */}
+        <div className="mt-3 flex shrink-0 items-center justify-between gap-1 border-t border-[color:var(--border)] pt-3 md:mt-0 md:justify-end md:border-t-0 md:pt-0">
+          {canReorder && (
+            <div className="flex items-center gap-1 md:hidden">
+              <IconButton
+                label={`Move ${activity.title} earlier`}
+                onClick={() => onMoveUp?.()}
+                disabled={!onMoveUp}
+              >
+                <ChevronUp className="h-4 w-4" strokeWidth={2.5} />
+              </IconButton>
+              <IconButton
+                label={`Move ${activity.title} later`}
+                onClick={() => onMoveDown?.()}
+                disabled={!onMoveDown}
+              >
+                <ChevronDown className="h-4 w-4" strokeWidth={2.5} />
+              </IconButton>
+            </div>
+          )}
+          <div className="flex items-center gap-1">
           {onEdit && (
             <IconButton label="Edit" onClick={() => onEdit(activity)}>
               <Edit2 className="h-4 w-4" strokeWidth={2} />
@@ -184,6 +224,7 @@ export function ActivityCard({ activity, onEdit, onDelete, isDragging }: Activit
               <ChevronDown className="h-4 w-4" strokeWidth={2} />
             )}
           </IconButton>
+          </div>
         </div>
       </div>
 
@@ -211,18 +252,21 @@ function IconButton({
   onClick,
   label,
   danger,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   label: string;
   danger?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
       title={label}
-      className={`tap-target flex items-center justify-center rounded-full border border-[color:var(--border)] transition-all md:h-8 md:w-8 md:min-h-0 md:min-w-0 ${
+      className={`tap-target flex items-center justify-center rounded-full border border-[color:var(--border)] transition-all disabled:opacity-30 disabled:hover:border-[color:var(--border)] disabled:hover:bg-transparent md:h-8 md:w-8 md:min-h-0 md:min-w-0 ${
         danger
           ? 'text-[color:var(--ink-soft)] hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600'
           : 'text-[color:var(--ink-muted)] hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--ink)]'

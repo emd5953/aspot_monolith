@@ -32,7 +32,7 @@ export default async function ProfilePage() {
     <main className="relative mx-auto max-w-3xl px-4 pt-16 pb-24 md:px-6">
       {/* Passport-style hero */}
       <HandDrawnCard className="animate-fade-up overflow-hidden p-0">
-        <div className="px-8 pt-8 pb-7">
+        <div className="px-5 pt-6 pb-5 md:px-8 md:pt-8 md:pb-7">
           <p className="text-sm font-medium text-[color:var(--ink-muted)]">Travel passport</p>
           <div className="mt-2 flex items-center gap-3">
             <span className="text-4xl leading-none">{archetype.emoji}</span>
@@ -45,8 +45,8 @@ export default async function ProfilePage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-5 border-y border-[color:var(--border)] px-8 py-6">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-y border-[color:var(--border)] px-5 py-5 md:gap-5 md:px-8 md:py-6">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color:var(--border)] bg-white font-heading text-2xl text-[color:var(--ink)]">
               {profile?.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -82,7 +82,7 @@ export default async function ProfilePage() {
           <TraitCell label="Travels with" value={prettify(preferences.socialPreferences)} />
         </div>
 
-        <div className="border-t border-[color:var(--border)] px-8 py-6">
+        <div className="border-t border-[color:var(--border)] px-5 py-5 md:px-8 md:py-6">
           <div className="flex items-baseline justify-between">
             <p className="text-sm font-medium text-[color:var(--ink-muted)]">Comfort zone</p>
             <p className="font-heading text-lg text-[color:var(--ink)]">
@@ -128,7 +128,7 @@ function prettify(value: string) {
 
 function TraitCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="px-8 py-5">
+    <div className="px-5 py-4 md:px-8 md:py-5">
       <p className="text-xs font-medium text-[color:var(--ink-soft)]">{label}</p>
       <p className="mt-1 font-heading text-xl text-[color:var(--ink)]">{value}</p>
     </div>

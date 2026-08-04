@@ -30,7 +30,10 @@ export function BottomTabs({ tabs = TABS }: { tabs?: BottomTab[] }) {
   return (
     <nav
       aria-label="Primary"
-      className="glass-nav pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-white/60 md:hidden"
+      // Deliberately opaque, not the `glass-nav` treatment used elsewhere:
+      // at 72% white the page text scrolled straight through the bar and
+      // collided with the tab labels.
+      className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-[color:var(--border)] bg-white shadow-[0_-8px_28px_-14px_rgba(20,50,100,0.35)] md:hidden"
     >
       <ul className="flex items-stretch justify-around">
         {tabs.map((tab) => {

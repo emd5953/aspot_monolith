@@ -6,7 +6,6 @@ import { ActivityCard } from './activity-card';
 import { TimelineView } from './timeline-view';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
 import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
-import { ReorderButtons } from '@/components/ui/reorder-buttons';
 import type { ItemSource } from '@/lib/ai/provenance';
 
 interface Activity {
@@ -173,29 +172,20 @@ export function DaySchedule({
               onDrop={(e) => handleDrop(e, activity.id)}
               onDragEnd={handleDragEnd}
               // `cursor-move` only from md up — below that there is no drag to
-              // advertise, the arrow buttons do the work instead.
-              className={onReorder ? 'flex items-start gap-2 md:cursor-move' : ''}
+              // advertise, the arrow buttons inside the card do the work.
+              className={onReorder ? 'md:cursor-move' : ''}
             >
-              <div className="min-w-0 flex-1">
-                <ActivityCard
-                  activity={activity}
-                  onEdit={onEditActivity}
-                  onDelete={onDeleteActivity}
-                  isDragging={draggedId === activity.id}
-                />
-              </div>
-              {onReorder && (
-                <ReorderButtons
-                  className="shrink-0 pt-2 md:hidden"
-                  label={activity.title}
-                  onMoveUp={index > 0 ? () => move(index, -1) : undefined}
-                  onMoveDown={
-                    index < sortedActivities.length - 1
-                      ? () => move(index, 1)
-                      : undefined
-                  }
-                />
-              )}
+              <ActivityCard
+                activity={activity}
+                onEdit={onEditActivity}
+                onDelete={onDeleteActivity}
+                isDragging={draggedId === activity.id}
+                canReorder={!!onReorder}
+                onMoveUp={index > 0 ? () => move(index, -1) : undefined}
+                onMoveDown={
+                  index < sortedActivities.length - 1 ? () => move(index, 1) : undefined
+                }
+              />
             </div>
           ))
         )}

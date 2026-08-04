@@ -60,7 +60,7 @@ export default async function ProtectedLayout({
           wrapper is a stacking context, so a modal rendered by a page (z-50)
           only outranks the tab bar (z-40) if both sit in the same context.
           Hoisting the bar to a sibling would put it over every open modal. */}
-      <div className="relative z-10 pb-20 md:pb-0">
+      <div className="relative z-10 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
         <PageTransition>{children}</PageTransition>
         <BottomTabs />
       </div>

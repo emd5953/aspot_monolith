@@ -212,13 +212,15 @@ export function ItineraryView({
             </div>
           </div>
 
-          {/* Wraps rather than scrolls: the status menu below is
-              `absolute top-full`, and an overflow-x-auto row would clip it. */}
-          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
+          {/* A 2×2 grid below md. Free-wrapping these four gave a ragged two
+              rows with a hole in it, because the labels are wildly different
+              widths; an even grid reads as deliberate. Not a scroll row — the
+              status menu is `absolute top-full` and would be clipped. */}
+          <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:flex-wrap md:items-center">
             <div className="relative">
               <button
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-2.5 text-xs font-medium capitalize md:py-1.5 ${STATUS_TONES[itinerary.status] ?? STATUS_TONES.draft}`}
+                className={`inline-flex w-full items-center justify-center gap-1.5 rounded-full border px-3 py-2.5 text-xs font-medium capitalize md:w-auto md:py-1.5 ${STATUS_TONES[itinerary.status] ?? STATUS_TONES.draft}`}
               >
                 {itinerary.status}
                 <ChevronDown className="h-3 w-3" strokeWidth={2.5} />
@@ -249,7 +251,12 @@ export function ItineraryView({
               )}
             </div>
             {onRegenerate && (
-              <HandDrawnButton onClick={onRegenerate} variant="primary" size="sm" className="gap-2">
+              <HandDrawnButton
+                onClick={onRegenerate}
+                variant="primary"
+                size="sm"
+                className="w-full justify-center gap-2 md:w-auto"
+              >
                 <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.5} />
                 Regenerate
               </HandDrawnButton>
@@ -257,13 +264,18 @@ export function ItineraryView({
             <a
               href={`/api/itinerary/${itinerary.id}/calendar`}
               download
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white bg-white/80 px-4 py-2.5 text-sm font-medium text-[color:var(--ink)] md:py-1.5 shadow-[0_8px_20px_-12px_rgba(20,50,100,0.25)] backdrop-blur-md transition-all hover:-translate-y-[1px] hover:bg-white active:translate-y-0"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white bg-white/80 px-4 py-2.5 text-sm font-medium text-[color:var(--ink)] md:w-auto md:py-1.5 shadow-[0_8px_20px_-12px_rgba(20,50,100,0.25)] backdrop-blur-md transition-all hover:-translate-y-[1px] hover:bg-white active:translate-y-0"
             >
               <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
               Add to calendar
             </a>
             {onDelete && (
-              <HandDrawnButton onClick={onDelete} variant="secondary" size="sm" className="gap-2">
+              <HandDrawnButton
+                onClick={onDelete}
+                variant="secondary"
+                size="sm"
+                className="w-full justify-center gap-2 md:w-auto"
+              >
                 <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
                 Delete
               </HandDrawnButton>
