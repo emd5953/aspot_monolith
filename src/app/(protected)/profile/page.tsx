@@ -82,9 +82,11 @@ export default async function ProfilePage() {
           <TraitCell label="Travels with" value={prettify(preferences.socialPreferences)} />
         </div>
 
-        <div className="border-t border-[color:var(--border)] px-5 py-5 md:px-8 md:py-6">
+        <div className="border-t border-[color:var(--border)] px-5 py-4 md:px-8 md:py-6">
           <div className="flex items-baseline justify-between">
-            <p className="text-sm font-medium text-[color:var(--ink-muted)]">Comfort zone</p>
+            <p className="text-xs font-medium text-[color:var(--ink-soft)] md:text-sm md:text-[color:var(--ink-muted)]">
+              Comfort zone
+            </p>
             <p className="font-heading text-lg text-[color:var(--ink)]">
               {preferences.comfortZone}
               <span className="text-[color:var(--ink-soft)]"> / 10</span>
@@ -128,9 +130,13 @@ function prettify(value: string) {
 
 function TraitCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="px-5 py-4 md:px-8 md:py-5">
-      <p className="text-xs font-medium text-[color:var(--ink-soft)]">{label}</p>
-      <p className="mt-1 font-heading text-xl text-[color:var(--ink)]">{value}</p>
+    // Below md these stack into one column, and label-above-value left the
+    // right half of every row empty — five near-identical blocks of dead
+    // space. Single line, value trailing, matching the comfort-zone row.
+    // From md up they sit in 2- and 3-across grids, where stacking is right.
+    <div className="flex items-baseline justify-between gap-4 px-5 py-3.5 md:block md:px-8 md:py-5">
+      <p className="text-xs font-medium text-[color:var(--ink-soft)] md:text-xs">{label}</p>
+      <p className="font-heading text-lg text-[color:var(--ink)] md:mt-1 md:text-xl">{value}</p>
     </div>
   );
 }
