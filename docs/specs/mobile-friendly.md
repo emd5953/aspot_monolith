@@ -150,7 +150,12 @@ authenticated route and nothing on the public landing page.
   `text-5xl md:text-7xl` and `text-6xl md:text-7xl`.
 - `quiz-question.tsx`: scale value `text-7xl` → `text-6xl md:text-7xl`; range slider thumb
   to 28px for touch.
-- `auth-popover.tsx`: `w-[300px]` → `w-[min(300px,calc(100vw-2rem))]` so it cannot overflow.
+- `auth-popover.tsx`: **expanded during build.** A width clamp was not enough. The desktop
+  treatment is a bare transparent box that borrows the clean sky behind the nav; on a phone
+  it lands on top of the hero headline and the two sets of white text collide into an
+  unreadable overlap. Below `md` it becomes a real bottom sheet — own surface
+  (`bg-slate-900/92`), scrim, grabber, slide-up entrance — with the input fills lightened
+  and the CTA inverted, since dark-on-dark disappears against the panel. Desktop unchanged.
 - `floating-hint.tsx`: **no change needed** — already `hidden md:block`.
 - `profile/page.tsx` grids already collapse via `md:grid-cols-*`; verify only.
 - `landing-hero.tsx`: `min-h-[calc(100vh-88px)]` → `100dvh`-based equivalent.

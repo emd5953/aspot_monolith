@@ -315,6 +315,33 @@ body {
   animation: popover-in 0.22s cubic-bezier(0.18, 1.25, 0.4, 1) forwards;
 }
 
+/* Auth panel entrance. Below md the panel is a bottom sheet and slides up;
+   from md up it's the corner popover and scales from its top-right origin —
+   a sheet scaling out of an off-screen corner reads as a glitch.
+
+   A media query rather than an `md:` utility because both animations are
+   custom classes, and Tailwind can't generate variants of those. */
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.auth-panel-enter {
+  animation: sheet-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@media (min-width: 768px) {
+  .auth-panel-enter {
+    animation: popover-in 0.22s cubic-bezier(0.18, 1.25, 0.4, 1) forwards;
+  }
+}
+
+@keyframes scrim-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-scrim-in {
+  animation: scrim-in 0.28s ease forwards;
+}
+
 /* Auth mode switch — soft crossfade for text that swaps between
    login / signup while the popover stays mounted. */
 @keyframes auth-fade-swap {
