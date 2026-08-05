@@ -28,6 +28,12 @@ export default async function ProfilePage() {
   const initial = displayName[0]?.toUpperCase() ?? '?';
   const archetype = getArchetype(preferences);
 
+  const panels = [
+    { title: 'Motivated by', items: preferences.travelMotivations },
+    { title: 'Loves', items: preferences.activityTypes },
+    { title: 'Eats', items: preferences.cuisinePreferences },
+  ];
+
   return (
     <main className="relative mx-auto max-w-3xl px-4 pt-16 pb-24 md:px-6">
       {/* Passport-style hero */}
@@ -101,21 +107,37 @@ export default async function ProfilePage() {
         </div>
       </HandDrawnCard>
 
-      <section className="animate-fade-up mt-5 grid gap-5 md:grid-cols-3" style={{ animationDelay: '0.1s' }}>
-        <TagPanel title="Motivated by" items={preferences.travelMotivations} />
-        <TagPanel title="Loves" items={preferences.activityTypes} />
-        <TagPanel title="Eats" items={preferences.cuisinePreferences} />
+      {/* One card of divided rows on a phone, three cards from md up. Three
+          separate cards below md is a lot of chrome around what is often a
+          single chip — folded together they carry the passport card's rhythm.
+          Both presentations read the same `panels` array, so there is one
+          source of content and two layouts. */}
+      <section className="animate-fade-up mt-5" style={{ animationDelay: '0.1s' }}>
+        <HandDrawnCard className="divide-y divide-[color:var(--border)] p-0 md:hidden">
+          {panels.map((panel) => (
+            <TagRow key={panel.title} {...panel} />
+          ))}
+        </HandDrawnCard>
+
+        <div className="hidden gap-5 md:grid md:grid-cols-3">
+          {panels.map((panel) => (
+            <TagPanel key={panel.title} {...panel} />
+          ))}
+        </div>
       </section>
 
-      <div className="animate-fade-up mt-8 flex flex-wrap justify-center gap-3" style={{ animationDelay: '0.15s' }}>
-        <Link href="/profile/edit">
-          <HandDrawnButton variant="primary" size="md" className="gap-2">
+      <div
+        className="animate-fade-up mt-6 grid gap-3 md:mt-8 md:flex md:flex-wrap md:justify-center"
+        style={{ animationDelay: '0.15s' }}
+      >
+        <Link href="/profile/edit" className="w-full md:w-auto">
+          <HandDrawnButton variant="primary" size="md" className="w-full justify-center gap-2 md:w-auto">
             Tweak preferences
             <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
           </HandDrawnButton>
         </Link>
-        <Link href="/quiz">
-          <HandDrawnButton variant="secondary" size="md">
+        <Link href="/quiz" className="w-full md:w-auto">
+          <HandDrawnButton variant="secondary" size="md" className="w-full justify-center md:w-auto">
             Retake quiz
           </HandDrawnButton>
         </Link>
@@ -141,6 +163,30 @@ function TraitCell({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** Mobile presentation: one row of the folded card. Label left, chips trailing. */
+function TagRow({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="flex items-start justify-between gap-4 px-5 py-3.5">
+      <p className="shrink-0 pt-1 text-xs font-medium text-[color:var(--ink-soft)]">{title}</p>
+      <div className="flex flex-wrap justify-end gap-1.5">
+        {items.length === 0 ? (
+          <span className="text-sm italic text-[color:var(--ink-soft)]">None yet</span>
+        ) : (
+          items.map((item) => <Tag key={item} item={item} />)
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Tag({ item }: { item: string }) {
+  return (
+    <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-soft)] px-2.5 py-1 text-xs capitalize text-[color:var(--ink)]">
+      {prettify(item)}
+    </span>
+  );
+}
+
 function TagPanel({ title, items }: { title: string; items: string[] }) {
   return (
     <HandDrawnCard className="p-5">
@@ -149,14 +195,7 @@ function TagPanel({ title, items }: { title: string; items: string[] }) {
         {items.length === 0 ? (
           <span className="text-sm italic text-[color:var(--ink-soft)]">None yet</span>
         ) : (
-          items.map((item) => (
-            <span
-              key={item}
-              className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-soft)] px-2.5 py-1 text-xs capitalize text-[color:var(--ink)]"
-            >
-              {prettify(item)}
-            </span>
-          ))
+          items.map((item) => <Tag key={item} item={item} />)
         )}
       </div>
     </HandDrawnCard>
