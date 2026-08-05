@@ -1,7 +1,12 @@
 /**
  * Google Maps Service
  * Handles geocoding, places, and distance calculations
+ *
+ * Server-only — every function here signs its request with the server key, which
+ * is never sent to the browser. Call these from route handlers, not components.
  */
+
+import { googleServerKey } from './server-key';
 
 export interface PlaceAutocomplete {
   placeId: string;
@@ -39,7 +44,7 @@ export async function getPlaceAutocomplete(
   input: string,
   types?: string[]
 ): Promise<PlaceAutocomplete[]> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const apiKey = googleServerKey();
   if (!apiKey) {
     throw new Error('Google Maps API key not configured');
   }
@@ -88,7 +93,7 @@ export async function getPlaceAutocomplete(
  * Get place details by place ID
  */
 export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const apiKey = googleServerKey();
   if (!apiKey) {
     throw new Error('Google Maps API key not configured');
   }
@@ -134,7 +139,7 @@ export async function geocodeAddress(address: string): Promise<{
   lng: number;
   formattedAddress: string;
 }> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const apiKey = googleServerKey();
   if (!apiKey) {
     throw new Error('Google Maps API key not configured');
   }
@@ -173,7 +178,7 @@ export async function getDistanceMatrix(
   origins: string[],
   destinations: string[]
 ): Promise<DistanceResult[][]> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const apiKey = googleServerKey();
   if (!apiKey) {
     throw new Error('Google Maps API key not configured');
   }

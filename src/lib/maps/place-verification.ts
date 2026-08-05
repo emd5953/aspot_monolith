@@ -14,6 +14,8 @@
  * without hitting the API.
  */
 
+import { googleServerKey } from './server-key';
+
 export interface PlaceMatch {
   found: boolean;
   name?: string;
@@ -55,7 +57,11 @@ export type PlaceLookup = (query: string) => Promise<PlaceMatch>;
 export type HoursLookup = (placeId: string) => Promise<WeeklyHours | null>;
 
 /**
- * Verification runs whenever a Google Maps key is configured.
+ * Verification runs whenever a server-side Google key is configured.
+ *
+ * Specifically GOOGLE_MAPS_SERVER_KEY, not the browser key — the lookups below
+ * sign with the server key, so keying the flag off anything else would report
+ * verification as on while every lookup came back empty.
  *
  * This used to be opt-in (`PLACES_VERIFICATION_ENABLED === 'true'`) so the
  * pipeline could run without a Google key. That guarantee is real but the flag
@@ -74,7 +80,7 @@ export type HoursLookup = (placeId: string) => Promise<WeeklyHours | null>;
 export function isPlaceVerificationEnabled(): boolean {
   if (process.env.PLACES_VERIFICATION_ENABLED === 'false') return false;
   if (process.env.PLACES_VERIFICATION_ENABLED === 'true') return true;
-  return Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY);
+  return Boolean(googleServerKey());
 }
 
 /**
@@ -358,7 +364,7 @@ export function isHoursLookupEnabled(): boolean {
  * an outage.
  */
 export const fetchPlaceHours: HoursLookup = async (placeId) => {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const apiKey = googleServerKey();
   if (!apiKey) return null;
 
   const params = new URLSearchParams({
@@ -381,7 +387,7 @@ export const fetchPlaceHours: HoursLookup = async (placeId) => {
 };
 
 export const findPlaceFromText: PlaceLookup = async (query) => {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const apiKey = googleServerKey();
   if (!apiKey) return { found: false };
 
   const params = new URLSearchParams({

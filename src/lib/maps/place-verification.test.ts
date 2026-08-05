@@ -80,38 +80,38 @@ describe('nameMatches', () => {
 
 describe('isPlaceVerificationEnabled', () => {
   const originalFlag = process.env.PLACES_VERIFICATION_ENABLED;
-  const originalKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const originalKey = process.env.GOOGLE_MAPS_SERVER_KEY;
 
   afterEach(() => {
     process.env.PLACES_VERIFICATION_ENABLED = originalFlag;
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = originalKey;
+    process.env.GOOGLE_MAPS_SERVER_KEY = originalKey;
     if (originalFlag === undefined) delete process.env.PLACES_VERIFICATION_ENABLED;
-    if (originalKey === undefined) delete process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (originalKey === undefined) delete process.env.GOOGLE_MAPS_SERVER_KEY;
   });
 
   // The default is keyed off the API key rather than an opt-in flag. An unset
   // opt-in flag silently disabled geo-clustering and the geographic audit
   // checks, and nothing surfaced that they were dark.
-  it('is on by default when a Google key is configured', () => {
+  it('is on by default when a server-side Google key is configured', () => {
     delete process.env.PLACES_VERIFICATION_ENABLED;
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = 'test-key';
+    process.env.GOOGLE_MAPS_SERVER_KEY = 'test-key';
     expect(isPlaceVerificationEnabled()).toBe(true);
   });
 
   it('is off without a key, so the pipeline still runs unconfigured', () => {
     delete process.env.PLACES_VERIFICATION_ENABLED;
-    delete process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    delete process.env.GOOGLE_MAPS_SERVER_KEY;
     expect(isPlaceVerificationEnabled()).toBe(false);
   });
 
   it('honors an explicit "false" even with a key present', () => {
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = 'test-key';
+    process.env.GOOGLE_MAPS_SERVER_KEY = 'test-key';
     process.env.PLACES_VERIFICATION_ENABLED = 'false';
     expect(isPlaceVerificationEnabled()).toBe(false);
   });
 
   it('honors an explicit "true" even without a key', () => {
-    delete process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    delete process.env.GOOGLE_MAPS_SERVER_KEY;
     process.env.PLACES_VERIFICATION_ENABLED = 'true';
     expect(isPlaceVerificationEnabled()).toBe(true);
   });
