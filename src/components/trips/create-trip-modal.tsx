@@ -50,8 +50,8 @@ export function CreateTripModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--ink)]/35 p-4 backdrop-blur-sm">
-      <HandDrawnCard className="animate-fade-up w-full max-w-md p-7">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[color:var(--ink)]/35 backdrop-blur-sm md:items-center md:p-4">
+      <HandDrawnCard className="animate-fade-up max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-b-none p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:max-h-[90vh] md:rounded-b-3xl md:p-7">
         <div className="mb-5 flex items-start justify-between">
           <div>
             <p className="mb-2 text-sm font-medium text-[color:var(--ink-muted)]">

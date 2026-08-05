@@ -65,12 +65,12 @@ export default function ItineraryPage() {
   };
 
   return (
-    <main className="relative mx-auto max-w-5xl px-6 pt-16 pb-24">
+    <main className="relative mx-auto max-w-5xl px-4 pt-16 pb-24 md:px-6">
       <section className="animate-fade-up">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
             <PromoChip>Your trips</PromoChip>
-            <h1 className="mt-5 font-heading text-6xl leading-[0.95] text-white md:text-7xl [text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]">
+            <h1 className="mt-5 font-heading text-4xl leading-[0.95] text-white sm:text-5xl md:text-7xl [text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]">
               My <span className="italic">itineraries</span>.
             </h1>
             <p className="mt-4 max-w-md text-base font-medium text-white [text-shadow:0_1px_4px_rgba(10,30,60,0.6),0_4px_18px_rgba(10,30,60,0.5)]">
@@ -120,9 +120,9 @@ export default function ItineraryPage() {
               <HandDrawnCard
                 key={itinerary.id}
                 onClick={() => router.push(`/itinerary/${itinerary.id}`)}
-                className="cursor-pointer p-6 hover:bg-white hover:shadow-[0_24px_48px_-22px_rgba(20,50,100,0.4)]"
+                className="min-w-0 cursor-pointer p-5 hover:bg-white hover:shadow-[0_24px_48px_-22px_rgba(20,50,100,0.4)] md:p-6"
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-3 md:gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-3">
                       <span
@@ -131,15 +131,18 @@ export default function ItineraryPage() {
                         {itinerary.status}
                       </span>
                     </div>
-                    <h3 className="mt-3 truncate font-heading text-3xl text-[color:var(--ink)]">
+                    {/* `truncate` sets whitespace-nowrap, whose min-content
+                        width propagates up and forces the card wider than a
+                        375px viewport. Wrapping keeps the card in bounds. */}
+                    <h3 className="mt-3 font-heading text-2xl leading-tight break-words text-[color:var(--ink)] sm:text-3xl">
                       {itinerary.title}
                     </h3>
-                    <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-[color:var(--ink-muted)]">
-                      <span className="inline-flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5" strokeWidth={2} />
-                        {itinerary.destination}
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-[color:var(--ink-muted)] md:gap-x-5">
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+                        <span className="truncate">{itinerary.destination}</span>
                       </span>
-                      <span className="inline-flex items-center gap-1.5">
+                      <span className="inline-flex shrink-0 items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
                         {formatDate(itinerary.startDate)} – {formatDate(itinerary.endDate)}
                       </span>
@@ -149,11 +152,11 @@ export default function ItineraryPage() {
                     <button
                       onClick={(e) => handleDelete(e, itinerary.id)}
                       aria-label="Delete itinerary"
-                      className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink-soft)] transition-all hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                      className="tap-target flex items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink-soft)] transition-all hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 md:h-9 md:w-9 md:min-h-0 md:min-w-0"
                     >
                       <Trash2 className="h-4 w-4" strokeWidth={2} />
                     </button>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink)]">
+                    <div className="hidden h-9 w-9 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink)] md:flex">
                       <ArrowRight className="h-4 w-4" strokeWidth={2} />
                     </div>
                   </div>

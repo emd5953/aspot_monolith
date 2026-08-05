@@ -74,7 +74,7 @@ export default async function DashboardPage() {
           </p>
 
           <h1
-            className={`animate-fade-up mt-5 font-heading text-5xl leading-[1.05] tracking-tight text-white md:text-7xl ${TEXT_SHADOW_HERO}`}
+            className={`animate-fade-up mt-5 font-heading text-4xl leading-[1.05] tracking-tight text-white sm:text-5xl md:text-7xl ${TEXT_SHADOW_HERO}`}
             style={{ animationDelay: '0.15s' }}
           >
             Welcome back

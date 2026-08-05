@@ -74,7 +74,7 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
   if (!currentQuestion) return null;
 
   return (
-    <main className="relative mx-auto max-w-2xl px-6 pt-16 pb-24">
+    <main className="relative mx-auto max-w-2xl px-4 pt-16 pb-24 md:px-6">
       <section className="animate-fade-up">
         <PromoChip>
           Question {currentStep + 1} of {quizQuestions.length}

@@ -157,7 +157,7 @@ export function LandingHero() {
       </header>
 
       {/* Hero */}
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-88px)] flex-col items-center justify-center px-6 pt-16 pb-32 text-center">
+      <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-88px)] flex-col items-center justify-center px-5 pt-16 pb-32 sm:px-6 text-center">
         <div className="flex w-full max-w-xl flex-col items-center">
           <p
             className={`animate-fade-up text-sm font-semibold tracking-wide text-white ${TEXT_SHADOW_BODY}`}
@@ -167,7 +167,7 @@ export function LandingHero() {
           </p>
 
           <h1
-            className={`animate-fade-up mt-5 font-heading text-5xl leading-[1.05] tracking-tight text-white md:text-7xl ${TEXT_SHADOW_HERO}`}
+            className={`animate-fade-up mt-5 font-heading text-4xl leading-[1.05] tracking-tight text-white sm:text-5xl md:text-7xl ${TEXT_SHADOW_HERO}`}
             style={{ animationDelay: '0.15s' }}
           >
             Where are we

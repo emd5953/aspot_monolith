@@ -17,9 +17,17 @@ const TEXT_SHADOW =
   '[text-shadow:0_1px_3px_rgba(10,25,55,0.8),0_4px_18px_rgba(10,25,55,0.6)]';
 
 /**
- * Transparent-background popover. Inputs are dark-tinted glass (readable
- * over clouds OR skyline), the primary CTA is solid dark ink, and all text
- * has a heavy drop-shadow stack to stay legible.
+ * Two presentations of one form.
+ *
+ * From md up: a transparent-background popover anchored under the nav. Inputs
+ * are dark-tinted glass (readable over clouds OR skyline), the primary CTA is
+ * solid dark ink, and text carries a heavy drop-shadow stack.
+ *
+ * Below md: a bottom sheet with its own surface and a scrim. The transparent
+ * treatment depends on clean sky sitting behind it — on a phone the panel
+ * lands on top of the hero headline instead, and the two sets of white text
+ * collide into noise. The sheet also inverts the CTA and lightens the input
+ * fills, because dark-on-dark disappears against the panel.
  */
 export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
   const [email, setEmail] = useState('');
@@ -117,10 +125,10 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
 
   if (verificationSent) {
     return (
-      <div
-        ref={wrapperRef}
-        className="animate-popover-in absolute right-0 top-full mt-3 w-[300px] origin-top-right p-4"
-      >
+      <>
+        <Scrim />
+        <div ref={wrapperRef} className={PANEL_CLASS}>
+        <Grabber />
         <p className={`text-base font-bold text-white ${TEXT_SHADOW}`}>
           Check your inbox
         </p>
@@ -135,7 +143,8 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
         >
           Got it
         </button>
-      </div>
+        </div>
+      </>
     );
   }
 
@@ -151,13 +160,16 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
   // Solid-ish dark input pill. Strong enough to read clearly, still shows
   // a hint of the sky through. Bumped up from the earlier too-ghostly version.
   const inputClass =
-    'w-full rounded-full border border-white/80 bg-slate-900/65 px-4 py-2.5 text-sm font-medium text-white placeholder:text-white/85 outline-none transition-all backdrop-blur-xl shadow-[0_10px_24px_-10px_rgba(10,25,55,0.55)] focus:border-white focus:bg-slate-900/80';
+    // text-base below md so iOS Safari doesn't zoom the viewport on focus.
+    // The dark fill reads against the sky, but the mobile sheet is itself
+    // slate-900 — the pill would vanish into it, so it lightens below md.
+    'w-full rounded-full border border-white/25 bg-white/10 md:border-white/80 md:bg-slate-900/65 px-4 py-2.5 text-base md:text-sm font-medium text-white placeholder:text-white/85 outline-none transition-all backdrop-blur-xl shadow-[0_10px_24px_-10px_rgba(10,25,55,0.55)] focus:border-white focus:bg-white/20 md:focus:bg-slate-900/80';
 
   return (
-    <div
-      ref={wrapperRef}
-      className="animate-popover-in absolute right-0 top-full mt-3 w-[300px] origin-top-right p-4"
-    >
+    <>
+      <Scrim />
+      <div ref={wrapperRef} className={PANEL_CLASS}>
+      <Grabber />
       <p
         className={`text-xs font-bold uppercase tracking-wider text-white ${TEXT_SHADOW}`}
       >
@@ -221,7 +233,9 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
           <button
             type="submit"
             disabled={loading || !email.trim() || !password}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_-8px_rgba(10,25,55,0.8)] ring-1 ring-white/25 transition-all hover:-translate-y-[1px] hover:bg-slate-800 disabled:opacity-85 disabled:hover:translate-y-0"
+            // Inverted on the sheet — solid slate-900 on a slate-900 panel
+            // reads as a hole. Back to dark-on-sky from md up.
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-[0_12px_28px_-8px_rgba(10,25,55,0.8)] ring-1 ring-white/25 transition-all hover:-translate-y-[1px] disabled:opacity-85 disabled:hover:translate-y-0 md:bg-slate-900 md:py-2.5 md:text-white md:hover:bg-slate-800"
           >
             <span key={mode} className="animate-auth-fade">
               {submitLabel}
@@ -243,7 +257,7 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
         type="button"
         onClick={handleGoogle}
         disabled={loadingGoogle}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/80 bg-slate-900/65 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(10,25,55,0.55)] backdrop-blur-xl transition-all hover:border-white hover:bg-slate-900/80 disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(10,25,55,0.55)] backdrop-blur-xl transition-all hover:border-white disabled:opacity-60 md:border-white/80 md:bg-slate-900/65 md:py-2.5 md:hover:bg-slate-900/80"
       >
         <GoogleGlyph />
         Continue with Google
@@ -261,7 +275,48 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
           </button>
         </span>
       </p>
-    </div>
+      </div>
+    </>
+  );
+}
+
+/**
+ * Mobile: full-width sheet pinned to the bottom edge, with its own surface.
+ * From md up every mobile class is unset and the original corner popover
+ * returns unchanged.
+ */
+const PANEL_CLASS = [
+  'auth-panel-enter',
+  'fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto',
+  'rounded-t-3xl border-t border-white/25 bg-slate-900/92 backdrop-blur-2xl',
+  'p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
+  'shadow-[0_-20px_60px_-20px_rgba(5,15,35,0.8)]',
+  'md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-full md:mt-3',
+  'md:max-h-none md:w-[300px] md:overflow-visible md:rounded-none md:border-0',
+  'md:bg-transparent md:p-4 md:shadow-none md:backdrop-blur-none',
+  'md:origin-top-right',
+].join(' ');
+
+/** Sheet handle — signals "this dismisses" on mobile. Absent on desktop. */
+function Grabber() {
+  return (
+    <div
+      aria-hidden
+      className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/35 md:hidden"
+    />
+  );
+}
+
+/**
+ * Mobile-only backdrop. Deliberately outside the panel's ref so the existing
+ * outside-mousedown handler closes the sheet when it's tapped.
+ */
+function Scrim() {
+  return (
+    <div
+      aria-hidden
+      className="animate-scrim-in fixed inset-0 z-40 bg-slate-950/60 md:hidden"
+    />
   );
 }
 

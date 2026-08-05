@@ -155,7 +155,7 @@ export function ItineraryView({
   return (
     <div className="space-y-1.5">
       {/* Header */}
-      <HandDrawnCard className="animate-fade-up p-7">
+      <HandDrawnCard className="animate-fade-up p-5 md:p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             {isEditingTitle ? (
@@ -165,27 +165,30 @@ export function ItineraryView({
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onBlur={handleTitleSave}
                 onKeyDown={handleTitleKeyDown}
-                className="w-full max-w-2xl border-b-2 border-[color:var(--border)] bg-transparent py-1 font-heading text-4xl leading-[1] text-[color:var(--ink)] outline-none focus:border-[color:var(--accent)] md:text-5xl"
+                className="w-full max-w-2xl border-b-2 border-[color:var(--border)] bg-transparent py-1 font-heading text-3xl leading-[1] text-[color:var(--ink)] outline-none focus:border-[color:var(--accent)] sm:text-4xl md:text-5xl"
                 autoFocus
               />
             ) : (
               <div className="group flex items-center gap-2">
-                <h1 className="font-heading text-4xl leading-[1] text-[color:var(--ink)] md:text-5xl">
+                <h1 className="min-w-0 break-words font-heading text-3xl leading-[1] text-[color:var(--ink)] sm:text-4xl md:text-5xl">
                   {itinerary.title}
                 </h1>
                 <button
                   onClick={() => setIsEditingTitle(true)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink-soft)] opacity-0 transition-opacity hover:border-[color:var(--border-strong)] hover:text-[color:var(--ink)] group-hover:opacity-100"
+                  // Always visible on touch — there is no hover to reveal it.
+                  // Reverts to the hover-only treatment from md up.
+                  className="tap-target flex shrink-0 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--ink-soft)] opacity-100 transition-opacity hover:border-[color:var(--border-strong)] hover:text-[color:var(--ink)] md:h-8 md:w-8 md:min-h-0 md:min-w-0 md:opacity-0 md:group-hover:opacity-100"
                   title="Edit title"
+                  aria-label="Edit itinerary title"
                 >
                   <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
                 </button>
               </div>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-[color:var(--ink-muted)]">
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5" strokeWidth={2} />
-                {itinerary.destination}
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+                <span className="truncate">{itinerary.destination}</span>
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
@@ -209,11 +212,15 @@ export function ItineraryView({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          {/* A 2×2 grid below md. Free-wrapping these four gave a ragged two
+              rows with a hole in it, because the labels are wildly different
+              widths; an even grid reads as deliberate. Not a scroll row — the
+              status menu is `absolute top-full` and would be clipped. */}
+          <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:flex-wrap md:items-center">
             <div className="relative">
               <button
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium capitalize ${STATUS_TONES[itinerary.status] ?? STATUS_TONES.draft}`}
+                className={`inline-flex w-full items-center justify-center gap-1.5 rounded-full border px-3 py-2.5 text-xs font-medium capitalize md:w-auto md:py-1.5 ${STATUS_TONES[itinerary.status] ?? STATUS_TONES.draft}`}
               >
                 {itinerary.status}
                 <ChevronDown className="h-3 w-3" strokeWidth={2.5} />
@@ -244,7 +251,12 @@ export function ItineraryView({
               )}
             </div>
             {onRegenerate && (
-              <HandDrawnButton onClick={onRegenerate} variant="primary" size="sm" className="gap-2">
+              <HandDrawnButton
+                onClick={onRegenerate}
+                variant="primary"
+                size="sm"
+                className="w-full justify-center gap-2 md:w-auto"
+              >
                 <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.5} />
                 Regenerate
               </HandDrawnButton>
@@ -252,13 +264,18 @@ export function ItineraryView({
             <a
               href={`/api/itinerary/${itinerary.id}/calendar`}
               download
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white bg-white/80 px-4 py-1.5 text-sm font-medium text-[color:var(--ink)] shadow-[0_8px_20px_-12px_rgba(20,50,100,0.25)] backdrop-blur-md transition-all hover:-translate-y-[1px] hover:bg-white active:translate-y-0"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white bg-white/80 px-4 py-2.5 text-sm font-medium text-[color:var(--ink)] md:w-auto md:py-1.5 shadow-[0_8px_20px_-12px_rgba(20,50,100,0.25)] backdrop-blur-md transition-all hover:-translate-y-[1px] hover:bg-white active:translate-y-0"
             >
               <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
               Add to calendar
             </a>
             {onDelete && (
-              <HandDrawnButton onClick={onDelete} variant="secondary" size="sm" className="gap-2">
+              <HandDrawnButton
+                onClick={onDelete}
+                variant="secondary"
+                size="sm"
+                className="w-full justify-center gap-2 md:w-auto"
+              >
                 <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
                 Delete
               </HandDrawnButton>
@@ -268,7 +285,7 @@ export function ItineraryView({
       </HandDrawnCard>
 
       {/* Map */}
-      <HandDrawnCard className="animate-fade-up p-6" style={{ animationDelay: '0.05s' }}>
+      <HandDrawnCard className="animate-fade-up p-4 md:p-6" style={{ animationDelay: '0.05s' }}>
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium text-[color:var(--ink-muted)]">
             Day {itinerary.days[activeTab]?.dayNumber} route
@@ -307,7 +324,7 @@ export function ItineraryView({
       {((itinerary.packingTips?.length ?? 0) > 0 ||
         (itinerary.importantNotes?.length ?? 0) > 0) && (
         <HandDrawnCard
-          className="animate-fade-up grid gap-6 p-6 md:grid-cols-2"
+          className="animate-fade-up grid gap-6 p-5 md:grid-cols-2 md:p-6"
           style={{ animationDelay: '0.08s' }}
         >
           {(itinerary.packingTips?.length ?? 0) > 0 && (
@@ -345,7 +362,7 @@ export function ItineraryView({
         style={{ animationDelay: '0.1s' }}
       >
         <div className="border-b border-[color:var(--border)] px-2 pt-2">
-          <div className="flex gap-1 overflow-x-auto">
+          <div className="scrollbar-none flex gap-1 overflow-x-auto">
             {itinerary.days.map((day, index) => (
               <button
                 key={day.id}
@@ -362,7 +379,7 @@ export function ItineraryView({
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           {itinerary.days[activeTab] && (
             <DaySchedule
               dayNumber={itinerary.days[activeTab].dayNumber}

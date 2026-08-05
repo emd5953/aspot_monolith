@@ -27,13 +27,13 @@ export default async function QuizCompletePage() {
   await clearProgress(supabase, user.id);
 
   return (
-    <main className="relative mx-auto max-w-2xl px-6 pt-16 pb-24">
+    <main className="relative mx-auto max-w-2xl px-4 pt-16 pb-24 md:px-6">
       <section className="animate-fade-up text-center">
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-white/50 bg-white/20 backdrop-blur-md">
           <CheckCircle2 className="h-7 w-7 text-white" strokeWidth={2} />
         </div>
         <PromoChip>All set</PromoChip>
-        <h1 className={`mt-5 font-heading text-5xl leading-[0.95] text-white md:text-6xl ${TEXT_SHADOW}`}>
+        <h1 className={`mt-5 font-heading text-4xl leading-[0.95] text-white sm:text-5xl md:text-6xl ${TEXT_SHADOW}`}>
           Your travel <span className="italic">profile</span> is ready.
         </h1>
         <p className={`mx-auto mt-5 max-w-md text-base font-medium text-white ${TEXT_SHADOW_SM}`}>

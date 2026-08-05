@@ -79,7 +79,9 @@ export function PillPicker<T extends string | string[]>({
               onClick={() => toggle(option.value)}
               disabled={disabled}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all',
+                // py-3 below md keeps the pill at ~44px for a fingertip;
+                // back to the designed py-2 from md up.
+                'inline-flex items-center gap-1.5 rounded-full border px-4 py-3 text-sm font-medium transition-all md:py-2',
                 'disabled:cursor-not-allowed disabled:opacity-40',
                 selected
                   ? 'border-[color:var(--ink)] bg-[color:var(--ink)] text-white shadow-[0_8px_22px_-10px_rgba(11,30,60,0.55)]'

@@ -29,7 +29,9 @@ export const HandDrawnInput = forwardRef<HTMLInputElement, HandDrawnInputProps>(
           className={cn(
             'w-full rounded-2xl border px-5 py-3',
             'border-[color:var(--border)] bg-white',
-            'font-body text-[15px] text-[color:var(--ink)] placeholder:text-[color:var(--ink-soft)]',
+            // 16px floor on mobile — iOS Safari auto-zooms the viewport on any
+            // input below it. Back to the designed 15px from md up.
+            'font-body text-base md:text-[15px] text-[color:var(--ink)] placeholder:text-[color:var(--ink-soft)]',
             'transition-all duration-200',
             'focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-4 focus:ring-[color:var(--accent)]/15',
             'shadow-[0_2px_10px_-4px_rgba(20,50,100,0.1)]',

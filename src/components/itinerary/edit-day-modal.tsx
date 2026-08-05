@@ -50,8 +50,8 @@ export function EditDayModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--ink)]/35 p-4 backdrop-blur-sm">
-      <HandDrawnCard className="animate-fade-up max-h-[90vh] w-full max-w-2xl overflow-y-auto p-7">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[color:var(--ink)]/35 backdrop-blur-sm md:items-center md:p-4">
+      <HandDrawnCard className="animate-fade-up max-h-[85dvh] w-full max-w-2xl overflow-y-auto rounded-b-none p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:max-h-[90vh] md:rounded-b-3xl md:p-7">
         <div className="mb-5 flex items-start justify-between">
           <div>
             <p className="mb-2 text-sm font-medium text-[color:var(--ink-muted)]">
@@ -103,7 +103,7 @@ export function EditDayModal({
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="e.g., I want more outdoor activities and less shopping…"
-              className="min-h-[120px] w-full resize-none rounded-2xl border border-[color:var(--border)] bg-white px-5 py-3 text-[15px] text-[color:var(--ink)] shadow-[0_2px_10px_-4px_rgba(20,50,100,0.1)] transition-all placeholder:text-[color:var(--ink-soft)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-4 focus:ring-[color:var(--accent)]/15"
+              className="min-h-[120px] w-full resize-none rounded-2xl border border-[color:var(--border)] bg-white px-5 py-3 text-base md:text-[15px] text-[color:var(--ink)] shadow-[0_2px_10px_-4px_rgba(20,50,100,0.1)] transition-all placeholder:text-[color:var(--ink-soft)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-4 focus:ring-[color:var(--accent)]/15"
               disabled={isSubmitting}
               autoFocus
             />

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { CoverVideo } from '@/components/landing/cover-video';
 import { AppNav } from '@/components/layout/app-nav';
 import { PageTransition } from '@/components/layout/page-transition';
+import { BottomTabs } from '@/components/layout/bottom-tabs';
 
 /**
  * Shared frame for every authenticated page.
@@ -52,9 +53,16 @@ export default async function ProtectedLayout({
         <AppNav tone="light" />
       </div>
 
-      {/* Page content — cross-fades between routes */}
-      <div className="relative z-10">
+      {/* Page content — cross-fades between routes.
+          Bottom padding clears the mobile tab bar; no-op from md up.
+
+          BottomTabs is mounted *inside* this z-10 wrapper on purpose: the
+          wrapper is a stacking context, so a modal rendered by a page (z-50)
+          only outranks the tab bar (z-40) if both sit in the same context.
+          Hoisting the bar to a sibling would put it over every open modal. */}
+      <div className="relative z-10 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
         <PageTransition>{children}</PageTransition>
+        <BottomTabs />
       </div>
     </div>
   );
