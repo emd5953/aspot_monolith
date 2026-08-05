@@ -47,7 +47,11 @@ export function loadGoogleMaps(apiKey: string): Promise<typeof google> {
 
     const script = document.createElement('script');
     script.id = SCRIPT_ID;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry`;
+    // No `libraries` param: nothing here touches google.maps.places or
+    // google.maps.geometry. Leaving `places` off matters beyond dead weight —
+    // it keeps Places off the browser key's allowed APIs entirely, so the key
+    // sitting in the bundle can only do Maps JS, Geocoding, and Directions.
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
     script.async = true;
     script.defer = true;
     script.addEventListener('load', finish, { once: true });
