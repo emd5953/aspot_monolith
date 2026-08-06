@@ -58,7 +58,7 @@ export function CreateTripModal({
               New shared trip
             </p>
             <h2 className="font-heading text-3xl text-[color:var(--ink)]">
-              Plan <span className="italic">together</span>.
+              Plan together.
             </h2>
           </div>
           <button

@@ -81,7 +81,7 @@ export default async function DashboardPage() {
             {firstName ? (
               <>
                 ,<br />
-                <span className="italic">{firstName}</span>.
+                {firstName}.
               </>
             ) : (
               '.'

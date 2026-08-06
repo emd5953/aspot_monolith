@@ -34,7 +34,7 @@ export default async function QuizCompletePage() {
         </div>
         <PromoChip>All set</PromoChip>
         <h1 className={`mt-5 font-heading text-4xl leading-[0.95] text-white sm:text-5xl md:text-6xl ${TEXT_SHADOW}`}>
-          Your travel <span className="italic">profile</span> is ready.
+          Your travel profile is ready.
         </h1>
         <p className={`mx-auto mt-5 max-w-md text-base font-medium text-white ${TEXT_SHADOW_SM}`}>
           We&rsquo;ve saved your preferences. Every itinerary we build will be tuned to how

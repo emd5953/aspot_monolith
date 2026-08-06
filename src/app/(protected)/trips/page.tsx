@@ -73,7 +73,7 @@ export default function TripsPage() {
       <section className="animate-fade-up">
         <PromoChip>Shared trips</PromoChip>
         <h1 className="mt-5 font-heading text-4xl leading-[0.95] text-white sm:text-5xl md:text-7xl [text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]">
-          My <span className="italic">trips</span>.
+          My trips.
         </h1>
         <p className="mt-4 max-w-md text-base font-medium text-white [text-shadow:0_1px_4px_rgba(10,30,60,0.6),0_4px_18px_rgba(10,30,60,0.5)]">
           Plan together. Invite friends with a code, share suggestions, keep everyone on the
@@ -116,7 +116,7 @@ export default function TripsPage() {
           <HandDrawnCard className="p-14 text-center">
             <p className="text-sm font-medium text-[color:var(--ink-muted)]">Nothing shared yet</p>
             <h2 className="mt-3 font-heading text-4xl text-[color:var(--ink)]">
-              Plan your first <span className="italic">group trip</span>.
+              Plan your first group trip.
             </h2>
             <p className="mx-auto mt-3 max-w-sm text-[color:var(--ink-muted)]">
               Create a trip from an existing itinerary, or join one with an invite code.

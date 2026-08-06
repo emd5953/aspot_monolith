@@ -80,7 +80,7 @@ export function QuizFlow({ initialProgress, userId }: QuizFlowProps) {
           Question {currentStep + 1} of {quizQuestions.length}
         </PromoChip>
         <h1 className={`mt-5 font-heading text-4xl leading-[1] text-white md:text-5xl ${TEXT_SHADOW}`}>
-          Shape your <span className="italic">travel personality</span>.
+          Shape your travel personality.
         </h1>
       </section>
 

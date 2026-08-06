@@ -62,7 +62,7 @@ export function RegenerateModal({ isOpen, onClose, onRegenerate }: RegenerateMod
           <div>
             <p className="mb-2 text-sm font-medium text-[color:var(--ink-muted)]">Regenerate</p>
             <h2 className="font-heading text-3xl text-[color:var(--ink)]">
-              Refresh this <span className="italic">itinerary</span>.
+              Refresh this itinerary.
             </h2>
           </div>
           <button

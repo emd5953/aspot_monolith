@@ -257,7 +257,7 @@ export default function EditProfilePage() {
 
         <section className="animate-fade-up mt-6">
           <h1 className="font-heading text-4xl leading-[0.95] text-white sm:text-5xl md:text-6xl [text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]">
-            Tune your <span className="italic">travel self</span>.
+            Tune your travel self.
           </h1>
           <p className="mt-3 max-w-md text-base font-medium text-white [text-shadow:0_1px_4px_rgba(10,30,60,0.6),0_4px_18px_rgba(10,30,60,0.5)]">
             Changes save automatically. Tap chips to toggle — no forms to submit.

@@ -71,7 +71,7 @@ export default function ItineraryPage() {
           <div>
             <PromoChip>Your trips</PromoChip>
             <h1 className="mt-5 font-heading text-4xl leading-[0.95] text-white sm:text-5xl md:text-7xl [text-shadow:0_2px_6px_rgba(10,30,60,0.6),0_8px_32px_rgba(10,30,60,0.5)]">
-              My <span className="italic">itineraries</span>.
+              My itineraries.
             </h1>
             <p className="mt-4 max-w-md text-base font-medium text-white [text-shadow:0_1px_4px_rgba(10,30,60,0.6),0_4px_18px_rgba(10,30,60,0.5)]">
               Every trip you&rsquo;ve planned, in one quiet place.
@@ -99,7 +99,7 @@ export default function ItineraryPage() {
           <HandDrawnCard className="p-16 text-center">
             <p className="text-sm font-medium text-[color:var(--ink-muted)]">Nothing yet</p>
             <h2 className="mt-3 font-heading text-4xl text-[color:var(--ink)]">
-              Your first <span className="italic">trip</span> awaits.
+              Your first trip awaits.
             </h2>
             <p className="mx-auto mt-3 max-w-sm text-[color:var(--ink-muted)]">
               Describe a destination, a few dates, and a vibe — aSpot builds the rest.

@@ -172,7 +172,7 @@ export function LandingHero() {
           >
             Where are we
             <br />
-            <span className="italic">going next?</span>
+            going next?
           </h1>
 
           <p

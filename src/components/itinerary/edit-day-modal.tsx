@@ -58,7 +58,7 @@ export function EditDayModal({
               Day {dayNumber}
             </p>
             <h2 className="font-heading text-3xl text-[color:var(--ink)]">
-              Tweak this <span className="italic">day</span>.
+              Tweak this day.
             </h2>
             <p className="mt-2 text-sm text-[color:var(--ink-muted)]">
               Describe what you want — the AI will regenerate this day accordingly.
