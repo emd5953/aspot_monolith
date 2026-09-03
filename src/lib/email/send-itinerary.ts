@@ -80,7 +80,7 @@ export async function sendItineraryEmail(
 
   try {
     const { error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'aSpot <onboarding@resend.dev>',
+      from: process.env.RESEND_FROM_EMAIL || 'Spotz <onboarding@resend.dev>',
       to: input.to,
       subject: buildItineraryEmailSubject(emailData),
       html: buildItineraryEmailHtml(emailData),

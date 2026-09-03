@@ -94,7 +94,7 @@ function eventLines(
 ): string[] {
   const lines = [
     'BEGIN:VEVENT',
-    `UID:${activity.id}@aspot`,
+    `UID:${activity.id}@spotz`,
     `DTSTAMP:${stamp}`,
   ];
 
@@ -124,7 +124,7 @@ export function buildItineraryIcs(itinerary: IcsItinerary, now: Date = new Date(
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//aSpot//Itinerary//EN',
+    'PRODID:-//Spotz//Itinerary//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeText(itinerary.title)}`,

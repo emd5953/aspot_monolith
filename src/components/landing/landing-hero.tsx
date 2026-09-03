@@ -98,10 +98,10 @@ export function LandingHero() {
           <button
             type="button"
             onClick={() => setAuthMode(null)}
-            aria-label="aSpot home"
+            aria-label="Spotz home"
             className={`font-heading text-2xl leading-none text-white ${TEXT_SHADOW_BODY}`}
           >
-            aSpot
+            Spotz
           </button>
 
           {/* Anchor: position relative so the popover can absolutely-position under it */}
@@ -163,24 +163,24 @@ export function LandingHero() {
             className={`animate-fade-up text-sm font-semibold tracking-wide text-white ${TEXT_SHADOW_BODY}`}
             style={{ animationDelay: '0.05s' }}
           >
-            Your pocket travel buddy
+            Your pocket moves plug
           </p>
 
           <h1
             className={`animate-fade-up mt-5 font-heading text-4xl leading-[1.05] tracking-tight text-white sm:text-5xl md:text-7xl ${TEXT_SHADOW_HERO}`}
             style={{ animationDelay: '0.15s' }}
           >
-            Where are we
+            Yurrrrr,
             <br />
-            going next?
+            what&rsquo;s the word?
           </h1>
 
           <p
             className={`animate-fade-up mt-6 text-base font-medium leading-relaxed text-white md:text-lg ${TEXT_SHADOW_BODY}`}
             style={{ animationDelay: '0.25s' }}
           >
-            Tell us the vibe. We&rsquo;ll sketch the days, find the spots, and
-            leave room for wandering.
+            Say the vibe. Spotz finds the moves &mdash; parties, popups, food
+            spots, functions. Tonight.
           </p>
 
           <div
@@ -192,7 +192,7 @@ export function LandingHero() {
                 // Stash the prompt so the signup flow can seed the first
                 // itinerary once the user is authed.
                 try {
-                  sessionStorage.setItem('aspot:pending-prompt', prompt);
+                  sessionStorage.setItem('spotz:pending-prompt', prompt);
                 } catch {
                   /* sessionStorage may be unavailable (private mode) */
                 }
@@ -205,7 +205,7 @@ export function LandingHero() {
             className={`animate-fade-up mt-5 text-sm font-medium text-white ${TEXT_SHADOW_BODY}`}
             style={{ animationDelay: '0.5s' }}
           >
-            No credit card. Just a daydream.{' '}
+            No credit card. Just the word.{' '}
             <button
               type="button"
               onClick={() => setAuthMode('signup')}
