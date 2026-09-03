@@ -45,7 +45,7 @@ export function escapeHtml(value: string): string {
 
 export function buildItineraryEmailSubject(data: ItineraryEmailData): string {
   // Plain-text subject line — not HTML, so no escaping (would show &amp;).
-  return `The moves are ready 🗽`;
+  return `The moves are ready 🗽 ${data.title}`.trim();
 }
 
 export function buildItineraryEmailHtml(data: ItineraryEmailData): string {
