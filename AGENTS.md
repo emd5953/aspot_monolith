@@ -74,15 +74,15 @@ Default section order:
 5. Run existing verification when relevant
 6. Report any docs intentionally left unchanged and why
 
-## Project: aSpot
+## Project: Spotz
 
-aSpot turns one sentence into a real, day-by-day trip. Say what you want; it researches real places, builds the days, and hands back an itinerary that reflects the prompt — not a top-10 list, not a chatbot.
+Spotz finds the Moves for tonight. Say the word — "date night in the Village, no cover", "we tryna dance in Bushwick" — and it hands back a curated, time-anchored run of real NYC events, functions, popups, and food spots. Share the link; the crew votes 👍/👎 on individual plans. One active itinerary at a time — no trip dashboard, no quiz, no travel-agent chatbot.
 
-- **Stack:** Next.js (App Router) + React 19 + TypeScript; Supabase (Postgres, RLS, Realtime, OAuth); OpenAI via the Vercel AI SDK; Tavily for research; Google Maps/Places; Resend for Deep-mode email; deployed on Vercel.
+- **Stack:** Next.js (App Router) + React 19 + TypeScript; Supabase (Postgres, RLS, Realtime, OAuth); OpenAI via the Vercel AI SDK; Tavily for web research; Google Maps/Places; source connectors (Partiful/Posh/Luma + a TikTok stub) feed a `candidate_events` pool via a cron-gated `/api/ingest`; Resend for Deep-mode email; deployed on Vercel.
 - **The contract is the schema.** Zod types in `src/lib/ai/schemas` are the hand-off between every pipeline step. LLM outputs are schema-validated, never regex-extracted.
-- **Core principle:** profile is the floor, prompt is the steering wheel. The system never invents places — candidates come from real research with provenance.
+- **Core principle:** the prompt is the floor AND the steering wheel — there is no quiz, no preference profile. The system never invents places or events; every candidate (web research or the Moves pool) carries provenance.
 - **Two modes, one pipeline:** Fast ("Plan it", streams on screen) and Deep ("Send it", background work + email). Same six steps: Understand → Discover → Rank → Plan → Critique → Persist.
-- **Migrations** live in `supabase/migrations/`. `src/types` holds shared TypeScript contracts; `src/data` holds static content (quiz questions); `src/test` holds fixtures/setup.
+- **Migrations** live in `supabase/migrations/`. `src/types/profile.ts` holds the neutral default `UserPreferences` the pipeline scores against (no quiz feeds it). `src/test` holds fixtures/setup.
 
 ### Verification
 
@@ -95,8 +95,9 @@ When the user requests a durable behavior change, record it here or in the relev
 ## Child DOX Index
 
 - [`src/lib/ai/`](src/lib/ai/AGENTS.md) — the generation engine: research, curation, persistence, schemas, cost/time. Contains child [`agents/`](src/lib/ai/agents/AGENTS.md).
-- [`src/lib/itinerary/`](src/lib/itinerary/AGENTS.md) — persistence, versioning, ownership, and post-generation editing (reorder, swap, day-regenerate, revert, cost rollup).
+- [`src/lib/itinerary/`](src/lib/itinerary/AGENTS.md) — persistence, versioning, ownership, sharing/voting, and post-generation editing (reorder, swap, day-regenerate, revert, cost rollup).
+- [`src/lib/sources/`](src/lib/sources/AGENTS.md) — the Moves supply chain: source connectors (Partiful/Posh/Luma/TikTok), the candidate pool, ingestion.
 - [`src/app/api/`](src/app/api/AGENTS.md) — App Router route handlers: authenticate, authorize, delegate to `lib`.
 - [`src/components/`](src/components/AGENTS.md) — React UI and the hand-drawn aesthetic that is the product.
 
-Owned directly by this root (no child doc yet — simple, single-purpose): `src/lib/preferences` (quiz→profile, curation/scoring), `src/lib/trips`, `src/lib/quiz`, `src/lib/maps`, `src/lib/calendar`, `src/lib/email`, `src/lib/ratelimit`, `src/lib/supabase` (client/server/middleware), `src/app/(protected)`, `src/types`, `src/data`, `src/test`.
+Owned directly by this root (no child doc yet — simple, single-purpose): `src/lib/maps`, `src/lib/calendar`, `src/lib/email`, `src/lib/ratelimit`, `src/lib/supabase` (client/server/middleware), `src/app/(protected)`, `src/types`, `src/test`.
