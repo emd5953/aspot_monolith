@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Map, Users, User, type LucideIcon } from 'lucide-react';
+import { Home, Map, User, type LucideIcon } from 'lucide-react';
 
 export interface BottomTab {
   label: string;
@@ -12,8 +12,7 @@ export interface BottomTab {
 
 const TABS: BottomTab[] = [
   { label: 'Home', href: '/dashboard', icon: Home },
-  { label: 'Itineraries', href: '/itinerary', icon: Map },
-  { label: 'Trips', href: '/trips', icon: Users },
+  { label: 'Moves', href: '/itinerary', icon: Map },
   { label: 'Profile', href: '/profile', icon: User },
 ];
 

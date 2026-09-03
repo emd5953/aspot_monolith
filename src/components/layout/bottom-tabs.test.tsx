@@ -10,7 +10,7 @@ vi.mock('next/navigation', () => ({
 
 /**
  * The top nav hides its links below `md`, so this bar is the only navigation a
- * phone has. If it stops rendering all four destinations, three routes become
+ * phone has. If it stops rendering all three destinations, routes become
  * unreachable on mobile.
  */
 describe('BottomTabs', () => {
@@ -18,16 +18,16 @@ describe('BottomTabs', () => {
     mocks.pathname = '/dashboard';
     render(<BottomTabs />);
 
-    for (const label of ['Home', 'Itineraries', 'Trips', 'Profile']) {
+    for (const label of ['Home', 'Moves', 'Profile']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
   });
 
   it('marks the tab matching the current route as current', () => {
-    mocks.pathname = '/trips';
+    mocks.pathname = '/itinerary';
     render(<BottomTabs />);
 
-    expect(screen.getByRole('link', { name: /Trips/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Moves/ })).toHaveAttribute(
       'aria-current',
       'page'
     );
@@ -40,7 +40,7 @@ describe('BottomTabs', () => {
     mocks.pathname = '/itinerary/abc123';
     render(<BottomTabs />);
 
-    expect(screen.getByRole('link', { name: /Itineraries/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Moves/ })).toHaveAttribute(
       'aria-current',
       'page'
     );
