@@ -85,13 +85,13 @@ export async function swapDayActivities(
   // Snapshot the existing activity ids so we delete exactly them (and not any
   // rows we're about to insert) after a successful insert.
   const { data: existing } = await supabase
-    .from('activities')
+    .from('plans')
     .select('id')
     .eq('day_id', dayId);
   const oldIds = ((existing as { id: string }[] | null) ?? []).map((a) => a.id);
 
   const { data: inserted, error: insertError } = await supabase
-    .from('activities')
+    .from('plans')
     .insert(rows)
     .select();
 
@@ -102,7 +102,7 @@ export async function swapDayActivities(
 
   if (oldIds.length > 0) {
     const { error: deleteError } = await supabase
-      .from('activities')
+      .from('plans')
       .delete()
       .in('id', oldIds);
     if (deleteError) {
@@ -125,7 +125,7 @@ export async function addActivity(
 ): Promise<Activity> {
   // Get current max sort order for this day
   const { data: existingActivities } = await supabase
-    .from('activities')
+    .from('plans')
     .select('sort_order')
     .eq('day_id', dayId)
     .order('sort_order', { ascending: false })
@@ -136,7 +136,7 @@ export async function addActivity(
     : 1;
 
   const { data, error } = await supabase
-    .from('activities')
+    .from('plans')
     .insert({
       day_id: dayId,
       title: activity.title,
@@ -184,7 +184,7 @@ export async function updateActivity(
   if (updates.notes !== undefined) updateData.notes = updates.notes;
 
   const { data, error } = await supabase
-    .from('activities')
+    .from('plans')
     .update(updateData)
     .eq('id', activityId)
     .select()
@@ -205,7 +205,7 @@ export async function removeActivity(
   activityId: string
 ): Promise<void> {
   const { error } = await supabase
-    .from('activities')
+    .from('plans')
     .delete()
     .eq('id', activityId);
 
@@ -231,7 +231,7 @@ export async function reorderActivities(
 
   for (const update of updates) {
     const { error } = await supabase
-      .from('activities')
+      .from('plans')
       .update({ sort_order: update.sort_order })
       .eq('id', update.id);
 
@@ -265,7 +265,7 @@ export async function detectTimeConflicts(
   dayId: string
 ): Promise<TimeConflict[]> {
   const { data: activities, error } = await supabase
-    .from('activities')
+    .from('plans')
     .select('*')
     .eq('day_id', dayId)
     .order('sort_order', { ascending: true });
@@ -340,7 +340,7 @@ export async function moveActivityToDay(
 ): Promise<Activity> {
   // Get max sort order in target day
   const { data: existingActivities } = await supabase
-    .from('activities')
+    .from('plans')
     .select('sort_order')
     .eq('day_id', targetDayId)
     .order('sort_order', { ascending: false })
@@ -351,7 +351,7 @@ export async function moveActivityToDay(
     : 1;
 
   const { data, error } = await supabase
-    .from('activities')
+    .from('plans')
     .update({
       day_id: targetDayId,
       sort_order: nextSortOrder,
@@ -375,7 +375,7 @@ export async function getDayActivities(
   dayId: string
 ): Promise<Activity[]> {
   const { data, error } = await supabase
-    .from('activities')
+    .from('plans')
     .select('*')
     .eq('day_id', dayId)
     .order('sort_order', { ascending: true });

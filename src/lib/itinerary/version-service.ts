@@ -209,7 +209,7 @@ export async function revertToVersion(
   // Delete current activities and days
   if (currentDays) {
     for (const day of currentDays) {
-      await supabase.from('activities').delete().eq('day_id', day.id);
+      await supabase.from('plans').delete().eq('day_id', day.id);
     }
     await supabase.from('itinerary_days').delete().eq('itinerary_id', itineraryId);
   }
@@ -233,7 +233,7 @@ export async function revertToVersion(
 
     // Recreate activities
     for (const actSnapshot of daySnapshot.activities) {
-      await supabase.from('activities').insert({
+      await supabase.from('plans').insert({
         day_id: newDay.id,
         title: actSnapshot.title,
         description: actSnapshot.description,

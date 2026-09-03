@@ -3,6 +3,9 @@
  *
  * Used to coordinate multi-source web scraping. Now collapses to a
  * single Tavily-search-with-prefs call. Same export signature.
+ *
+ * Note: pool events (the Moves) are merged by the orchestrators AFTER cache
+ * retrieval — never here — so cached research can't serve stale events.
  */
 
 import { ResearchRequest, ResearchResult } from './types';

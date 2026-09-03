@@ -12,7 +12,7 @@ import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { UserPreferences } from '@/types/profile';
-import { OrchestrationState, ItineraryPlan, ResearchResult, ReviewIssue } from './types';
+import { OrchestrationState, ItineraryPlan, ResearchResult, ReviewIssue, ActivityData } from './types';
 import { runAgenticResearcher } from './agentic-researcher';
 import { runAgenticPlanner, removeCrossDayDuplicates } from './agentic-planner';
 import { runReviewerAgent, reviseItineraryPlan } from './reviewer';
@@ -41,6 +41,12 @@ export interface AgenticOrchestratorInput {
   userIntent?: string;
   /** Original prompt verbatim. Optional. */
   rawPrompt?: string;
+  /**
+   * Live Moves from the candidate_events pool, already converted to
+   * ActivityData. Merged after cache retrieval (cached research must never
+   * carry stale events) and before curation. Optional.
+   */
+  poolEvents?: ActivityData[];
   onProgress?: (state: OrchestrationState & { reasoning: ReasoningStep[] }) => void;
 }
 
@@ -191,6 +197,7 @@ export async function runAgenticOrchestrator(
     useAdvancedCuration = false,
     userIntent,
     rawPrompt,
+    poolEvents,
     onProgress,
   } = input;
 
@@ -253,6 +260,19 @@ export async function runAgenticOrchestrator(
     if (hasData) {
       setCachedResearch(destination, researchResult.result, researchResult.thoughts, userIntent);
     }
+  }
+
+  // Merge live Moves AFTER cache retrieval — cached research must never
+  // carry stale events — and BEFORE curation so they get ranked too.
+  if (poolEvents?.length) {
+    researchResult = {
+      ...researchResult,
+      result: {
+        ...researchResult.result,
+        activities: [...poolEvents, ...researchResult.result.activities],
+      },
+    };
+    allThoughts.push(`⚡ Merged ${poolEvents.length} live events from the Moves pool`);
   }
 
   // Pre-filter the pool by user preferences AND user intent before the planner

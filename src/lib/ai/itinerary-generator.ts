@@ -18,7 +18,9 @@ import { UserPreferences, defaultPreferencesFor } from '@/types/profile';
 import { fetchDestinationData } from './tavily-service';
 import { runOrchestrator, OrchestratorOutput } from './agents/orchestrator';
 import { runAgenticOrchestrator, AgenticOrchestratorOutput } from './agents/agentic-orchestrator';
-import { ItineraryPlan, ScheduledItem, ResearchResult } from './agents/types';
+import { ItineraryPlan, ScheduledItem, ResearchResult, ActivityData } from './agents/types';
+import { getTonightPool } from '@/lib/sources/pool-service';
+import { poolRowsToActivities } from './pool-events';
 import type { Attraction, Restaurant, ActivityOption } from '@/types/destination';
 import {
   type ItemSource,
@@ -191,6 +193,23 @@ export async function generateItinerary(
     throw new Error('Trip duration must be between 1 and 30 days');
   }
 
+  // The Moves: pull live events for the outing window from the candidate pool
+  // (fed by the Posh/Luma/Partiful/TikTok connectors). Non-fatal on failure —
+  // generation still works from web research alone.
+  let poolEvents: ActivityData[] = [];
+  try {
+    const windowStart = new Date(startDate);
+    const windowEnd = new Date(endDate);
+    windowEnd.setHours(30, 0, 0, 0); // through 6am the following morning
+    const poolRows = await getTonightPool(supabase, { from: windowStart, to: windowEnd });
+    poolEvents = poolRowsToActivities(poolRows);
+    if (poolEvents.length > 0) {
+      console.log(`[pool] ${poolEvents.length} live events joined the research pool`);
+    }
+  } catch (err) {
+    console.warn('[pool] candidate pool unavailable, continuing without live events:', err);
+  }
+
   let dayPlans: DayPlan[];
   // Plan-level "before you go" content. Only the agentic plans produce these;
   // the local fallback leaves them empty.
@@ -216,6 +235,7 @@ export async function generateItinerary(
         useAdvancedCuration, // Pass flag to enable extensive scraping
         userIntent,
         rawPrompt,
+        poolEvents,
         onProgress: (state) => {
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
           
@@ -277,6 +297,7 @@ export async function generateItinerary(
         preferences,
         userIntent,
         rawPrompt,
+        poolEvents,
         onProgress: (state) => {
           console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
           
@@ -610,13 +631,13 @@ export async function insertActivityRow(
   supabase: SupabaseClient,
   row: Record<string, unknown>
 ): Promise<boolean> {
-  const { error } = await supabase.from('activities').insert(row);
+  const { error } = await supabase.from('plans').insert(row);
   if (!error) return true;
 
   if ('source' in row) {
     const withoutSource = { ...row };
     delete withoutSource.source;
-    const retry = await supabase.from('activities').insert(withoutSource);
+    const retry = await supabase.from('plans').insert(withoutSource);
     if (!retry.error) {
       console.warn(
         '[itinerary] activities.source missing — saved activity without provenance (apply migration 013)'
@@ -651,6 +672,17 @@ async function saveItineraryToDatabase(
   const { userId, title, destination, startDate, endDate, dayPlans, preferences } = data;
   const packingTips = data.packingTips ?? [];
   const importantNotes = data.importantNotes ?? [];
+
+  // Spotz: one active itinerary per user. Archive whatever was active/draft
+  // before the new one lands (history page shows the archived ones).
+  const { error: archiveError } = await supabase
+    .from('itineraries')
+    .update({ status: 'archived' })
+    .eq('user_id', userId)
+    .in('status', ['draft', 'active']);
+  if (archiveError) {
+    console.warn('[itinerary] failed to archive previous itineraries:', archiveError.message);
+  }
 
   // Create itinerary record
   const { data: itinerary, error: itineraryError } = await supabase
@@ -1000,7 +1032,7 @@ export async function regenerateItinerary(
 
   if (existingDays) {
     for (const day of existingDays) {
-      await supabase.from('activities').delete().eq('day_id', day.id);
+      await supabase.from('plans').delete().eq('day_id', day.id);
     }
     await supabase.from('itinerary_days').delete().eq('itinerary_id', itineraryId);
   }
@@ -1103,7 +1135,7 @@ export async function deleteItinerary(
 
   if (days) {
     for (const day of days) {
-      await supabase.from('activities').delete().eq('day_id', day.id);
+      await supabase.from('plans').delete().eq('day_id', day.id);
     }
   }
 

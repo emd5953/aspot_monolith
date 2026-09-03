@@ -1,84 +1,70 @@
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { alignToWeekend } from './weekend-align';
 
 export interface ParsedPrompt {
-  /** Destination city / place (required) */
+  /** Always "New York City" — Spotz is NYC-only. */
   destination: string;
-  /** ISO date string (YYYY-MM-DD) */
+  /** ISO date (YYYY-MM-DD) of the outing. Defaults to today ("tonight"). */
   startDate: string;
-  /** ISO date string (YYYY-MM-DD) */
+  /** Same as startDate — a Spotz plan is one night/day out. */
   endDate: string;
-  /** Suggested title (falls back to "Trip to {destination}") */
+  /** Suggested title (falls back to "Moves for tonight"). */
   title: string;
-  /** Pace inferred from the prompt tone (relaxed/moderate/packed) */
+  /** Pace inferred from the prompt tone (relaxed/moderate/packed). */
   activityDensity: 'relaxed' | 'moderate' | 'packed';
   /**
-   * The user's *focus / theme / must-haves* extracted from the prompt — the
-   * thing that's NOT destination/dates/pace. e.g. "R&B-leaning bars and
-   * live-music nightlife", "vegan ramen and quiet teahouses".
-   *
-   * Empty string when the prompt is just dates+city with no theme.
-   * Used downstream to bias research queries, curation scoring, and
-   * planner/reviewer prompts so the trip actually matches the request.
+   * The vibe / theme / must-haves — everything that steers curation.
+   * e.g. "warehouse party, techno, cheap drinks" or "chill date night, wine bars".
+   * Includes neighborhood mentions so downstream matching sees them too.
    */
   userIntent: string;
+  /** Neighborhood/borough when the user named one (e.g. "Bushwick"), else "". */
+  neighborhood: string;
   /** The original prompt text, preserved verbatim for downstream agent prompts. */
   rawPrompt: string;
 }
 
+/** Today's date in America/New_York regardless of server timezone. */
+function nycToday(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+function addDaysIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
 /**
- * Turn a one-line natural-language trip description into the structured
- * fields the itinerary generator expects. Examples:
- *   "2 nights in NYC, big on food"
- *     → { destination: "New York City", startDate: <soon>, endDate: <+2>, ... }
- *   "a long weekend in Lisbon in June"
- *     → { destination: "Lisbon", startDate: <first fri in june>, endDate: <+3>, ... }
- *   "Tokyo next month, packed days"
- *     → { destination: "Tokyo", startDate: <~30 days out>, endDate: <+7>, activityDensity: "packed" }
- *
- * Returns best-guess defaults for anything the prompt is silent on.
+ * Turn a one-line "what's the word" prompt into the structured fields the
+ * generator expects. Spotz is NYC-only and one outing at a time:
+ *   "moves for tonight, we tryna dance"       → today, vibe: dancing/nightlife
+ *   "chill Sunday, good food, no cover"       → next Sunday, vibe: food + free
+ *   "date night in the Village on Friday"     → next Friday, Greenwich Village
  */
 export async function parsePrompt(prompt: string): Promise<ParsedPrompt> {
-  const today = new Date();
-  const defaultStart = addDays(today, 14); // two weeks out when unspecified
-  const defaultEnd = addDays(defaultStart, 3); // 4 activity days fallback (start + 3)
+  const today = nycToday();
 
-  const systemPrompt = `You extract trip details from short natural-language requests.
+  const systemPrompt = `You extract outing details from short natural-language requests for Spotz, an app that plans one night/day out in New York City.
 
-Today's date: ${today.toISOString().split('T')[0]}.
+Today's date (New York): ${today}.
 
 Return a JSON object with these exact keys:
-- destination (string): the city or place, in canonical form, e.g. "New York City" not "NYC".
-  CRITICAL: only fill this in if the user actually names or clearly implies a place to travel to.
-  If the input is a greeting, a question, empty, gibberish, or otherwise not a trip request
-  (e.g. "hi", "hello", "what can you do?", "asdf"), return destination as "" (empty string).
-  NEVER guess or invent a destination. When in doubt, return "".
-- startDate (string): YYYY-MM-DD. If the user gave a vague time ("next month", "in June"), pick a reasonable specific date in that range. If they gave no timeframe at all, use "${defaultStart.toISOString().split('T')[0]}".
-- endDate (string): YYYY-MM-DD. The trip is INCLUSIVE of both start and end dates — startDate and endDate should span exactly the number of ACTIVITY DAYS requested.
-  Length rules:
-    * "N days" = N activity days → endDate = startDate + (N-1)
-    * "N nights" = N activity days → endDate = startDate + (N-1)    (a "2-night" trip has 2 full days of stuff)
-    * "weekend" = 2 activity days (Sat-Sun) → endDate = startDate + 1
-    * "long weekend" = 3 activity days (Fri-Sun) → endDate = startDate + 2
-    * "a week" = 7 activity days → endDate = startDate + 6
-  For "weekend"/"long weekend" trips, pick a startDate that actually falls on the weekend: Saturday for "weekend", Friday for "long weekend".
-    * If no length mentioned, default to 4 activity days → "${defaultEnd.toISOString().split('T')[0]}".
-  Examples:
-    "2 nights in NYC" starting 2026-05-25 → endDate 2026-05-26 (2 days: 25, 26).
-    "3 days in Lisbon" starting 2026-06-10 → endDate 2026-06-12 (3 days: 10, 11, 12).
-- title (string): a short friendly title, max 50 chars. Use what the user wrote if it reads well; otherwise "Trip to {destination}".
-- activityDensity (string): "relaxed", "moderate", or "packed". Infer from tone ("chill", "slow" → relaxed; "see everything", "packed" → packed; otherwise moderate).
-- userIntent (string): the THEME / FOCUS / MUST-HAVES the user cares about, distinct from destination/dates/pace. Capture the *vibe and any specific things they mentioned*, in 1-2 short clauses.
-  Examples:
-    "2 nights in NYC for R&B bars" → "R&B-leaning bars and live-music nightlife"
-    "long weekend in Lisbon, vegan food and tile museums" → "vegan restaurants and traditional tile/azulejo museums"
-    "Tokyo next month, packed days" → ""    (no theme, just pace)
-    "4 days in Mexico City, cocktails and brutalist architecture" → "craft cocktail bars and brutalist/modernist architecture"
-  Rules:
-    * Preserve specific terms the user used (genres, cuisines, scenes, neighborhoods). Do NOT generalize "R&B" to "music" or "ramen" to "food".
-    * Return "" (empty string) if the prompt has no theme beyond destination/dates/pace.
-    * Keep it under ~120 chars. No prose, just the focus.
+- date (string): YYYY-MM-DD — WHEN the outing happens.
+  * "tonight", "today", or no time mentioned → "${today}"
+  * "tomorrow" → the day after
+  * A weekday name ("friday") → the NEXT occurrence of that weekday (today counts if it matches)
+  * "this weekend" → the next Saturday (today if Saturday)
+- neighborhood (string): the NYC neighborhood or borough if the user names or clearly implies one ("bushwick", "the village" → "Greenwich Village", "BK" → "Brooklyn"). "" if none.
+- title (string): a short, fun title, max 50 chars, in the user's energy (e.g. "Moves for tonight", "Date night in the Village"). Never corporate.
+- activityDensity (string): "relaxed", "moderate", or "packed". Infer from tone ("chill", "low key" → relaxed; "big night", "run it all" → packed; otherwise moderate).
+- userIntent (string): the VIBE / THEME / MUST-HAVES — what kind of moves they want. Preserve specific terms (genres, cuisines, scenes, "no cover", "rooftop", crew size). Include the neighborhood in it too when named. Under ~140 chars. "" only if the prompt is purely "plan something".
+- notAnOuting (boolean): true ONLY if the input is a greeting, question, or gibberish with no outing request at all ("hi", "what can you do?", "asdf").
 
 Respond with valid JSON only. No prose, no code fences.`;
 
@@ -89,72 +75,54 @@ Respond with valid JSON only. No prose, no code fences.`;
     temperature: 0.2,
   });
 
-  // The model occasionally wraps the JSON despite the instruction.
   const cleaned = text
     .trim()
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```\s*$/i, '');
 
-  let parsed: Partial<ParsedPrompt>;
+  let parsed: {
+    date?: string;
+    neighborhood?: string;
+    title?: string;
+    activityDensity?: string;
+    userIntent?: string;
+    notAnOuting?: boolean;
+  };
   try {
     parsed = JSON.parse(cleaned);
   } catch {
     throw new Error(
-      "I couldn't make sense of that. Try something like: '2 nights in NYC, big on food'"
+      "I couldn't make sense of that. Try something like: 'find the moves for tonight, Brooklyn'"
     );
   }
 
-  const destination =
-    typeof parsed.destination === 'string' ? parsed.destination.trim() : '';
-  const placeholderDestination = /^(unknown|n\/?a|none|tbd|null)$/i.test(destination);
-
-  if (!destination || placeholderDestination) {
-    throw new Error(
-      'Where to? Try including a destination, e.g. "4 days in Tokyo, food focused".'
-    );
+  if (parsed.notAnOuting) {
+    throw new Error("Say the vibe and I'll find the moves — e.g. 'chill date night in the Village'.");
   }
-  const startDate = isValidDate(parsed.startDate)
-    ? parsed.startDate!
-    : defaultStart.toISOString().split('T')[0];
-  const endDate = isValidDate(parsed.endDate)
-    ? parsed.endDate!
-    : defaultEnd.toISOString().split('T')[0];
 
-  // Sanity: end after start.
-  const finalEnd =
-    new Date(endDate) < new Date(startDate)
-      ? addDays(new Date(startDate), 3).toISOString().split('T')[0]
-      : endDate;
+  // Date sanity: valid, today-or-later, within 14 days. Anything else → today.
+  let date = typeof parsed.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)
+    ? parsed.date
+    : today;
+  if (date < today || date > addDaysIso(today, 14)) {
+    date = today;
+  }
 
-  // A "weekend" trip should start on the weekend, not mid-week. When the prompt
-  // asks for a weekend, snap the whole window forward to the next Sat/Fri.
-  const aligned = alignToWeekend(startDate, finalEnd, prompt);
+  const neighborhood =
+    typeof parsed.neighborhood === 'string' ? parsed.neighborhood.trim() : '';
 
   return {
-    destination,
-    startDate: aligned.startDate,
-    endDate: aligned.endDate,
+    destination: 'New York City',
+    startDate: date,
+    endDate: date,
     title:
-      (typeof parsed.title === 'string' && parsed.title.trim()) ||
-      `Trip to ${destination}`,
+      (typeof parsed.title === 'string' && parsed.title.trim()) || 'Moves for tonight',
     activityDensity:
       parsed.activityDensity === 'relaxed' || parsed.activityDensity === 'packed'
         ? parsed.activityDensity
         : 'moderate',
-    userIntent:
-      typeof parsed.userIntent === 'string' ? parsed.userIntent.trim() : '',
+    userIntent: typeof parsed.userIntent === 'string' ? parsed.userIntent.trim() : '',
+    neighborhood,
     rawPrompt: prompt,
   };
-}
-
-function addDays(d: Date, days: number): Date {
-  const result = new Date(d);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
-function isValidDate(s: unknown): s is string {
-  if (typeof s !== 'string') return false;
-  const d = new Date(s);
-  return !isNaN(d.getTime()) && /^\d{4}-\d{2}-\d{2}$/.test(s);
 }

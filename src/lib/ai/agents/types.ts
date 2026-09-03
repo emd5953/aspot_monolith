@@ -50,6 +50,13 @@ export interface ResearchRequest {
    */
   startDate?: Date;
   endDate?: Date;
+  /**
+   * Pre-fetched Moves from the candidate_events pool (Posh/Luma/Partiful/
+   * TikTok connectors), already converted to ActivityData. Merged into the
+   * research result's activities so the planner sees real tonight-events
+   * alongside web research. See @/lib/ai/pool-events.
+   */
+  poolEvents?: ActivityData[];
 }
 
 export interface ResearchResult {
