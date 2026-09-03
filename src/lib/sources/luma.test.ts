@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { lumaSource } from './luma';
 import { politeFetchJson } from './polite-fetch';
-import { RawCandidateSchema } from './types';
 
 vi.mock('./polite-fetch', () => ({
   politeFetchJson: vi.fn(),
