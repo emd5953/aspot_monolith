@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { diversifyByCuisine, intentMatchScore, scoreAttraction } from './score-research';
 import type { RestaurantData, AttractionData } from '@/lib/ai/agents/types';
-import type { UserPreferences } from '@/types/quiz';
+import type { UserPreferences } from '@/types/profile';
 
 const r = (name: string, cuisine: string[]): RestaurantData => ({
   name,

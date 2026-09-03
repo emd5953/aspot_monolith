@@ -4,7 +4,7 @@
  * Defines the contracts between agents in our agentic architecture.
  */
 
-import { UserPreferences } from '@/types/quiz';
+import { UserPreferences } from '@/types/profile';
 import type { ItemSource } from '@/lib/ai/provenance';
 import type { WeeklyHours } from '@/lib/maps/place-verification';
 import type { ThemeFit } from './theme';

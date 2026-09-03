@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { UserPreferences } from '@/types/quiz';
+import { UserPreferences } from '@/types/profile';
 import { swapDayActivities } from './itinerary-service';
 import { assignDayTimes } from '@/lib/ai/schedule-times';
 

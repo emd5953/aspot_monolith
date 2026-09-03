@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ItineraryPlan, ResearchResult, ScheduledItem } from './types';
-import type { UserPreferences } from '@/types/quiz';
+import type { UserPreferences } from '@/types/profile';
 
 /**
  * The load-bearing claim of the repair pass: it runs on the *fast* path.

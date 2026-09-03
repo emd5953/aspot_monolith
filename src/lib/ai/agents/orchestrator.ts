@@ -12,7 +12,7 @@
  * 5. Continue until approved or max iterations reached
  */
 
-import { UserPreferences } from '@/types/quiz';
+import { UserPreferences } from '@/types/profile';
 import { OrchestrationState, ItineraryPlan, ResearchResult } from './types';
 import { runResearchAgent } from './researcher';
 import { runPlannerAgent } from './planner';

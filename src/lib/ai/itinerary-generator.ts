@@ -14,7 +14,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { UserPreferences } from '@/types/quiz';
+import { UserPreferences, defaultPreferencesFor } from '@/types/profile';
 import { fetchDestinationData } from './tavily-service';
 import { runOrchestrator, OrchestratorOutput } from './agents/orchestrator';
 import { runAgenticOrchestrator, AgenticOrchestratorOutput } from './agents/agentic-orchestrator';
@@ -863,34 +863,9 @@ export async function regenerateItinerary(
     throw new Error('Itinerary not found');
   }
 
-  // Get user preferences
-  const { data: prefsData, error: prefsError } = await supabase
-    .from('user_preferences')
-    .select('*')
-    .eq('user_id', existing.userId)
-    .single();
-
-  if (prefsError || !prefsData) {
-    throw new Error('User preferences not found');
-  }
-
-  const preferences: UserPreferences = {
-    id: prefsData.id,
-    userId: prefsData.user_id,
-    travelMotivations: prefsData.travel_motivations || [],
-    planningStyle: prefsData.planning_style || 'structured_flexible',
-    authenticityPreference: prefsData.authenticity_preference || 'balanced',
-    timeRhythm: prefsData.time_rhythm || 'steady_daytime',
-    comfortZone: prefsData.comfort_zone || 5,
-    activityTypes: prefsData.activity_types || [],
-    cuisinePreferences: prefsData.cuisine_preferences || [],
-    budgetRange: prefsData.budget_range || 'moderate',
-    travelPace: prefsData.travel_pace || 'moderate',
-    socialPreferences: prefsData.social_preferences || 'solo',
-    rawAnswers: prefsData.raw_answers || {},
-    createdAt: new Date(prefsData.created_at),
-    updatedAt: new Date(prefsData.updated_at),
-  };
+  // Spotz: no per-user quiz preferences — start from the neutral default
+  // profile; the stored vibe prompt / focus options steer regeneration.
+  const preferences: UserPreferences = defaultPreferencesFor(existing.userId);
 
   // Modify preferences based on options to get variation
   const modifiedPreferences = { ...preferences };

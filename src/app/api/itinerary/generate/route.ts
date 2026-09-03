@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
 import { createClient } from '@/lib/supabase/server';
 import { generateItinerary } from '@/lib/ai/itinerary-generator';
-import { getPreferences } from '@/lib/preferences/preferences-service';
-import { normalizePreferences } from '@/lib/preferences/normalize';
 import { parsePrompt } from '@/lib/ai/parse-prompt';
 import { sendItineraryEmail } from '@/lib/email/send-itinerary';
 import { checkGenerationRateLimit } from '@/lib/ratelimit/generation';
-import type { UserPreferences } from '@/types/quiz';
+import type { UserPreferences } from '@/types/profile';
+import { defaultPreferencesFor } from '@/types/profile';
 import type { GeneratedItinerary } from '@/lib/ai/itinerary-generator';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -153,16 +152,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user preferences and normalize to canonical vocab so downstream
-    // agents see consistent enum values regardless of when prefs were saved.
-    const rawPreferences = await getPreferences(supabase, user.id);
-    if (!rawPreferences) {
-      return NextResponse.json(
-        { error: 'Please complete the quiz first to set your preferences' },
-        { status: 400 }
-      );
-    }
-    const preferences = normalizePreferences(rawPreferences);
+    // Spotz has no quiz: every generation starts from the neutral default
+    // profile and the prompt does all the steering.
+    const preferences = defaultPreferencesFor(user.id);
 
     const runOpts: RunOptions = {
       supabase,

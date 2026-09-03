@@ -11,7 +11,7 @@
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { UserPreferences } from '@/types/quiz';
+import { UserPreferences } from '@/types/profile';
 import { OrchestrationState, ItineraryPlan, ResearchResult, ReviewIssue } from './types';
 import { runAgenticResearcher } from './agentic-researcher';
 import { runAgenticPlanner, removeCrossDayDuplicates } from './agentic-planner';
