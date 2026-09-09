@@ -4,8 +4,7 @@ import { FormEvent, InputHTMLAttributes, forwardRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface PromptInputProps
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onSubmit'> {
+interface PromptInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onSubmit'> {
   onSubmit?: (value: string) => void | Promise<void>;
   submitLabel?: string;
   isSubmitting?: boolean;

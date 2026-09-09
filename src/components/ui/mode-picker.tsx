@@ -18,12 +18,7 @@ interface ModePickerProps {
  * plus a caption. The submit button label ("Plan it" / "Send it") carries the
  * difference in meaning, so no explanatory line is needed here.
  */
-export function ModePicker({
-  mode,
-  setMode,
-  tone = 'paper',
-  disabled,
-}: ModePickerProps) {
+export function ModePicker({ mode, setMode, tone = 'paper', disabled }: ModePickerProps) {
   const isCinematic = tone === 'cinematic';
 
   return (

@@ -99,6 +99,6 @@ When the user requests a durable behavior change, record it here or in the relev
 - [`src/lib/itinerary/`](src/lib/itinerary/AGENTS.md) — persistence, versioning, ownership, sharing/voting, and post-generation editing (reorder, swap, day-regenerate, revert, cost rollup).
 - [`src/lib/sources/`](src/lib/sources/AGENTS.md) — the Moves supply chain: source connectors (Partiful/Posh/Luma/TikTok), the candidate pool, ingestion.
 - [`src/app/api/`](src/app/api/AGENTS.md) — App Router route handlers: authenticate, authorize, delegate to `lib`.
-- [`src/components/`](src/components/AGENTS.md) — React UI and the hand-drawn aesthetic that is the product.
+- [`src/components/`](src/components/AGENTS.md) — React UI: minimal surfaces, cinematic vs. paper mode.
 
 Owned directly by this root (no child doc yet — simple, single-purpose): `src/lib/maps`, `src/lib/calendar`, `src/lib/email`, `src/lib/ratelimit`, `src/lib/time` (NYC-anchored night windows), `src/lib/supabase` (client/server/middleware, plus `service.ts` — the RLS-bypassing service-role client, server-only, for ingestion and share-link reads), `src/app/(protected)`, `src/types`, `src/test`.

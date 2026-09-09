@@ -49,9 +49,7 @@ export function ItinerarySearch({ tone = 'paper' }: ItinerarySearchProps) {
   const isCinematic = tone === 'cinematic';
 
   useEffect(() => {
-    setPlaceholder(
-      EXAMPLE_PROMPTS[Math.floor(Math.random() * EXAMPLE_PROMPTS.length)]
-    );
+    setPlaceholder(EXAMPLE_PROMPTS[Math.floor(Math.random() * EXAMPLE_PROMPTS.length)]);
   }, []);
 
   const handleGenerate = async (prompt: string) => {

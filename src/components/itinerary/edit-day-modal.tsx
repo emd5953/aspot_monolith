@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { X, ArrowRight } from 'lucide-react';
-import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
-import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface EditDayModalProps {
   isOpen: boolean;
@@ -51,15 +51,13 @@ export function EditDayModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[color:var(--ink)]/35 backdrop-blur-sm md:items-center md:p-4">
-      <HandDrawnCard className="animate-fade-up max-h-[85dvh] w-full max-w-2xl overflow-y-auto rounded-b-none p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:max-h-[90vh] md:rounded-b-3xl md:p-7">
+      <Card className="animate-fade-up max-h-[85dvh] w-full max-w-2xl overflow-y-auto rounded-b-none p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:max-h-[90vh] md:rounded-b-3xl md:p-7">
         <div className="mb-5 flex items-start justify-between">
           <div>
             <p className="mb-2 text-sm font-medium text-[color:var(--ink-muted)]">
               Day {dayNumber}
             </p>
-            <h2 className="font-heading text-3xl text-[color:var(--ink)]">
-              Tweak this day.
-            </h2>
+            <h2 className="font-heading text-3xl text-[color:var(--ink)]">Tweak this day.</h2>
             <p className="mt-2 text-sm text-[color:var(--ink-muted)]">
               Describe what you want — the AI will regenerate this day accordingly.
             </p>
@@ -130,7 +128,7 @@ export function EditDayModal({
           </div>
 
           <div className="flex gap-3 pt-2">
-            <HandDrawnButton
+            <Button
               type="button"
               onClick={onClose}
               variant="quiet"
@@ -138,8 +136,8 @@ export function EditDayModal({
               className="flex-1"
             >
               Cancel
-            </HandDrawnButton>
-            <HandDrawnButton
+            </Button>
+            <Button
               type="submit"
               variant="primary"
               disabled={isSubmitting || !prompt.trim()}
@@ -147,14 +145,14 @@ export function EditDayModal({
             >
               {isSubmitting ? 'Regenerating…' : 'Regenerate day'}
               {!isSubmitting && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />}
-            </HandDrawnButton>
+            </Button>
           </div>
         </form>
 
         <p className="mt-4 text-center text-xs text-[color:var(--ink-soft)]">
           Uses real web-scraped data · ~10-20 seconds
         </p>
-      </HandDrawnCard>
+      </Card>
     </div>
   );
 }

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { X, ArrowRight } from 'lucide-react';
-import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
-import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 interface RegenerateModalProps {
   isOpen: boolean;
@@ -57,7 +57,7 @@ export function RegenerateModal({ isOpen, onClose, onRegenerate }: RegenerateMod
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[color:var(--ink)]/35 backdrop-blur-sm md:items-center md:p-4">
-      <HandDrawnCard className="animate-fade-up max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-b-none p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:max-h-[90vh] md:rounded-b-3xl md:p-7">
+      <Card className="animate-fade-up max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-b-none p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:max-h-[90vh] md:rounded-b-3xl md:p-7">
         <div className="mb-5 flex items-start justify-between">
           <div>
             <p className="mb-2 text-sm font-medium text-[color:var(--ink-muted)]">Regenerate</p>
@@ -80,9 +80,7 @@ export function RegenerateModal({ isOpen, onClose, onRegenerate }: RegenerateMod
 
         {/* Mode Selection */}
         <div className="mb-6">
-          <p className="mb-3 text-sm font-medium text-[color:var(--ink-muted)]">
-            Generation mode
-          </p>
+          <p className="mb-3 text-sm font-medium text-[color:var(--ink-muted)]">Generation mode</p>
           <div className="space-y-2">
             <ModeOption
               selected={mode === 'truly-agentic'}
@@ -128,15 +126,10 @@ export function RegenerateModal({ isOpen, onClose, onRegenerate }: RegenerateMod
         </div>
 
         <div className="flex gap-3">
-          <HandDrawnButton
-            onClick={onClose}
-            variant="quiet"
-            disabled={isRegenerating}
-            className="flex-1"
-          >
+          <Button onClick={onClose} variant="quiet" disabled={isRegenerating} className="flex-1">
             Cancel
-          </HandDrawnButton>
-          <HandDrawnButton
+          </Button>
+          <Button
             onClick={handleSubmit}
             variant="primary"
             disabled={isRegenerating}
@@ -144,9 +137,9 @@ export function RegenerateModal({ isOpen, onClose, onRegenerate }: RegenerateMod
           >
             {isRegenerating ? 'Regenerating…' : 'Regenerate'}
             {!isRegenerating && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />}
-          </HandDrawnButton>
+          </Button>
         </div>
-      </HandDrawnCard>
+      </Card>
     </div>
   );
 }
@@ -172,7 +165,9 @@ function ModeOption({
       }`}
     >
       <div className="font-heading text-lg leading-none">{title}</div>
-      <div className={`mt-1.5 text-xs ${selected ? 'text-white/75' : 'text-[color:var(--ink-muted)]'}`}>
+      <div
+        className={`mt-1.5 text-xs ${selected ? 'text-white/75' : 'text-[color:var(--ink-muted)]'}`}
+      >
         {subtitle}
       </div>
     </button>

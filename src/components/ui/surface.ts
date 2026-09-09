@@ -16,9 +16,7 @@ const CINEMATIC_ROUTES = ['/dashboard'];
 
 export function surfaceFor(pathname: string): Surface {
   if (pathname === '/') return 'cinematic';
-  return CINEMATIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  )
+  return CINEMATIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`))
     ? 'cinematic'
     : 'paper';
 }

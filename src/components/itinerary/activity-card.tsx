@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Edit2, Trash2, MapPin, Clock, Ticket } from 'lucide-react';
-import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { Card } from '@/components/ui/card';
 import { VoteChips } from './vote-chips';
 import { SOURCE_LABELS, type ItemSource } from '@/lib/ai/provenance';
 
@@ -75,7 +75,8 @@ const CATEGORY_CHIP_TONES: Record<string, string> = {
   dinner: 'bg-rose-50 text-rose-800 border-rose-200',
   activity: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   transport: 'bg-slate-50 text-slate-700 border-slate-200',
-  accommodation: 'bg-[color:var(--surface-soft)] text-[color:var(--ink)] border-[color:var(--border)]',
+  accommodation:
+    'bg-[color:var(--surface-soft)] text-[color:var(--ink)] border-[color:var(--border)]',
   museum: 'bg-violet-50 text-violet-800 border-violet-200',
   shopping: 'bg-pink-50 text-pink-800 border-pink-200',
   entertainment: 'bg-fuchsia-50 text-fuchsia-800 border-fuchsia-200',
@@ -117,7 +118,7 @@ export function ActivityCard({
   const durationDisplay = getDurationDisplay();
 
   return (
-    <HandDrawnCard
+    <Card
       className={`p-4 transition-all md:p-5 ${
         isDragging
           ? 'rotate-1 scale-[1.02] border-[color:var(--accent)]/40 bg-white'
@@ -216,26 +217,26 @@ export function ActivityCard({
             </div>
           )}
           <div className="flex items-center gap-1">
-          {onEdit && (
-            <IconButton label="Edit" onClick={() => onEdit(activity)}>
-              <Edit2 className="h-4 w-4" strokeWidth={2} />
-            </IconButton>
-          )}
-          {onDelete && (
-            <IconButton label="Delete" onClick={() => onDelete(activity.id)} danger>
-              <Trash2 className="h-4 w-4" strokeWidth={2} />
-            </IconButton>
-          )}
-          <IconButton
-            label={isExpanded ? 'Collapse' : 'Expand'}
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" strokeWidth={2} />
-            ) : (
-              <ChevronDown className="h-4 w-4" strokeWidth={2} />
+            {onEdit && (
+              <IconButton label="Edit" onClick={() => onEdit(activity)}>
+                <Edit2 className="h-4 w-4" strokeWidth={2} />
+              </IconButton>
             )}
-          </IconButton>
+            {onDelete && (
+              <IconButton label="Delete" onClick={() => onDelete(activity.id)} danger>
+                <Trash2 className="h-4 w-4" strokeWidth={2} />
+              </IconButton>
+            )}
+            <IconButton
+              label={isExpanded ? 'Collapse' : 'Expand'}
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4" strokeWidth={2} />
+              ) : (
+                <ChevronDown className="h-4 w-4" strokeWidth={2} />
+              )}
+            </IconButton>
           </div>
         </div>
       </div>
@@ -243,7 +244,9 @@ export function ActivityCard({
       {isExpanded && (
         <div className="mt-4 space-y-2 border-t border-[color:var(--border)] pt-4">
           {activity.description && (
-            <p className="text-sm leading-relaxed text-[color:var(--ink)]">{activity.description}</p>
+            <p className="text-sm leading-relaxed text-[color:var(--ink)]">
+              {activity.description}
+            </p>
           )}
           {activity.estimatedCost && (
             <p className="text-sm text-[color:var(--ink-muted)]">
@@ -255,7 +258,7 @@ export function ActivityCard({
           )}
         </div>
       )}
-    </HandDrawnCard>
+    </Card>
   );
 }
 

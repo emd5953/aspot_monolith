@@ -23,10 +23,7 @@ interface TestActivity {
   locationCoords?: { lat: number; lng: number };
 }
 
-function makeActivity(
-  id: string,
-  coords?: { lat: number; lng: number }
-): TestActivity {
+function makeActivity(id: string, coords?: { lat: number; lng: number }): TestActivity {
   return {
     id,
     title: `Stop ${id}`,
@@ -79,28 +76,19 @@ const spreadButTwoLocated = [
 
 describe('ItineraryView "Tidy route" affordance', () => {
   it('offers Tidy route on a spread-out day with 3+ located stops', () => {
-    render(
-      <ItineraryView itinerary={makeItinerary(zigZag)} onTidyDay={() => {}} />
-    );
+    render(<ItineraryView itinerary={makeItinerary(zigZag)} onTidyDay={() => {}} />);
     expect(screen.getByText(/covers a lot of ground/)).toBeInTheDocument();
     expect(screen.getByText('Tidy route')).toBeInTheDocument();
   });
 
   it('shows no hint or button on a tight day', () => {
-    render(
-      <ItineraryView itinerary={makeItinerary(tight)} onTidyDay={() => {}} />
-    );
+    render(<ItineraryView itinerary={makeItinerary(tight)} onTidyDay={() => {}} />);
     expect(screen.queryByText(/covers a lot of ground/)).not.toBeInTheDocument();
     expect(screen.queryByText('Tidy route')).not.toBeInTheDocument();
   });
 
   it('shows the hint but no button when fewer than 3 stops are located', () => {
-    render(
-      <ItineraryView
-        itinerary={makeItinerary(spreadButTwoLocated)}
-        onTidyDay={() => {}}
-      />
-    );
+    render(<ItineraryView itinerary={makeItinerary(spreadButTwoLocated)} onTidyDay={() => {}} />);
     expect(screen.getByText(/covers a lot of ground/)).toBeInTheDocument();
     expect(screen.queryByText('Tidy route')).not.toBeInTheDocument();
   });
@@ -113,9 +101,7 @@ describe('ItineraryView "Tidy route" affordance', () => {
 
   it('asks the parent to tidy the active day on click', async () => {
     const onTidyDay = vi.fn().mockResolvedValue(undefined);
-    render(
-      <ItineraryView itinerary={makeItinerary(zigZag)} onTidyDay={onTidyDay} />
-    );
+    render(<ItineraryView itinerary={makeItinerary(zigZag)} onTidyDay={onTidyDay} />);
     fireEvent.click(screen.getByText('Tidy route'));
     await waitFor(() => expect(onTidyDay).toHaveBeenCalledWith('day1'));
   });

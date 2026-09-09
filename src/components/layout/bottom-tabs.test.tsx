@@ -18,8 +18,9 @@ describe('BottomTabs', () => {
     mocks.pathname = '/dashboard';
     render(<BottomTabs />);
 
+    // Icon-only tabs: the destination name lives on aria-label, not in text.
     for (const label of ['Home', 'Moves', 'Profile']) {
-      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
   });
 
@@ -27,22 +28,14 @@ describe('BottomTabs', () => {
     mocks.pathname = '/itinerary';
     render(<BottomTabs />);
 
-    expect(screen.getByRole('link', { name: /Moves/ })).toHaveAttribute(
-      'aria-current',
-      'page'
-    );
-    expect(screen.getByRole('link', { name: /Home/ })).not.toHaveAttribute(
-      'aria-current'
-    );
+    expect(screen.getByRole('link', { name: /Moves/ })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: /Home/ })).not.toHaveAttribute('aria-current');
   });
 
   it('keeps the parent tab current on a nested route', () => {
     mocks.pathname = '/itinerary/abc123';
     render(<BottomTabs />);
 
-    expect(screen.getByRole('link', { name: /Moves/ })).toHaveAttribute(
-      'aria-current',
-      'page'
-    );
+    expect(screen.getByRole('link', { name: /Moves/ })).toHaveAttribute('aria-current', 'page');
   });
 });

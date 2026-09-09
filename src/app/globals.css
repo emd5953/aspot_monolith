@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   /* ——— Daytime sky palette ——— */
@@ -27,9 +27,7 @@
      video and ignore these. */
   --surface-page: #f7f8fa;
   --radius-card: 16px;
-  --shadow-card:
-    0 1px 2px rgba(11, 30, 60, 0.04),
-    0 8px 24px -16px rgba(11, 30, 60, 0.18);
+  --shadow-card: 0 1px 2px rgba(11, 30, 60, 0.04), 0 8px 24px -16px rgba(11, 30, 60, 0.18);
 
   /* Sky band used on interior pages (paired with a subtle cloud layer). */
   --sky-top: #bcd6f5;
@@ -74,30 +72,20 @@ body {
 
 body {
   color: var(--ink);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  font-feature-settings: "ss01", "cv11";
+  font-family:
+    var(--font-inter),
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-feature-settings: 'ss01', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Daytime sky: soft blue wash with wispy cloud highlights. */
-  background-color: var(--sky-mid);
-  background-image:
-    radial-gradient(1100px 700px at 18% -10%, rgba(255, 255, 255, 0.9), transparent 60%),
-    radial-gradient(900px 600px at 85% 5%, rgba(255, 255, 255, 0.7), transparent 65%),
-    radial-gradient(1200px 800px at 50% 110%, rgba(255, 255, 255, 0.85), transparent 65%),
-    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 45%, var(--sky-bottom) 100%);
-  background-attachment: fixed;
-  background-size: cover;
-}
-
-/* iOS Safari renders `background-attachment: fixed` against the *initial*
-   containing block, which makes the wash resize and stutter every time the
-   browser chrome collapses. Scroll-attached is visually equivalent here
-   because the gradient already covers the viewport. */
-@media (max-width: 767px) {
-  body {
-    background-attachment: scroll;
-  }
+  /* Paper: the flat default. Cinematic routes paint their own video layer
+     over this, so the sky-wash gradient that used to live here only ever
+     showed through on the screens that now deliberately don't want it. */
+  background-color: var(--surface-page);
 }
 
 /* ——— Touch targets ———
@@ -215,25 +203,42 @@ body {
 
 /* ——— Animations ——— */
 @keyframes gentle-bounce {
-  0%, 100% { transform: translateY(0px); }
-  50%      { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 .animate-gentle-bounce {
   animation: gentle-bounce 6s ease-in-out infinite;
 }
 
 @keyframes drift {
-  0%   { transform: translate3d(0, 0, 0); }
-  50%  { transform: translate3d(1.2%, -0.6%, 0); }
-  100% { transform: translate3d(0, 0, 0); }
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(1.2%, -0.6%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
 }
 .animate-drift {
   animation: drift 28s ease-in-out infinite;
 }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .animate-fade-up {
   animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -241,7 +246,9 @@ body {
 }
 
 @keyframes spin-slow {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 .animate-spin-slow {
   animation: spin-slow 8s linear infinite;
@@ -249,8 +256,12 @@ body {
 
 /* ——— Loader: indeterminate hairline that sweeps across the top edge ——— */
 @keyframes loader-slide {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(320%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
 }
 .animate-loader-slide {
   animation: loader-slide 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
@@ -258,7 +269,9 @@ body {
 
 /* ——— Loader: silver sheen drifting across the ring ——— */
 @keyframes ring-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 .animate-ring-spin {
   animation: ring-spin 1.1s linear infinite;
@@ -266,10 +279,19 @@ body {
 
 /* ——— Typewriter ellipsis: dots type in one at a time, then reset ——— */
 @keyframes typewriter-dots {
-  0%        { content: ''; }
-  25%       { content: '.'; }
-  50%       { content: '..'; }
-  75%, 100% { content: '...'; }
+  0% {
+    content: '';
+  }
+  25% {
+    content: '.';
+  }
+  50% {
+    content: '..';
+  }
+  75%,
+  100% {
+    content: '...';
+  }
 }
 .loading-dots::after {
   content: '...';
@@ -281,17 +303,32 @@ body {
 
 /* ——— Floating hint bubble animations ——— */
 @keyframes float-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.92); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 .animate-float-in {
   animation: float-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes pop-open {
-  0%   { opacity: 0; transform: scale(0.6); }
-  60%  { opacity: 1; transform: scale(1.04); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 .animate-pop-open {
   animation: pop-open 0.55s cubic-bezier(0.18, 1.25, 0.4, 1) forwards;
@@ -299,19 +336,62 @@ body {
 }
 
 @keyframes dot-bob {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.7; }
-  30%           { transform: translateY(-3px); opacity: 1; }
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+/* ——— Respect reduced motion: freeze every animation, land content in its
+   final state instead of skipping the mount entirely ——— */
+@media (prefers-reduced-motion: reduce) {
+  .animate-gentle-bounce,
+  .animate-drift,
+  .animate-fade-up,
+  .animate-spin-slow,
+  .animate-loader-slide,
+  .animate-ring-spin,
+  .animate-float-in,
+  .animate-pop-open,
+  .loading-dots::after {
+    animation: none !important;
+  }
+  .animate-fade-up,
+  .animate-float-in {
+    opacity: 1;
+    transform: none;
+  }
+  .animate-pop-open {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Cutesy hover bop on the hint cards. Triggered from React state via the
    `animate-bop` class (not a hover pseudo) because the parent wrapper has a
    rotate transform that makes CSS :hover unreliable. */
 @keyframes bop {
-  0%   { transform: translateY(0) scale(1); }
-  25%  { transform: translateY(-7px) scale(1.03); }
-  50%  { transform: translateY(-2px) scale(1.015); }
-  75%  { transform: translateY(-5px) scale(1.025); }
-  100% { transform: translateY(0) scale(1); }
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  25% {
+    transform: translateY(-7px) scale(1.03);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.015);
+  }
+  75% {
+    transform: translateY(-5px) scale(1.025);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
 }
 .animate-bop {
   animation: bop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
@@ -319,8 +399,14 @@ body {
 
 /* Auth popover entrance — small origin scale + opacity */
 @keyframes popover-in {
-  from { opacity: 0; transform: translateY(-4px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 .animate-popover-in {
   animation: popover-in 0.22s cubic-bezier(0.18, 1.25, 0.4, 1) forwards;
@@ -333,8 +419,14 @@ body {
    A media query rather than an `md:` utility because both animations are
    custom classes, and Tailwind can't generate variants of those. */
 @keyframes sheet-up {
-  from { opacity: 0; transform: translateY(100%); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .auth-panel-enter {
   animation: sheet-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -346,8 +438,12 @@ body {
 }
 
 @keyframes scrim-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .animate-scrim-in {
   animation: scrim-in 0.28s ease forwards;
@@ -356,8 +452,14 @@ body {
 /* Auth mode switch — soft crossfade for text that swaps between
    login / signup while the popover stays mounted. */
 @keyframes auth-fade-swap {
-  from { opacity: 0; transform: translateY(2px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .animate-auth-fade {
   animation: auth-fade-swap 0.35s ease;

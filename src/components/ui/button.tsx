@@ -24,8 +24,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         'transition-colors duration-150',
         'focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]/40 focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-40',
-        variant === 'primary' &&
-          'bg-[color:var(--ink)] text-white hover:bg-[color:var(--ink)]/88',
+        variant === 'primary' && 'bg-[color:var(--ink)] text-white hover:bg-[color:var(--ink)]/88',
         variant === 'quiet' &&
           'border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--ink)] hover:border-[color:var(--border-strong)]',
         variant === 'ghost' &&

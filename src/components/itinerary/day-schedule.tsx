@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { Pencil, Plus, List, Clock } from 'lucide-react';
 import { ActivityCard } from './activity-card';
 import { TimelineView } from './timeline-view';
-import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
-import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import type { ItemSource } from '@/lib/ai/provenance';
 
 interface Activity {
@@ -125,21 +125,16 @@ export function DaySchedule({
             </div>
           )}
           {onEditDay && (
-            <HandDrawnButton onClick={onEditDay} variant="primary" size="sm" className="gap-2">
+            <Button onClick={onEditDay} variant="primary" size="sm" className="gap-2">
               <Pencil className="h-3.5 w-3.5" strokeWidth={2.5} />
               Edit day
-            </HandDrawnButton>
+            </Button>
           )}
           {onAddActivity && (
-            <HandDrawnButton
-              onClick={onAddActivity}
-              variant="quiet"
-              size="sm"
-              className="gap-2"
-            >
+            <Button onClick={onAddActivity} variant="quiet" size="sm" className="gap-2">
               <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
               Add activity
-            </HandDrawnButton>
+            </Button>
           )}
         </div>
       </div>
@@ -153,15 +148,15 @@ export function DaySchedule({
 
       <div className="space-y-4">
         {sortedActivities.length === 0 ? (
-          <HandDrawnCard className="p-10 text-center">
+          <Card className="p-10 text-center">
             <p className="text-sm text-[color:var(--ink-muted)]">
               No activities planned for this day
             </p>
-          </HandDrawnCard>
+          </Card>
         ) : viewMode === 'timeline' && hasTimingInfo ? (
-          <HandDrawnCard className="p-4 md:p-6">
+          <Card className="p-4 md:p-6">
             <TimelineView activities={sortedActivities} />
-          </HandDrawnCard>
+          </Card>
         ) : (
           sortedActivities.map((activity, index) => (
             <div
@@ -182,9 +177,7 @@ export function DaySchedule({
                 isDragging={draggedId === activity.id}
                 canReorder={!!onReorder}
                 onMoveUp={index > 0 ? () => move(index, -1) : undefined}
-                onMoveDown={
-                  index < sortedActivities.length - 1 ? () => move(index, 1) : undefined
-                }
+                onMoveDown={index < sortedActivities.length - 1 ? () => move(index, 1) : undefined}
               />
             </div>
           ))

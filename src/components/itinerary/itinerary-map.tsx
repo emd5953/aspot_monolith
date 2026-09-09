@@ -103,9 +103,7 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
         const markers: google.maps.Marker[] = [];
         const markerPositions: { lat: number; lng: number }[] = [];
 
-        const adjustPositionIfOverlapping = (
-          position: google.maps.LatLng
-        ): google.maps.LatLng => {
+        const adjustPositionIfOverlapping = (position: google.maps.LatLng): google.maps.LatLng => {
           const lat = position.lat();
           const lng = position.lng();
           const minDistance = 0.0001;
@@ -138,10 +136,7 @@ export function ItineraryMap({ activities, destination }: ItineraryMapProps) {
               const result = await geocoder.geocode({ address: searchQuery });
               if (result.results[0]) position = result.results[0].geometry.location;
             } catch (err) {
-              console.error(
-                `Failed to geocode ${activity.locationName || activity.title}:`,
-                err
-              );
+              console.error(`Failed to geocode ${activity.locationName || activity.title}:`, err);
             }
           }
 

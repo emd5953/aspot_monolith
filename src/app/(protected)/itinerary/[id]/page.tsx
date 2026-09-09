@@ -6,9 +6,8 @@ import { ArrowLeft } from 'lucide-react';
 import { ItineraryView } from '@/components/itinerary/itinerary-view';
 import { RegenerateModal } from '@/components/itinerary/regenerate-modal';
 import { EditDayModal } from '@/components/itinerary/edit-day-modal';
-import { KanyeQuotes } from '@/components/itinerary/kanye-quotes';
-import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
-import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import type { ItemSource } from '@/lib/ai/provenance';
 
 interface Activity {
@@ -90,10 +89,7 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
-  const handleRegenerate = async (options: {
-    useAgenticMode: boolean;
-    focusAreas?: string[];
-  }) => {
+  const handleRegenerate = async (options: { useAgenticMode: boolean; focusAreas?: string[] }) => {
     setIsRegenerating(true);
     setShowRegenerateModal(false);
     try {
@@ -214,44 +210,35 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
 
   if (isLoading) {
     return (
-      <main className="relative mx-auto max-w-4xl px-4 pt-32 pb-24 md:px-6">
-        <HandDrawnCard className="p-16 text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
-          <p className="mt-4 text-sm text-[color:var(--ink-muted)]">Loading itinerary</p>
-        </HandDrawnCard>
+      <main className="mx-auto max-w-4xl px-5 pt-10 pb-24 md:px-6">
+        <Card aria-busy className="animate-pulse">
+          <div className="h-8 w-2/3 rounded bg-[color:var(--ink)]/8" />
+          <div className="mt-4 h-4 w-1/3 rounded bg-[color:var(--ink)]/8" />
+          <div className="mt-8 h-40 rounded bg-[color:var(--ink)]/5" />
+        </Card>
       </main>
     );
   }
 
   if (error || !itinerary) {
     return (
-      <main className="relative mx-auto max-w-xl px-4 pt-32 pb-24 md:px-6">
-        <HandDrawnCard className="p-10 text-center">
-          <p className="text-sm font-medium text-rose-600">Something went wrong</p>
-          <h2 className="mt-3 font-heading text-3xl text-[color:var(--ink)]">
-            {error || 'Itinerary not found'}
-          </h2>
-          <HandDrawnButton
-            onClick={() => router.push('/itinerary')}
-            variant="primary"
-            size="md"
-            className="mt-8"
-          >
-            Back to itineraries
-          </HandDrawnButton>
-        </HandDrawnCard>
+      <main className="mx-auto max-w-xl px-5 pt-16 pb-24 text-center md:px-6">
+        <p className="text-sm text-[color:var(--ink-muted)]">{error || 'Itinerary not found'}</p>
+        <Button onClick={() => router.push('/itinerary')} className="mt-4">
+          Back to moves
+        </Button>
       </main>
     );
   }
 
   return (
-    <main className="relative mx-auto max-w-4xl px-4 pt-20 pb-24 md:px-6">
+    <main className="mx-auto max-w-4xl px-5 pt-6 pb-24 md:px-6">
       <button
         onClick={() => router.push('/itinerary')}
-        className="mb-2 inline-flex items-center gap-2 text-sm text-white/85 transition-colors hover:text-white [text-shadow:0_1px_3px_rgba(10,30,60,0.5)]"
+        className="mb-3 inline-flex items-center gap-1.5 text-sm text-[color:var(--ink-muted)] transition-colors hover:text-[color:var(--ink)]"
       >
-        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
-        Back to itineraries
+        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+        Moves
       </button>
 
       <ItineraryView
@@ -284,10 +271,14 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
       />
 
       {isRegenerating && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md">
-            <KanyeQuotes />
-          </div>
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-[color:var(--surface-page)]/90 p-4"
+          role="status"
+        >
+          <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-[color:var(--ink)] border-t-transparent" />
+          <p className="loading-dots text-sm font-medium text-[color:var(--ink-muted)]">
+            Rebuilding the plan
+          </p>
         </div>
       )}
     </main>

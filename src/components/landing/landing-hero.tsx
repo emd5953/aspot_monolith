@@ -19,11 +19,8 @@ function HeroBanner() {
   const params = useSearchParams();
   const [dismissed, setDismissed] = useState(false);
 
-  const kind = params.get('verify') === '1'
-    ? 'verify'
-    : params.get('authError') === '1'
-      ? 'authError'
-      : null;
+  const kind =
+    params.get('verify') === '1' ? 'verify' : params.get('authError') === '1' ? 'authError' : null;
   const show = kind !== null && !dismissed;
 
   // Auto-dismiss after 8 seconds so the landing stays clean.
@@ -112,14 +109,10 @@ export function LandingHero() {
             <button
               ref={loginRef}
               type="button"
-              onClick={() =>
-                setAuthMode((m) => (m === 'login' ? null : 'login'))
-              }
+              onClick={() => setAuthMode((m) => (m === 'login' ? null : 'login'))}
               aria-expanded={authMode === 'login'}
               className={`relative z-10 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-300 ${
-                authMode === 'login'
-                  ? 'text-slate-900'
-                  : 'text-white'
+                authMode === 'login' ? 'text-slate-900' : 'text-white'
               }`}
             >
               Log in
@@ -127,14 +120,10 @@ export function LandingHero() {
             <button
               ref={signupRef}
               type="button"
-              onClick={() =>
-                setAuthMode((m) => (m === 'signup' ? null : 'signup'))
-              }
+              onClick={() => setAuthMode((m) => (m === 'signup' ? null : 'signup'))}
               aria-expanded={authMode === 'signup'}
               className={`relative z-10 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-300 ${
-                authMode === 'login'
-                  ? 'text-white'
-                  : 'text-slate-900'
+                authMode === 'login' ? 'text-white' : 'text-slate-900'
               }`}
             >
               Sign up
@@ -170,10 +159,7 @@ export function LandingHero() {
             Parties, popups, food. Tonight.
           </p>
 
-          <div
-            className="animate-fade-up mt-8 w-full"
-            style={{ animationDelay: '0.25s' }}
-          >
+          <div className="animate-fade-up mt-8 w-full" style={{ animationDelay: '0.25s' }}>
             <SkyPrompt
               onSubmit={(prompt) => {
                 // Stash the prompt so the signup flow can seed the first

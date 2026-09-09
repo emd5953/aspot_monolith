@@ -14,8 +14,8 @@ import {
 } from 'lucide-react';
 import { DaySchedule } from './day-schedule';
 import { ItineraryMap } from './itinerary-map';
-import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
-import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { Card } from '@/components/ui/card';
+import { OverflowMenu } from '@/components/ui/overflow-menu';
 import type { ItemSource } from '@/lib/ai/provenance';
 import {
   rollUpCost,
@@ -78,7 +78,8 @@ interface ItineraryViewProps {
 }
 
 const STATUS_TONES: Record<string, string> = {
-  draft: 'bg-[color:var(--surface-soft)] text-[color:var(--ink-muted)] border-[color:var(--border)]',
+  draft:
+    'bg-[color:var(--surface-soft)] text-[color:var(--ink-muted)] border-[color:var(--border)]',
   active: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   completed: 'bg-sky-50 text-sky-800 border-sky-200',
   archived: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -168,9 +169,9 @@ export function ItineraryView({
   };
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-3">
       {/* Header */}
-      <HandDrawnCard className="animate-fade-up p-5 md:p-7">
+      <Card className="animate-fade-up p-5 md:p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             {isEditingTitle ? (
@@ -227,21 +228,21 @@ export function ItineraryView({
             </div>
           </div>
 
-          {/* A 2×2 grid below md. Free-wrapping these four gave a ragged two
-              rows with a hole in it, because the labels are wildly different
-              widths; an even grid reads as deliberate. Not a scroll row — the
-              status menu is `absolute top-full` and would be clipped. */}
-          <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:flex-wrap md:items-center">
+          {/* Status stays visible — it's state, not an action. Everything the
+              user can *do* collapses into one menu; the old row of five equal
+              pills made nothing look primary and wrapped raggedly on phones. */}
+          <div className="flex shrink-0 items-center gap-2">
             <div className="relative">
               <button
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
-                className={`inline-flex w-full items-center justify-center gap-1.5 rounded-full border px-3 py-2.5 text-xs font-medium capitalize md:w-auto md:py-1.5 ${STATUS_TONES[itinerary.status] ?? STATUS_TONES.draft}`}
+                aria-expanded={showStatusMenu}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium capitalize ${STATUS_TONES[itinerary.status] ?? STATUS_TONES.draft}`}
               >
                 {itinerary.status}
-                <ChevronDown className="h-3 w-3" strokeWidth={2.5} />
+                <ChevronDown className="h-3 w-3" strokeWidth={2.5} aria-hidden />
               </button>
               {showStatusMenu && (
-                <div className="absolute top-full right-0 z-20 mt-2 min-w-[160px] overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white shadow-[0_24px_64px_-20px_rgba(20,50,100,0.3)]">
+                <div className="absolute top-full right-0 z-30 mt-2 min-w-[160px] overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--border)] bg-[color:var(--surface)] shadow-[var(--shadow-card)]">
                   {(['draft', 'active', 'completed', 'archived'] as const).map((status) => (
                     <button
                       key={status}
@@ -258,6 +259,7 @@ export function ItineraryView({
                         <Check
                           className="ml-auto h-3.5 w-3.5 text-[color:var(--accent)]"
                           strokeWidth={2.5}
+                          aria-hidden
                         />
                       )}
                     </button>
@@ -265,51 +267,48 @@ export function ItineraryView({
                 </div>
               )}
             </div>
-            {onRegenerate && (
-              <HandDrawnButton
-                onClick={onRegenerate}
-                variant="primary"
-                size="sm"
-                className="w-full justify-center gap-2 md:w-auto"
-              >
-                <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.5} />
-                Regenerate
-              </HandDrawnButton>
-            )}
-            <a
-              href={`/api/itinerary/${itinerary.id}/calendar`}
-              download
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white bg-white/80 px-4 py-2.5 text-sm font-medium text-[color:var(--ink)] md:w-auto md:py-1.5 shadow-[0_8px_20px_-12px_rgba(20,50,100,0.25)] backdrop-blur-md transition-all hover:-translate-y-[1px] hover:bg-white active:translate-y-0"
-            >
-              <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
-              Add to calendar
-            </a>
-            {onDelete && (
-              <HandDrawnButton
-                onClick={onDelete}
-                variant="quiet"
-                size="sm"
-                className="w-full justify-center gap-2 md:w-auto"
-              >
-                <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                Delete
-              </HandDrawnButton>
-            )}
-            <HandDrawnButton
-              onClick={handleShare}
-              variant="quiet"
-              size="sm"
-              className="w-full justify-center gap-2 md:w-auto"
-            >
-              <Share2 className="h-3.5 w-3.5" strokeWidth={2} />
-              {shareState === 'copied' ? 'Link copied!' : 'Share'}
-            </HandDrawnButton>
+
+            <OverflowMenu
+              actions={[
+                {
+                  label: shareState === 'copied' ? 'Link copied' : 'Share',
+                  onSelect: handleShare,
+                  icon: <Share2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                },
+                {
+                  label: 'Add to calendar',
+                  onSelect: () => {},
+                  href: `/api/itinerary/${itinerary.id}/calendar`,
+                  download: true,
+                  icon: <Calendar className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                },
+                ...(onRegenerate
+                  ? [
+                      {
+                        label: 'Regenerate',
+                        onSelect: onRegenerate,
+                        icon: <RefreshCw className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                      },
+                    ]
+                  : []),
+                ...(onDelete
+                  ? [
+                      {
+                        label: 'Delete',
+                        onSelect: onDelete,
+                        destructive: true,
+                        icon: <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
           </div>
         </div>
-      </HandDrawnCard>
+      </Card>
 
       {/* Map */}
-      <HandDrawnCard className="animate-fade-up p-4 md:p-6" style={{ animationDelay: '0.05s' }}>
+      <Card className="animate-fade-up p-4 md:p-6" style={{ animationDelay: '0.05s' }}>
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium text-[color:var(--ink-muted)]">
             Day {itinerary.days[activeTab]?.dayNumber} route
@@ -323,8 +322,8 @@ export function ItineraryView({
         {isDaySpreadOut(activeDayPoints) && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
             <p className="text-xs font-medium text-amber-800">
-              🗺️ This day covers a lot of ground — consider grouping nearby stops
-              to cut down on travel.
+              🗺️ This day covers a lot of ground — consider grouping nearby stops to cut down on
+              travel.
             </p>
             {onTidyDay && canTidyDay(activeDayPoints) && (
               <button
@@ -342,18 +341,18 @@ export function ItineraryView({
           destination={itinerary.destination}
           activities={itinerary.days[activeTab]?.activities || []}
         />
-      </HandDrawnCard>
+      </Card>
 
       {/* Before you go — packing tips + important notes from the planner */}
       {((itinerary.packingTips?.length ?? 0) > 0 ||
         (itinerary.importantNotes?.length ?? 0) > 0) && (
-        <HandDrawnCard
+        <Card
           className="animate-fade-up grid gap-6 p-5 md:grid-cols-2 md:p-6"
           style={{ animationDelay: '0.08s' }}
         >
           {(itinerary.packingTips?.length ?? 0) > 0 && (
             <div>
-              <h3 className="font-heading text-lg text-[color:var(--ink)]">Packing tips</h3>
+              <h3 className="text-sm font-medium text-[color:var(--ink-muted)]">Packing tips</h3>
               <ul className="mt-3 space-y-1.5 text-sm text-[color:var(--ink-muted)]">
                 {itinerary.packingTips!.map((tip, i) => (
                   <li key={i} className="flex gap-2">
@@ -366,7 +365,7 @@ export function ItineraryView({
           )}
           {(itinerary.importantNotes?.length ?? 0) > 0 && (
             <div>
-              <h3 className="font-heading text-lg text-[color:var(--ink)]">Good to know</h3>
+              <h3 className="text-sm font-medium text-[color:var(--ink-muted)]">Good to know</h3>
               <ul className="mt-3 space-y-1.5 text-sm text-[color:var(--ink-muted)]">
                 {itinerary.importantNotes!.map((note, i) => (
                   <li key={i} className="flex gap-2">
@@ -377,14 +376,11 @@ export function ItineraryView({
               </ul>
             </div>
           )}
-        </HandDrawnCard>
+        </Card>
       )}
 
       {/* Day Tabs */}
-      <HandDrawnCard
-        className="animate-fade-up overflow-hidden p-0"
-        style={{ animationDelay: '0.1s' }}
-      >
+      <Card className="animate-fade-up overflow-hidden p-0" style={{ animationDelay: '0.1s' }}>
         <div className="border-b border-[color:var(--border)] px-2 pt-2">
           <div className="scrollbar-none flex gap-1 overflow-x-auto">
             {itinerary.days.map((day, index) => (
@@ -433,7 +429,7 @@ export function ItineraryView({
             />
           )}
         </div>
-      </HandDrawnCard>
+      </Card>
     </div>
   );
 }

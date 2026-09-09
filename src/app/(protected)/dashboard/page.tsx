@@ -36,10 +36,7 @@ export default async function DashboardPage() {
           What&apos;s the word?
         </h1>
 
-        <div
-          className="animate-fade-up mt-8 w-full"
-          style={{ animationDelay: '0.15s' }}
-        >
+        <div className="animate-fade-up mt-8 w-full" style={{ animationDelay: '0.15s' }}>
           <ItinerarySearch tone="cinematic" />
         </div>
       </div>
