@@ -1,4 +1,4 @@
-import { UserPreferences } from '@/types/quiz';
+import { UserPreferences } from '@/types/profile';
 import { themeWeight } from '@/lib/ai/agents/theme';
 import {
   ResearchResult,

@@ -26,13 +26,6 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single();
 
-  const { data: preferences } = await supabase
-    .from('user_preferences')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
-  const hasCompletedQuiz = !!preferences;
   const firstName = profile?.display_name?.split(' ')[0];
 
   return (
@@ -40,26 +33,12 @@ export default async function DashboardPage() {
       {/* Floating hint bubbles — drift out of the clouds */}
       <div className="pointer-events-none fixed inset-0 z-20">
         <FloatingHint
-          position={{ top: '24%', left: '11%' }}
-          rotate={-2}
-          appearDelay={1200}
-          expandAfter={1600}
-          message={
-            hasCompletedQuiz
-              ? 'Want to update your travel personality?'
-              : 'Psst… want a quick personality quiz so I plan smarter?'
-          }
-          cta={hasCompletedQuiz ? 'Retake the quiz' : 'Take the quiz'}
-          href="/quiz"
-        />
-
-        <FloatingHint
           position={{ bottom: '20%', right: '9%' }}
           rotate={2}
           appearDelay={2200}
           expandAfter={1800}
-          message="Peek at the trips you've already dreamed up."
-          cta="Open my itineraries"
+          message="Peek at the moves you already made."
+          cta="Open my history"
           href="/itinerary"
         />
       </div>
@@ -70,30 +49,23 @@ export default async function DashboardPage() {
             className={`animate-fade-up text-sm font-semibold tracking-wide text-white ${TEXT_SHADOW_BODY}`}
             style={{ animationDelay: '0.05s' }}
           >
-            Your travel desk
+            Spotz
           </p>
 
           <h1
             className={`animate-fade-up mt-5 font-heading text-4xl leading-[1.05] tracking-tight text-white sm:text-5xl md:text-7xl ${TEXT_SHADOW_HERO}`}
             style={{ animationDelay: '0.15s' }}
           >
-            Welcome back
-            {firstName ? (
-              <>
-                ,<br />
-                {firstName}.
-              </>
-            ) : (
-              '.'
-            )}
+            Yurrrrr{firstName ? `, ${firstName}` : ''}.
+            <br />
+            What&apos;s the word?
           </h1>
 
           <p
             className={`animate-fade-up mt-6 text-base font-medium leading-relaxed text-white md:text-lg ${TEXT_SHADOW_BODY}`}
             style={{ animationDelay: '0.25s' }}
           >
-            Where are we going next? Describe a trip, tweak your style, or
-            revisit your plans.
+            Say the vibe and Spotz finds the moves for tonight.
           </p>
 
           <div

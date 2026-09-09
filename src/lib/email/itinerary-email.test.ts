@@ -29,7 +29,7 @@ describe('buildItineraryEmailHtml', () => {
     destination: 'Tokyo & Kyoto',
     startDate: 'May 25',
     endDate: 'May 28',
-    viewUrl: 'https://aspot.app/itinerary/abc"onmouseover="x',
+    viewUrl: 'https://spotz.app/itinerary/abc"onmouseover="x',
     days: [
       {
         dayNumber: 1,
@@ -66,7 +66,7 @@ describe('buildItineraryEmailHtml', () => {
       packingTips: ['Umbrella & layers', 'Comfy shoes'],
       importantNotes: ['Cash-only <spots>'],
     });
-    expect(html).toContain('Packing tips');
+    expect(html).toContain('Before you head out');
     expect(html).toContain('Umbrella &amp; layers');
     expect(html).toContain('Good to know');
     expect(html).toContain('Cash-only &lt;spots&gt;');
@@ -74,7 +74,7 @@ describe('buildItineraryEmailHtml', () => {
 
   it('omits the before-you-go section entirely when there are no tips', () => {
     const html = buildItineraryEmailHtml(data); // no packingTips/importantNotes
-    expect(html).not.toContain('Packing tips');
+    expect(html).not.toContain('Before you head out');
     expect(html).not.toContain('Good to know');
   });
 });

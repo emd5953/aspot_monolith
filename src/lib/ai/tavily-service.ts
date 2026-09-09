@@ -7,7 +7,7 @@ import {
   ActivityOption,
   DestinationData,
 } from '@/types/destination';
-import { UserPreferences } from '@/types/quiz';
+import { UserPreferences } from '@/types/profile';
 import {
   isPlaceVerificationEnabled,
   isHoursLookupEnabled,

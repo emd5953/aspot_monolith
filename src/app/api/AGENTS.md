@@ -6,9 +6,11 @@ Next.js App Router route handlers. Thin HTTP layer over `@/lib`: authenticate, a
 
 ## Ownership
 
-- Route groups: `auth/`, `quiz/`, `itinerary/`, `trips/`, `maps/`.
-- Itinerary sub-routes own the editing surface: `[id]/days`, `[id]/activities` (move/reorder/[activityId]), `[id]/versions`, `[id]/revert`, `[id]/regenerate`, `[id]/days/[dayId]/regenerate`, `[id]/status`, `[id]/calendar`, `[id]/email`.
-- Trips sub-routes: `[id]/members`, `[id]/regenerate-code`, `join`.
+- Route groups: `auth/`, `itinerary/`, `plans/`, `shared/`, `ingest/`, `maps/`.
+- Itinerary sub-routes own the editing surface: `[id]/days`, `[id]/activities` (move/reorder/[activityId]), `[id]/versions`, `[id]/revert`, `[id]/regenerate`, `[id]/days/[dayId]/regenerate`, `[id]/status`, `[id]/calendar`, `[id]/email`, `[id]/share` (mint the friend link).
+- `plans/[planId]/vote` — 👍/👎 on an individual plan (any signed-in user who can see it, owner or share-link friend).
+- `shared/[code]` — read a shared itinerary + its vote tallies by share code.
+- `ingest/` — cron-secret-gated, service-role only. NOT user-facing: runs the source connectors (`@/lib/sources`) and refreshes the `candidate_events` pool. The only route in this tree using the Supabase service-role client instead of the user-scoped one.
 - Generation: `itinerary/generate` — Fast mode (awaited, returns the itinerary) and Deep mode (`waitUntil` background run + email). The single generation entry point.
 
 ## Local Contracts

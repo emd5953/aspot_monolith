@@ -50,10 +50,10 @@ export function TopNav({
         <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <Link
             href={brandHref}
-            aria-label="aSpot home"
+            aria-label="Spotz home"
             className={`font-heading text-2xl leading-none text-white ${textShadow}`}
           >
-            aSpot
+            Spotz
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
@@ -88,14 +88,14 @@ export function TopNav({
         <nav className="glass-nav flex items-center justify-between gap-4 rounded-full px-5 py-2.5">
           <Link
             href={brandHref}
-            aria-label="aSpot home"
+            aria-label="Spotz home"
             className="group flex shrink-0 items-center gap-2"
           >
             <span className="relative inline-flex h-7 w-7 items-center justify-center rounded-full border border-[color:var(--border)] bg-white transition-all group-hover:border-[color:var(--border-strong)]">
               <span className="block h-2 w-2 rounded-full bg-[color:var(--accent)]" />
             </span>
             <span className="hidden font-heading text-xl leading-none text-[color:var(--ink)] sm:inline-flex">
-              aSpot
+              Spotz
             </span>
           </Link>
 

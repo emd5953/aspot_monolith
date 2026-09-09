@@ -10,6 +10,7 @@ import {
   Calendar,
   Check,
   Route,
+  Share2,
 } from 'lucide-react';
 import { DaySchedule } from './day-schedule';
 import { ItineraryMap } from './itinerary-map';
@@ -101,6 +102,20 @@ export function ItineraryView({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(itinerary.title);
   const [isTidying, setIsTidying] = useState(false);
+  const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
+
+  const handleShare = async () => {
+    try {
+      const res = await fetch(`/api/itinerary/${itinerary.id}/share`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to create share link');
+      const { path } = await res.json();
+      await navigator.clipboard.writeText(`${window.location.origin}${path}`);
+      setShareState('copied');
+      setTimeout(() => setShareState('idle'), 2000);
+    } catch (error) {
+      console.error('Share failed:', error);
+    }
+  };
 
   const activeDay = itinerary.days[activeTab];
   const activeDayPoints = (activeDay?.activities || []).map((a) => ({
@@ -280,6 +295,15 @@ export function ItineraryView({
                 Delete
               </HandDrawnButton>
             )}
+            <HandDrawnButton
+              onClick={handleShare}
+              variant="secondary"
+              size="sm"
+              className="w-full justify-center gap-2 md:w-auto"
+            >
+              <Share2 className="h-3.5 w-3.5" strokeWidth={2} />
+              {shareState === 'copied' ? 'Link copied!' : 'Share'}
+            </HandDrawnButton>
           </div>
         </div>
       </HandDrawnCard>

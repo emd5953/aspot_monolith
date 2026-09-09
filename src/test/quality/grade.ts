@@ -32,7 +32,7 @@ import { auditPlan } from '@/lib/ai/agents/plan-audit';
 import { repairPlan } from '@/lib/ai/agents/plan-repair';
 import { curateResearchByPreferences } from '@/lib/preferences/score-research';
 import type { ItineraryPlan, ResearchResult } from '@/lib/ai/agents/types';
-import type { UserPreferences } from '@/types/quiz';
+import type { UserPreferences } from '@/types/profile';
 
 /**
  * The graded corpus, imported rather than read off disk — the grade must not

@@ -15,9 +15,8 @@ export function AppNav({ tone = 'default' }: AppNavProps = {}) {
       brandHref="/dashboard"
       tone={tone}
       links={[
-        { label: 'Dashboard', href: '/dashboard' },
-        { label: 'Itineraries', href: '/itinerary' },
-        { label: 'Trips', href: '/trips' },
+        { label: 'Home', href: '/dashboard' },
+        { label: 'Moves', href: '/itinerary' },
         { label: 'Profile', href: '/profile' },
       ]}
       rightSlot={<LogoutButton tone={tone} />}

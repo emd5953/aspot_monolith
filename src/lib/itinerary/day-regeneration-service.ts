@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { UserPreferences } from '@/types/quiz';
+import { UserPreferences } from '@/types/profile';
 import { swapDayActivities } from './itinerary-service';
 import { assignDayTimes } from '@/lib/ai/schedule-times';
 
@@ -298,7 +298,7 @@ export async function regenerateDay(
 
   // Get current activities for context
   const { data: currentActivities } = await supabase
-    .from('activities')
+    .from('plans')
     .select('*')
     .eq('day_id', dayId)
     .order('sort_order');
@@ -656,7 +656,7 @@ Return ONLY valid JSON:
   }));
 
   const { data: insertedActivities, error: insertError } = await supabase
-    .from('activities')
+    .from('plans')
     .insert(activitiesToInsert)
     .select();
 
@@ -674,7 +674,7 @@ Return ONLY valid JSON:
 
   // Return ALL activities (existing + new)
   const { data: allActivities } = await supabase
-    .from('activities')
+    .from('plans')
     .select('*')
     .eq('day_id', dayId)
     .order('sort_order');
@@ -737,7 +737,7 @@ async function removeActivitiesFromDay(
   // Delete matching activities
   const idsToRemove = activitiesToRemove.map(a => a.id);
   await supabase
-    .from('activities')
+    .from('plans')
     .delete()
     .in('id', idsToRemove);
 
@@ -751,7 +751,7 @@ async function removeActivitiesFromDay(
 
   // Return remaining activities
   const { data: remainingActivities } = await supabase
-    .from('activities')
+    .from('plans')
     .select('*')
     .eq('day_id', dayId)
     .order('sort_order');

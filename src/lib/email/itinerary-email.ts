@@ -1,6 +1,6 @@
 /**
  * Generates the HTML email body for a completed itinerary.
- * Clean, minimal design — reads like a travel receipt, not a newsletter.
+ * Clean, minimal design — reads like a run-of-show for the night, not a newsletter.
  */
 
 interface EmailActivity {
@@ -45,7 +45,7 @@ export function escapeHtml(value: string): string {
 
 export function buildItineraryEmailSubject(data: ItineraryEmailData): string {
   // Plain-text subject line — not HTML, so no escaping (would show &amp;).
-  return `Your trip to ${data.destination} is ready ✈️`;
+  return `The moves are ready 🗽 ${data.title}`.trim();
 }
 
 export function buildItineraryEmailHtml(data: ItineraryEmailData): string {
@@ -98,7 +98,7 @@ export function buildItineraryEmailHtml(data: ItineraryEmailData): string {
       : '';
 
   const beforeYouGoHtml =
-    tipsSection('🧳 Packing tips', data.packingTips) +
+    tipsSection('🎒 Before you head out', data.packingTips) +
     tipsSection('📌 Good to know', data.importantNotes);
 
   return `
@@ -117,7 +117,7 @@ export function buildItineraryEmailHtml(data: ItineraryEmailData): string {
           <!-- Header -->
           <tr>
             <td style="padding: 32px 32px 24px 32px; background: linear-gradient(135deg, #e8f1fb 0%, #ffffff 100%);">
-              <p style="margin: 0; font-size: 13px; color: #5a6a85;">aSpot · Your itinerary is ready</p>
+              <p style="margin: 0; font-size: 13px; color: #5a6a85;">Spotz · Your itinerary is ready</p>
               <h1 style="margin: 12px 0 0 0; font-size: 28px; color: #0b1e3c; font-family: Georgia, serif; font-weight: normal; line-height: 1.2;">${escapeHtml(data.title)}</h1>
               <p style="margin: 12px 0 0 0; font-size: 14px; color: #5a6a85;">
                 📍 ${escapeHtml(data.destination)} &nbsp;·&nbsp; 📅 ${escapeHtml(data.startDate)} – ${escapeHtml(data.endDate)}
@@ -148,7 +148,7 @@ export function buildItineraryEmailHtml(data: ItineraryEmailData): string {
           <tr>
             <td style="padding: 20px 32px; background: #f6faff; border-top: 1px solid #e8f1fb;">
               <p style="margin: 0; font-size: 12px; color: #8a97af; text-align: center;">
-                Built by <a href="https://aspot.app" style="color: #2f6fd8; text-decoration: none;">aSpot</a> · Your pocket travel buddy
+                Built by <a href="https://spotz.app" style="color: #2f6fd8; text-decoration: none;">Spotz</a> · Your plug for the moves
               </p>
             </td>
           </tr>

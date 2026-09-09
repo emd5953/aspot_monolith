@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Edit2, Trash2, MapPin, Clock, Ticket } from 'lucide-react';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
+import { VoteChips } from './vote-chips';
 import { SOURCE_LABELS, type ItemSource } from '@/lib/ai/provenance';
 
 interface Activity {
@@ -44,6 +45,8 @@ interface ActivityCardProps {
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   canReorder?: boolean;
+  /** Optional vote data. Absent → card renders exactly as before. */
+  votes?: { planId: string; up: number; down: number; myVote: number };
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -90,6 +93,7 @@ export function ActivityCard({
   onMoveUp,
   onMoveDown,
   canReorder,
+  votes,
 }: ActivityCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -138,6 +142,14 @@ export function ActivityCard({
               >
                 {SOURCE_LABELS[activity.source]}
               </span>
+            )}
+            {votes && (
+              <VoteChips
+                planId={votes.planId}
+                initialUp={votes.up}
+                initialDown={votes.down}
+                myVote={votes.myVote}
+              />
             )}
             {activity.startTime && activity.endTime && (
               <span className="inline-flex items-center gap-1.5 text-xs text-[color:var(--ink-muted)]">

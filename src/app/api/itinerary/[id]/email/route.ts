@@ -43,7 +43,7 @@ export async function POST(
     const daysWithActivities = await Promise.all(
       (days || []).map(async (day) => {
         const { data: activities } = await supabase
-          .from('activities')
+          .from('plans')
           .select('title, location_name, start_time, end_time, category')
           .eq('day_id', day.id)
           .order('sort_order');

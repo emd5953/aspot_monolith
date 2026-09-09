@@ -53,3 +53,6 @@ next-env.d.ts
 
 # machine-local Rivet server state (pid, ports, absolute paths, session ids)
 .rivet/
+
+# Supabase CLI cache
+supabase/.temp/

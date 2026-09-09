@@ -1,11 +1,6 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowRight, Pencil } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { getPreferences } from '@/lib/preferences/preferences-service';
-import { getArchetype } from '@/lib/preferences/archetype';
 import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
-import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -15,45 +10,22 @@ export default async function ProfilePage() {
 
   if (!user) redirect('/');
 
-  const preferences = await getPreferences(supabase, user.id);
-  if (!preferences) redirect('/quiz');
-
   const { data: profile } = await supabase
     .from('profiles')
     .select('display_name, username, avatar_url')
     .eq('id', user.id)
     .single();
 
-  const displayName = profile?.display_name || 'Traveler';
+  const displayName = profile?.display_name || 'You';
   const initial = displayName[0]?.toUpperCase() ?? '?';
-  const archetype = getArchetype(preferences);
-
-  const panels = [
-    { title: 'Motivated by', items: preferences.travelMotivations },
-    { title: 'Loves', items: preferences.activityTypes },
-    { title: 'Eats', items: preferences.cuisinePreferences },
-  ];
 
   return (
     <main className="relative mx-auto max-w-3xl px-4 pt-16 pb-24 md:px-6">
-      {/* Passport-style hero */}
       <HandDrawnCard className="animate-fade-up overflow-hidden p-0">
         <div className="px-5 pt-6 pb-5 md:px-8 md:pt-8 md:pb-7">
-          <p className="text-sm font-medium text-[color:var(--ink-muted)]">Travel passport</p>
-          <div className="mt-2 flex items-center gap-3">
-            <span className="text-4xl leading-none">{archetype.emoji}</span>
-            <h1 className="font-heading text-4xl leading-[1.05] text-[color:var(--ink)] md:text-5xl">
-              {archetype.title}
-            </h1>
-          </div>
-          <p className="mt-3 max-w-lg text-base italic text-[color:var(--ink-muted)]">
-            {archetype.bio}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-4 border-y border-[color:var(--border)] px-5 py-5 md:gap-5 md:px-8 md:py-6">
-          <div className="flex min-w-0 flex-1 items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color:var(--border)] bg-white font-heading text-2xl text-[color:var(--ink)]">
+          <p className="text-sm font-medium text-[color:var(--ink-muted)]">Your Spotz card</p>
+          <div className="mt-4 flex items-center gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color:var(--border)] bg-white font-heading text-3xl text-[color:var(--ink)]">
               {profile?.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
@@ -62,142 +34,19 @@ export default async function ProfilePage() {
               )}
             </div>
             <div className="min-w-0">
-              <h2 className="truncate font-heading text-2xl text-[color:var(--ink)]">
+              <h1 className="truncate font-heading text-4xl leading-[1.05] text-[color:var(--ink)]">
                 {displayName}
-              </h2>
+              </h1>
               {profile?.username && (
                 <p className="text-sm text-[color:var(--ink-muted)]">@{profile.username}</p>
               )}
             </div>
           </div>
-          <Link href="/profile/edit">
-            <HandDrawnButton variant="secondary" size="sm" className="gap-2">
-              <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
-              Edit
-            </HandDrawnButton>
-          </Link>
-        </div>
-
-        <div className="grid gap-0 divide-y divide-[color:var(--border)] md:grid-cols-2 md:divide-y-0 md:divide-x">
-          <TraitCell label="Planning style" value={prettify(preferences.planningStyle)} />
-          <TraitCell label="Authenticity" value={prettify(preferences.authenticityPreference)} />
-        </div>
-        <div className="grid gap-0 divide-y divide-[color:var(--border)] border-t border-[color:var(--border)] md:grid-cols-3 md:divide-y-0 md:divide-x">
-          <TraitCell label="Pace" value={prettify(preferences.travelPace)} />
-          <TraitCell label="Budget" value={prettify(preferences.budgetRange)} />
-          <TraitCell label="Travels with" value={prettify(preferences.socialPreferences)} />
-        </div>
-
-        <div className="border-t border-[color:var(--border)] px-5 py-4 md:px-8 md:py-6">
-          <div className="flex items-baseline justify-between">
-            <p className="text-xs font-medium text-[color:var(--ink-soft)] md:text-sm md:text-[color:var(--ink-muted)]">
-              Comfort zone
-            </p>
-            <p className="font-heading text-lg text-[color:var(--ink)]">
-              {preferences.comfortZone}
-              <span className="text-[color:var(--ink-soft)]"> / 10</span>
-            </p>
-          </div>
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[color:var(--surface-soft)]">
-            <div
-              className="h-full rounded-full bg-[color:var(--accent)]"
-              style={{ width: `${preferences.comfortZone * 10}%` }}
-            />
-          </div>
+          <p className="mt-5 max-w-lg text-base italic text-[color:var(--ink-muted)]">
+            No forms, no quizzes. Just say the word and Spotz finds the moves.
+          </p>
         </div>
       </HandDrawnCard>
-
-      {/* One card of divided rows on a phone, three cards from md up. Three
-          separate cards below md is a lot of chrome around what is often a
-          single chip — folded together they carry the passport card's rhythm.
-          Both presentations read the same `panels` array, so there is one
-          source of content and two layouts. */}
-      <section className="animate-fade-up mt-5" style={{ animationDelay: '0.1s' }}>
-        <HandDrawnCard className="divide-y divide-[color:var(--border)] p-0 md:hidden">
-          {panels.map((panel) => (
-            <TagRow key={panel.title} {...panel} />
-          ))}
-        </HandDrawnCard>
-
-        <div className="hidden gap-5 md:grid md:grid-cols-3">
-          {panels.map((panel) => (
-            <TagPanel key={panel.title} {...panel} />
-          ))}
-        </div>
-      </section>
-
-      <div
-        className="animate-fade-up mt-6 grid gap-3 md:mt-8 md:flex md:flex-wrap md:justify-center"
-        style={{ animationDelay: '0.15s' }}
-      >
-        <Link href="/profile/edit" className="w-full md:w-auto">
-          <HandDrawnButton variant="primary" size="md" className="w-full justify-center gap-2 md:w-auto">
-            Tweak preferences
-            <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
-          </HandDrawnButton>
-        </Link>
-        <Link href="/quiz" className="w-full md:w-auto">
-          <HandDrawnButton variant="secondary" size="md" className="w-full justify-center md:w-auto">
-            Retake quiz
-          </HandDrawnButton>
-        </Link>
-      </div>
     </main>
-  );
-}
-
-function prettify(value: string) {
-  return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function TraitCell({ label, value }: { label: string; value: string }) {
-  return (
-    // Below md these stack into one column, and label-above-value left the
-    // right half of every row empty — five near-identical blocks of dead
-    // space. Single line, value trailing, matching the comfort-zone row.
-    // From md up they sit in 2- and 3-across grids, where stacking is right.
-    <div className="flex items-baseline justify-between gap-4 px-5 py-3.5 md:block md:px-8 md:py-5">
-      <p className="text-xs font-medium text-[color:var(--ink-soft)] md:text-xs">{label}</p>
-      <p className="font-heading text-lg text-[color:var(--ink)] md:mt-1 md:text-xl">{value}</p>
-    </div>
-  );
-}
-
-/** Mobile presentation: one row of the folded card. Label left, chips trailing. */
-function TagRow({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="flex items-start justify-between gap-4 px-5 py-3.5">
-      <p className="shrink-0 pt-1 text-xs font-medium text-[color:var(--ink-soft)]">{title}</p>
-      <div className="flex flex-wrap justify-end gap-1.5">
-        {items.length === 0 ? (
-          <span className="text-sm italic text-[color:var(--ink-soft)]">None yet</span>
-        ) : (
-          items.map((item) => <Tag key={item} item={item} />)
-        )}
-      </div>
-    </div>
-  );
-}
-
-function Tag({ item }: { item: string }) {
-  return (
-    <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-soft)] px-2.5 py-1 text-xs capitalize text-[color:var(--ink)]">
-      {prettify(item)}
-    </span>
-  );
-}
-
-function TagPanel({ title, items }: { title: string; items: string[] }) {
-  return (
-    <HandDrawnCard className="p-5">
-      <p className="text-sm font-medium text-[color:var(--ink-muted)]">{title}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {items.length === 0 ? (
-          <span className="text-sm italic text-[color:var(--ink-soft)]">None yet</span>
-        ) : (
-          items.map((item) => <Tag key={item} item={item} />)
-        )}
-      </div>
-    </HandDrawnCard>
   );
 }

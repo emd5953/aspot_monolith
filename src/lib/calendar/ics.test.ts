@@ -79,14 +79,14 @@ describe('buildItineraryIcs', () => {
     expect(ics.startsWith('BEGIN:VCALENDAR\r\n')).toBe(true);
     expect(ics.trimEnd().endsWith('END:VCALENDAR')).toBe(true);
     expect(ics).toContain('VERSION:2.0');
-    expect(ics).toContain('PRODID:-//aSpot//Itinerary//EN');
+    expect(ics).toContain('PRODID:-//Spotz//Itinerary//EN');
     // CRLF line endings throughout.
     expect(ics.includes('\n') && ics.includes('\r\n')).toBe(true);
   });
 
   it('writes a timed VEVENT for an activity with start+end', () => {
     const ics = buildItineraryIcs(itinerary, NOW);
-    expect(ics).toContain('UID:a1@aspot');
+    expect(ics).toContain('UID:a1@spotz');
     expect(ics).toContain('DTSTART:20260620T120000');
     expect(ics).toContain('DTEND:20260620T133000');
     expect(ics).toContain('DTSTAMP:20260616T123000Z');
@@ -98,7 +98,7 @@ describe('buildItineraryIcs', () => {
 
   it('writes an all-day VEVENT (exclusive next-day DTEND) when an activity has no time', () => {
     const ics = buildItineraryIcs(itinerary, NOW);
-    expect(ics).toContain('UID:a2@aspot');
+    expect(ics).toContain('UID:a2@spotz');
     expect(ics).toContain('DTSTART;VALUE=DATE:20260620');
     expect(ics).toContain('DTEND;VALUE=DATE:20260621');
   });

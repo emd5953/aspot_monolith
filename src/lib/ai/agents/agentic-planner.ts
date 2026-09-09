@@ -29,7 +29,7 @@ import {
   ScheduledItem,
   ReviewIssue,
 } from './types';
-import { UserPreferences } from '@/types/quiz';
+import { UserPreferences } from '@/types/profile';
 import {
   PlanningStrategySchema,
   SingleDaySchema,

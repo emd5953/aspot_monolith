@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { regenerateDay } from '@/lib/itinerary/day-regeneration-service';
+import { defaultPreferencesFor } from '@/types/profile';
 
 export async function POST(
   request: NextRequest,
@@ -52,37 +53,8 @@ export async function POST(
       return NextResponse.json({ error: 'Day not found' }, { status: 404 });
     }
 
-    // Get user preferences
-    const { data: prefsData, error: prefsError } = await supabase
-      .from('user_preferences')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
-
-    if (prefsError || !prefsData) {
-      return NextResponse.json(
-        { error: 'User preferences not found' },
-        { status: 400 }
-      );
-    }
-
-    const preferences = {
-      id: prefsData.id,
-      userId: prefsData.user_id,
-      travelMotivations: prefsData.travel_motivations || [],
-      planningStyle: prefsData.planning_style || 'structured_flexible',
-      authenticityPreference: prefsData.authenticity_preference || 'balanced',
-      timeRhythm: prefsData.time_rhythm || 'steady_daytime',
-      comfortZone: prefsData.comfort_zone || 5,
-      activityTypes: prefsData.activity_types || [],
-      cuisinePreferences: prefsData.cuisine_preferences || [],
-      budgetRange: prefsData.budget_range || 'moderate',
-      travelPace: prefsData.travel_pace || 'moderate',
-      socialPreferences: prefsData.social_preferences || 'solo',
-      rawAnswers: prefsData.raw_answers || {},
-      createdAt: new Date(prefsData.created_at),
-      updatedAt: new Date(prefsData.updated_at),
-    };
+    // Spotz: no quiz — regeneration steers by the user's prompt alone.
+    const preferences = defaultPreferencesFor(user.id);
 
     // Regenerate the day
     const updatedActivities = await regenerateDay(supabase, {

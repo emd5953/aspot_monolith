@@ -5,7 +5,7 @@ import {
   countRedditMentions,
   type SearchHit,
 } from './tavily-service';
-import { UserPreferences } from '@/types/quiz';
+import { UserPreferences } from '@/types/profile';
 
 /**
  * The Reddit research pass is two pure pieces: a query builder that scopes

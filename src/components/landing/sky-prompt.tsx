@@ -34,13 +34,13 @@ export function SkyPrompt({ onSubmit }: SkyPromptProps) {
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="A long weekend in Lisbon…"
-        aria-label="Describe your trip"
+        placeholder="find the moves for tonight…"
+        aria-label="Describe the vibe"
         className="flex-1 bg-transparent py-2.5 text-base text-slate-800 placeholder:text-slate-500/70 outline-none"
       />
       <button
         type="submit"
-        aria-label="Start planning"
+        aria-label="Find the moves"
         disabled={!value.trim()}
         className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-slate-900 px-5 text-sm font-medium text-white transition-all hover:bg-slate-800 hover:-translate-y-[1px] disabled:opacity-50 disabled:hover:translate-y-0"
       >

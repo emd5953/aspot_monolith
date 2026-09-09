@@ -19,9 +19,9 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "aSpot — Your AI travel companion",
+  title: "Spotz — Find the moves for tonight",
   description:
-    "aSpot is your personal AI travel planner. Discover destinations, build personalized itineraries, and plan together with friends — all in one place.",
+    "Yurrrrr. Say the vibe and Spotz finds the moves — curated events, functions, popups, and food spots in NYC. Share the plan, let the crew vote.",
 };
 
 /**

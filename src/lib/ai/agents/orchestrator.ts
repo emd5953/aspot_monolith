@@ -12,8 +12,8 @@
  * 5. Continue until approved or max iterations reached
  */
 
-import { UserPreferences } from '@/types/quiz';
-import { OrchestrationState, ItineraryPlan, ResearchResult } from './types';
+import { UserPreferences } from '@/types/profile';
+import { OrchestrationState, ItineraryPlan, ResearchResult, ActivityData } from './types';
 import { runResearchAgent } from './researcher';
 import { runPlannerAgent } from './planner';
 import { runReviewerAgent } from './reviewer';
@@ -31,6 +31,8 @@ export interface OrchestratorInput {
   userIntent?: string;
   /** Original prompt verbatim. Optional. */
   rawPrompt?: string;
+  /** Live Moves from the candidate_events pool (merged post-cache). Optional. */
+  poolEvents?: ActivityData[];
   onProgress?: (state: OrchestrationState) => void;
 }
 
@@ -78,7 +80,7 @@ function log(state: OrchestrationState, agent: keyof OrchestrationState['agents'
  * Run the multi-agent orchestration
  */
 export async function runOrchestrator(input: OrchestratorInput): Promise<OrchestratorOutput> {
-  const { destination, startDate, endDate, preferences, userIntent, rawPrompt, onProgress } = input;
+  const { destination, startDate, endDate, preferences, userIntent, rawPrompt, poolEvents, onProgress } = input;
   const sessionId = `session_${Date.now()}`;
   const state = createInitialState(sessionId);
 
@@ -126,6 +128,18 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
       if (hasData) {
         setCachedResearch(destination, researchResult.result, researchResult.thoughts, userIntent);
       }
+    }
+
+    // Merge live Moves AFTER cache retrieval (cached research must never carry
+    // stale events), BEFORE curation so they get ranked with everything else.
+    if (poolEvents?.length) {
+      researchResult = {
+        ...researchResult,
+        result: {
+          ...researchResult.result,
+          activities: [...poolEvents, ...researchResult.result.activities],
+        },
+      };
     }
 
     // Pre-filter pool by user preferences (see agentic-orchestrator for rationale).
