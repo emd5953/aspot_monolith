@@ -146,7 +146,6 @@ USER PREFERENCES:
 - Budget: ${preferences.budgetRange || 'moderate'}
 - Pace: ${preferences.travelPace || 'moderate'} (target ${activitiesPerDay.morning} morning, ${activitiesPerDay.afternoon} afternoon, ${activitiesPerDay.evening} evening per day)
 - Interests: ${preferences.activityTypes?.join(', ') || 'general activities'}
-- Cuisines: ${preferences.cuisinePreferences?.join(', ') || 'local cuisine'}
 - Comfort zone: ${preferences.comfortZone || 5}/10
 
 LOCAL INSIGHTS:

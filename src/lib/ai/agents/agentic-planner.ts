@@ -120,9 +120,7 @@ async function createPlanningStrategy(
   const strategyPrompt = `You are a strategic itinerary planner. Create a high-level strategy for a ${tripDays}-day trip to ${research.destination}.
 ${intentBlock}${issuesBlock}
 USER PROFILE:
-- Travel Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
 - Planning Style: ${preferences.planningStyle || 'balanced'}
-- Authenticity Preference: ${preferences.authenticityPreference || 'balanced'}
 - Interests: ${preferences.activityTypes?.join(', ') || 'general activities'}
 - Budget: ${preferences.budgetRange || 'moderate'}
 - Pace: ${preferences.travelPace || 'moderate'}
@@ -138,11 +136,10 @@ AVAILABLE OPTIONS:
 STRATEGIC QUESTIONS:
 ${userIntent ? `0. ⚠️ HOW will every day clearly serve "${userIntent}"? Each day's theme should reflect this.` : ''}
 1. Pacing for their ${preferences.travelPace} pace and ${effectiveRhythm(preferences.timeRhythm, userIntent)} energy.
-2. A theme per day that matches their motivations.
+2. A theme per day that matches their interests.
 3. Activity-vs-rest balance for comfort zone ${preferences.comfortZone || 5}/10.
-4. ${preferences.authenticityPreference || 'balanced'} (tourist vs local) emphasis.
-5. ${preferences.socialPreferences || 'couple'} travel style fit.
-6. ${preferences.planningStyle || 'balanced'} planning style — how much flexibility to leave?
+4. ${preferences.socialPreferences || 'couple'} travel style fit.
+5. ${preferences.planningStyle || 'balanced'} planning style — how much flexibility to leave?
 
 Return exactly ${tripDays} day themes, one per trip day, in order.`;
 
@@ -208,8 +205,6 @@ ${intentBlock}${issuesBlock}
 THEME: ${theme}
 
 USER PERSONALITY:
-- Motivations: ${preferences.travelMotivations?.join(', ') || 'exploration'}
-- Authenticity: ${preferences.authenticityPreference || 'balanced'}
 - Time Rhythm: ${rhythm}
 - Comfort Zone: ${preferences.comfortZone || 5}/10
 - Social: ${preferences.socialPreferences || 'couple'}
@@ -235,7 +230,7 @@ ${
         .slice(0, 8)
         .map((r) => annotate(r.name, `${r.cuisine.join('/')}, ${r.priceRange}`, r.location))
         .join('; ')}`
-    : `(No pool — use your knowledge of ${preferences.cuisinePreferences.slice(0, 2).join(', ')} restaurants in ${destination}.)`
+    : `(No pool — use your knowledge of restaurants in ${destination}.)`
 }
 
 ${
@@ -278,13 +273,7 @@ GEOGRAPHIC RULES (CRITICAL):
 4. If you must move areas, do it once, cleanly.
 
 PERSONALITY-DRIVEN CURATION:
-- Authenticity: ${
-    preferences.authenticityPreference === 'authentic_local'
-      ? 'Local spots only, hidden gems, nothing touristy.'
-      : preferences.authenticityPreference === 'popular_spots'
-        ? 'Popular attractions are fine — they\'re famous for a reason.'
-        : 'Mix of local and popular.'
-  }
+- Authenticity: Mix of local and popular.
 - Challenge: ${
     (preferences.comfortZone || 5) > 7
       ? 'Include adventurous/unusual activities.'
@@ -301,7 +290,6 @@ PERSONALITY-DRIVEN CURATION:
           ? 'Group-friendly for 3-5 people.'
           : 'Group-friendly for larger crowds.'
   }
-- Motivations: prioritize ${preferences.travelMotivations?.join(', ') || 'general exploration'}.
 
 CRITICAL RULES:
 1. PROXIMITY FIRST: same neighborhood across the day.

@@ -434,7 +434,6 @@ Date: ${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 
 
 User Preferences:
 - Activities: ${preferences.activityTypes.slice(0, 5).join(', ')}
-- Cuisine: ${preferences.cuisinePreferences.slice(0, 3).join(', ')}
 - Budget: ${preferences.budgetRange}
 - Pace: ${preferences.travelPace}
 

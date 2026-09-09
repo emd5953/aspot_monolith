@@ -507,11 +507,8 @@ async function generateLocalItinerary(
     activityDensity === 'relaxed' ? 3 : activityDensity === 'packed' ? 7 : 5;
 
   // Simple preference-aware sort: anything whose category is in the user's
-  // preferred activity types or cuisine list gets a small boost.
-  const preferred = new Set([
-    ...(preferences.activityTypes ?? []),
-    ...(preferences.cuisinePreferences ?? []),
-  ]);
+  // preferred activity types gets a small boost.
+  const preferred = new Set(preferences.activityTypes ?? []);
 
   const score = (category: string) => (preferred.has(category) ? 1 : 0);
 

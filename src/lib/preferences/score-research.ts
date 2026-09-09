@@ -74,32 +74,6 @@ export function intentMatchScore(text: string, keywords: string[]): number {
   return keywords.length === 1 ? tokenHits : tokenHits * 0.25;
 }
 
-const FAMOUS_LANDMARK_HINTS = [
-  'eiffel',
-  'statue of liberty',
-  'times square',
-  'colosseum',
-  'sagrada',
-  'big ben',
-  'tower bridge',
-  'empire state',
-  'central park',
-  'golden gate',
-  'shibuya crossing',
-  'tokyo tower',
-  'fisherman',
-  'walk of fame',
-  'hollywood sign',
-  'champs',
-  'louvre',
-  'vatican',
-  'trevi',
-  'spanish steps',
-  'machu picchu',
-  'ancient',
-  'cathedral',
-];
-
 const ADVENTUROUS_HINTS = [
   'hiking',
   'climb',
@@ -146,11 +120,6 @@ function preferredTier(budget?: string): number {
   return 2;
 }
 
-function looksFamous(name: string, description?: string): boolean {
-  const haystack = `${name} ${description ?? ''}`.toLowerCase();
-  return FAMOUS_LANDMARK_HINTS.some((hint) => haystack.includes(hint));
-}
-
 function looksAdventurous(item: { name: string; description?: string; category?: string; adventureLevel?: number }): boolean {
   if (typeof item.adventureLevel === 'number' && item.adventureLevel >= 7) return true;
   const haystack = `${item.name} ${item.description ?? ''} ${item.category ?? ''}`.toLowerCase();
@@ -168,11 +137,10 @@ export function scoreAttraction(
 
   // Activity-type match (e.g. user picked "museums" and attraction.category includes "museum")
   const activityTypes = (prefs.activityTypes || []).map((t) => t.toLowerCase());
-  const motivations = (prefs.travelMotivations || []).map((t) => t.toLowerCase());
   const cat = (attraction.category || '').toLowerCase();
   const desc = (attraction.description || '').toLowerCase();
 
-  for (const interest of [...activityTypes, ...motivations]) {
+  for (const interest of activityTypes) {
     if (cat.includes(interest) || desc.includes(interest)) score += 8;
   }
 
@@ -190,11 +158,6 @@ export function scoreAttraction(
     intentKw
   );
   score += intentHits * 18;
-
-  // Authenticity
-  const famous = looksFamous(attraction.name, attraction.description);
-  if (prefs.authenticityPreference === 'authentic_local' && famous) score -= 25;
-  if (prefs.authenticityPreference === 'popular_spots' && famous) score += 15;
 
   // Comfort zone vs adventurousness
   const adventurous = looksAdventurous(attraction);
@@ -219,43 +182,17 @@ export function scoreRestaurant(
 ): number {
   let score = 50;
 
-  // Cuisine match — biggest signal we have for restaurants
-  const userCuisines = (prefs.cuisinePreferences || []).map((c) => c.toLowerCase());
   const restCuisines = (restaurant.cuisine || []).map((c) => c.toLowerCase());
-
-  for (const wanted of userCuisines) {
-    for (const has of restCuisines) {
-      if (has.includes(wanted) || wanted.includes(has)) {
-        score += 12;
-      }
-    }
-  }
 
   score += themeWeight(restaurant) * 25;
 
-  // User-intent match — important for restaurants because the prompt often
-  // names a vibe ("ramen", "cocktail", "rooftop") that's not in quiz prefs.
+  // User-intent match — the only taste signal for restaurants now that the
+  // quiz is gone: the prompt names the vibe ("ramen", "cocktail", "rooftop").
   const intentHits = intentMatchScore(
     `${restaurant.name} ${restCuisines.join(' ')}`,
     intentKw
   );
   score += intentHits * 18;
-
-  // Special meta-cuisines from edit page (street_food, fine_dining)
-  if (userCuisines.includes('street_food')) {
-    const isStreet = restCuisines.some((c) =>
-      ['street', 'food truck', 'casual', 'market'].some((k) => c.includes(k))
-    );
-    if (isStreet) score += 15;
-  }
-  if (userCuisines.includes('fine_dining')) {
-    if (priceTier(restaurant.priceRange) >= 3) score += 12;
-  }
-
-  // Authenticity
-  const famous = looksFamous(restaurant.name);
-  if (prefs.authenticityPreference === 'authentic_local' && famous) score -= 20;
-  if (prefs.authenticityPreference === 'popular_spots' && famous) score += 8;
 
   // Budget
   const tierGap = Math.abs(priceTier(restaurant.priceRange) - preferredTier(prefs.budgetRange));
@@ -274,11 +211,10 @@ export function scoreActivity(
   let score = 50;
 
   const activityTypes = (prefs.activityTypes || []).map((t) => t.toLowerCase());
-  const motivations = (prefs.travelMotivations || []).map((t) => t.toLowerCase());
   const cat = (activity.category || '').toLowerCase();
   const desc = (activity.description || '').toLowerCase();
 
-  for (const interest of [...activityTypes, ...motivations]) {
+  for (const interest of activityTypes) {
     if (cat.includes(interest) || desc.includes(interest)) score += 8;
   }
 

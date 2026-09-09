@@ -111,8 +111,6 @@ describe('intentMatchScore — phrase-first matching', () => {
 describe('scoring on the model theme judgement', () => {
   const prefs = {
     activityTypes: [],
-    travelMotivations: [],
-    cuisinePreferences: [],
   } as unknown as UserPreferences;
 
   const attraction = (name: string, themeFit?: 'direct' | 'adjacent' | 'none') =>

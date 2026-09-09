@@ -17,17 +17,13 @@ import { UserPreferences } from '@/types/profile';
 const basePrefs: UserPreferences = {
   id: '',
   userId: '',
-  travelMotivations: [],
   planningStyle: 'structured_flexible',
-  authenticityPreference: 'balanced',
   timeRhythm: 'steady_daytime',
   comfortZone: 5,
   activityTypes: ['live music', 'bars', 'art'],
-  cuisinePreferences: ['japanese', 'ramen'],
   budgetRange: 'moderate',
   travelPace: 'moderate',
   socialPreferences: 'couple',
-  rawAnswers: {},
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -60,10 +56,9 @@ describe('buildRedditSearchQueries', () => {
     expect(q.activities).toContain('in Lisbon');
   });
 
-  it('folds in preference signals (interests, cuisines)', () => {
+  it('folds in the interest signal', () => {
     const q = buildRedditSearchQueries('NYC', basePrefs, '');
     expect(q.attractions).toContain('live music');
-    expect(q.restaurants).toContain('japanese');
   });
 
   it('collapses whitespace when intent is empty', () => {

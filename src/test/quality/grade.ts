@@ -69,11 +69,14 @@ export const START_DATE = '2026-09-14';
  * A deliberately middle-of-the-road traveller. The grader measures mechanical
  * correctness, which should hold for any profile; a distinctive profile would
  * just make the curated pool smaller and the grade noisier.
+ *
+ * `'culture'` used to live in the (now removed) `travelMotivations`, which
+ * `scoreAttraction`/`scoreActivity` spread into the same interest list as
+ * `activityTypes` — so folding it in here keeps this fixture scoring exactly
+ * as it did before that field was deleted.
  */
 export const GRADING_PREFERENCES = {
-  activityTypes: ['museums', 'food'],
-  cuisinePreferences: ['local'],
-  travelMotivations: ['culture'],
+  activityTypes: ['museums', 'food', 'culture'],
   budgetRange: 'moderate',
   travelPace: 'moderate',
   comfortZone: 5,

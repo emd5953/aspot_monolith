@@ -104,7 +104,6 @@ USER PREFERENCES:
 - Budget: ${preferences.budgetRange || 'moderate'}
 - Travel pace: ${preferences.travelPace || 'moderate'}
 - Interests: ${preferences.activityTypes?.join(', ') || 'general activities'}
-- Cuisines: ${preferences.cuisinePreferences?.join(', ') || 'local cuisine'}
 - Comfort zone: ${preferences.comfortZone || 5}/10
 
 AVAILABLE OPTIONS NOT USED:

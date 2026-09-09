@@ -3,26 +3,27 @@
  * keeps the `UserPreferences` shape the generation pipeline scores against,
  * plus the neutral default profile every generation now starts from.
  * "The prompt is the floor AND the steering wheel."
+ *
+ * Not DB-backed — migration 016 dropped `user_preferences`. Every generation
+ * builds one of these in memory via `defaultPreferencesFor`, so a field here
+ * only earns its place if something can actually vary it. The quiz-shaped
+ * fields (motivations, cuisines, authenticity, raw answers) were removed:
+ * nothing ever set them, so every branch reading them was a constant.
  */
 
 export interface UserPreferences {
   id: string;
   userId: string;
   // Personality traits
-  travelMotivations: string[];
   planningStyle: string;
-  authenticityPreference: string;
   timeRhythm: string;
   comfortZone: number;
   // Activity & interests
   activityTypes: string[];
-  cuisinePreferences: string[];
   // Practical preferences
   budgetRange: string;
   travelPace: string;
   socialPreferences: string;
-  // Legacy field kept for pipeline compatibility; always empty in Spotz.
-  rawAnswers: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,17 +32,13 @@ export interface UserPreferences {
 export const DEFAULT_PREFERENCES: UserPreferences = {
   id: 'default',
   userId: 'default',
-  travelMotivations: [],
   planningStyle: 'flexible',
-  authenticityPreference: 'local',
   timeRhythm: 'night_owl',
   comfortZone: 7,
   activityTypes: [],
-  cuisinePreferences: [],
   budgetRange: 'moderate',
   travelPace: 'moderate',
   socialPreferences: 'small_group',
-  rawAnswers: {},
   createdAt: new Date(0),
   updatedAt: new Date(0),
 };

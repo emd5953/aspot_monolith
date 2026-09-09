@@ -46,8 +46,6 @@ const item = (name: string, over: Partial<ScheduledItem> = {}): ScheduledItem =>
 
 const preferences = {
   activityTypes: [],
-  cuisinePreferences: [],
-  travelMotivations: [],
 } as unknown as UserPreferences;
 
 function research(extraNames: string[] = []): ResearchResult {
