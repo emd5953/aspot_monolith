@@ -130,7 +130,7 @@ export function RegenerateModal({ isOpen, onClose, onRegenerate }: RegenerateMod
         <div className="flex gap-3">
           <HandDrawnButton
             onClick={onClose}
-            variant="secondary"
+            variant="quiet"
             disabled={isRegenerating}
             className="flex-1"
           >

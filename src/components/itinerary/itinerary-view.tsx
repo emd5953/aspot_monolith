@@ -287,7 +287,7 @@ export function ItineraryView({
             {onDelete && (
               <HandDrawnButton
                 onClick={onDelete}
-                variant="secondary"
+                variant="quiet"
                 size="sm"
                 className="w-full justify-center gap-2 md:w-auto"
               >
@@ -297,7 +297,7 @@ export function ItineraryView({
             )}
             <HandDrawnButton
               onClick={handleShare}
-              variant="secondary"
+              variant="quiet"
               size="sm"
               className="w-full justify-center gap-2 md:w-auto"
             >

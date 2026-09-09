@@ -21,6 +21,16 @@
   --border-strong: rgba(11, 30, 60, 0.2);
   --halo: rgba(255, 255, 255, 0.85);
 
+  /* ——— Minimal UI pass ———
+     Paper mode: the flat surface used by every working screen (moves,
+     itinerary detail, profile). Cinematic routes (/ and /dashboard) keep the
+     video and ignore these. */
+  --surface-page: #f7f8fa;
+  --radius-card: 16px;
+  --shadow-card:
+    0 1px 2px rgba(11, 30, 60, 0.04),
+    0 8px 24px -16px rgba(11, 30, 60, 0.18);
+
   /* Sky band used on interior pages (paired with a subtle cloud layer). */
   --sky-top: #bcd6f5;
   --sky-mid: #d8e7f8;
@@ -43,6 +53,7 @@
   --color-surface-soft: var(--surface-soft);
   --color-surface-strong: var(--surface-strong);
   --color-border-strong: var(--border-strong);
+  --color-surface-page: var(--surface-page);
 
   --font-heading: var(--font-instrument-serif);
   --font-body: var(--font-inter);

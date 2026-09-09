@@ -133,7 +133,7 @@ export function EditDayModal({
             <HandDrawnButton
               type="button"
               onClick={onClose}
-              variant="secondary"
+              variant="quiet"
               disabled={isSubmitting}
               className="flex-1"
             >

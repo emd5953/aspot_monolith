@@ -133,7 +133,7 @@ export function DaySchedule({
           {onAddActivity && (
             <HandDrawnButton
               onClick={onAddActivity}
-              variant="secondary"
+              variant="quiet"
               size="sm"
               className="gap-2"
             >
