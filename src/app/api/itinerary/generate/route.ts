@@ -32,9 +32,6 @@ interface RunOptions {
  * Used both in the awaited fast path and the fire-and-forget deep path.
  */
 async function runGenerationPipeline(opts: RunOptions): Promise<GeneratedItinerary> {
-  const useTrulyAgentic = opts.mode === 'deep';
-  const useAdvancedCuration = opts.mode === 'deep';
-
   const itinerary = await generateItinerary(
     opts.supabase,
     {
@@ -48,8 +45,7 @@ async function runGenerationPipeline(opts: RunOptions): Promise<GeneratedItinera
       rawPrompt: opts.rawPrompt,
     },
     opts.preferences,
-    useTrulyAgentic,
-    useAdvancedCuration
+    opts.mode === 'deep'
   );
 
   // Only deep mode emails the user. Fast mode keeps them on-screen, so an
@@ -63,20 +59,21 @@ async function runGenerationPipeline(opts: RunOptions): Promise<GeneratedItinera
         destination: itinerary.destination || opts.destination,
         startDate: itinerary.startDate,
         endDate: itinerary.endDate,
-        days: itinerary.days.map((day) => ({
-          dayNumber: day.dayNumber,
-          date: day.date,
-          activities: (day.activities || []).map((act) => ({
-            title:
-              (act as unknown as { item?: { name?: string } }).item?.name ||
-              (act as unknown as { title?: string }).title ||
-              '',
-            locationName: (act as unknown as { item?: { address?: string } }).item?.address,
-            startTime: undefined,
-            endTime: undefined,
-            category: (act as unknown as { type?: string }).type || 'activity',
-          })),
-        })),
+        // One night, one list. The email's day shape survives as a single
+        // entry until the template itself is flattened.
+        days: [
+          {
+            dayNumber: 1,
+            date: itinerary.startDate,
+            activities: (itinerary.plans ?? []).map((plan) => ({
+              title: plan.name,
+              locationName: undefined,
+              startTime: undefined,
+              endTime: undefined,
+              category: plan.type,
+            })),
+          },
+        ],
         importantNotes: itinerary.importantNotes,
       });
     } catch (err) {
