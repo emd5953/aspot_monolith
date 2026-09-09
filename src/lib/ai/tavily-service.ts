@@ -515,7 +515,6 @@ export async function fetchDestinationDataWithPrefs(
 
   return {
     name: destination,
-    country: '', // Tavily doesn't reliably give us this; not used downstream
     description: '',
     attractions: verifiedAttractions,
     restaurants: verifiedRestaurants,

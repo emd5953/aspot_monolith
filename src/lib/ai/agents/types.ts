@@ -65,8 +65,6 @@ export interface ResearchResult {
   restaurants: RestaurantData[];
   activities: ActivityData[];
   localInsights: string[];
-  weatherInfo?: string;
-  bestTimeToVisit?: string;
   sources: string[];
 }
 

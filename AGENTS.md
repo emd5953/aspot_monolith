@@ -83,7 +83,7 @@ Spotz finds the Moves for tonight. Say the word — "date night in the Village, 
 - **Core principle:** the prompt is the floor AND the steering wheel — there is no quiz, no preference profile. The system never invents places or events; every candidate (web research or the Moves pool) carries provenance.
 - **The servers run UTC; the product is Eastern.** Anything reasoning about "tonight" goes through `src/lib/time/nyc.ts` — never `Date.prototype.setHours`, which resolves in the server's zone and is therefore correct on an Eastern laptop and wrong in production.
 - **Two modes, one pipeline:** Fast ("Plan it", streams on screen) and Deep ("Send it", background work + email). Same six steps: Understand → Discover → Rank → Plan → Critique → Persist.
-- **Migrations** live in `supabase/migrations/`. `src/types/profile.ts` holds the neutral default `UserPreferences` the pipeline scores against (no quiz feeds it). `src/test` holds fixtures/setup.
+- **Migrations** live in `supabase/migrations/`. Migration 016 dropped the pre-pivot tables (`trips`, `trip_members`, `quiz_progress`, `user_preferences`, notifications/rsvps/votes/suggestions), so `src/types/profile.ts` is an in-memory-only shape: it holds the neutral default `UserPreferences` the pipeline scores against, with no quiz-shaped fields and nothing that can vary it per user. `src/test` holds fixtures/setup.
 
 ### Verification
 

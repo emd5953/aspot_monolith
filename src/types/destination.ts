@@ -68,22 +68,13 @@ export interface ActivityOption {
   redditMentions?: number;
 }
 
-export interface WeatherInfo {
-  averageTemp: number;
-  climate: string;
-  bestMonths: string[];
-  rainyMonths: string[];
-}
-
 export interface DestinationData {
   name: string;
-  country: string;
   description: string;
   attractions: Attraction[];
   restaurants: Restaurant[];
   activities: ActivityOption[];
   localTips: string[];
-  weatherInfo?: WeatherInfo;
   /** Unique source URLs the research was extracted from (Tavily search hits). */
   sources: string[];
   fetchedAt: Date;
