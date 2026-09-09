@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { auditPlan } from './plan-audit';
-import type { ItineraryPlan, ResearchResult, ScheduledItem } from './types';
+import type { DayBasedPlan, ResearchResult, ScheduledItem } from './types';
 import type { WeeklyHours } from '@/lib/maps/place-verification';
 
 /**
@@ -19,7 +19,7 @@ const item = (name: string, over: Partial<ScheduledItem> = {}): ScheduledItem =>
   ...over,
 });
 
-function plan(days: Partial<ItineraryPlan['days'][number]>[]): ItineraryPlan {
+function plan(days: Partial<DayBasedPlan['days'][number]>[]): DayBasedPlan {
   return {
     destination: 'Testville',
     summary: 'test',

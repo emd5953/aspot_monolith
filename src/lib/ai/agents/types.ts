@@ -161,6 +161,36 @@ export interface PlanRequest {
   reviewIssues?: ReviewIssue[];
 }
 
+/**
+ * One stop in the Move-list: a real place or event the user could go to.
+ *
+ * Replaces `ScheduledItem`. The difference is `startsAt`: a scheduled item
+ * carried a `time` the planner made up, this carries the time the source
+ * published, or nothing. Spotz shows the real time or no time.
+ */
+export interface PlanItem {
+  name: string;
+  type: 'attraction' | 'restaurant' | 'activity' | 'transport' | 'free_time';
+  /**
+   * Real published start time (ISO 8601), stamped by the pipeline from the
+   * pool candidate this pick matched — never authored by the model. Absent
+   * means the source announced no time; such plans sort last.
+   */
+  startsAt?: string;
+  /** Real published end time (ISO 8601). Absent when unknown. */
+  endsAt?: string;
+  description?: string;
+  tips?: string;
+  matchScore?: number;
+  matchReasons?: string[];
+  /**
+   * Where this pick came from — `reddit` / `places` / `tavily` / `ai`. Stamped
+   * post-selection by matching the item name back to the research pool (see
+   * provenance.ts). The `matchReasons` carry the "why we picked this".
+   */
+  source?: ItemSource;
+}
+
 export interface DayPlan {
   dayNumber: number;
   date: string;
@@ -189,17 +219,42 @@ export interface ScheduledItem {
   source?: ItemSource;
 }
 
+/**
+ * A Spotz Move-list: one night, one flat ordered run of real places.
+ *
+ * `plans` is ordered by `startsAt` ascending, untimed last. That order is a
+ * seed, not a constraint — the user can reorder by hand afterwards and their
+ * order wins from then on.
+ *
+ * Both fields are optional ONLY during the days→plans migration: the new
+ * pipeline writes `plans`, the retiring day-based planner writes `days`, and
+ * M3 deletes the latter along with this comment. A plan always has exactly
+ * one of the two.
+ */
 export interface ItineraryPlan {
   destination: string;
   summary: string;
-  days: DayPlan[];
+  plans?: PlanItem[];
+  /** @deprecated Multi-day trip shape. Retires with the day-based planner. */
+  days?: DayPlan[];
   totalEstimatedCost: string;
   importantNotes?: string[];
 }
 
+/**
+ * An `ItineraryPlan` from the day-based planner, where `days` is guaranteed.
+ *
+ * @deprecated Scaffolding for the days→plans migration. It exists so the
+ * retiring day-based modules (planner, orchestrators, audit, repair) keep
+ * compiling against a non-optional `days` without each of them growing null
+ * checks that would be deleted days later. Delete this alias in M3 along with
+ * its last consumer.
+ */
+export type DayBasedPlan = Omit<ItineraryPlan, 'days'> & { days: DayPlan[] };
+
 // Reviewer Agent types
 export interface ReviewRequest {
-  plan: ItineraryPlan;
+  plan: DayBasedPlan;
   preferences: UserPreferences;
   research: ResearchResult;
   /** User focus / theme. Reviewer scores intent alignment when present. */
@@ -230,9 +285,9 @@ export interface OrchestrationState {
   maxIterations: number;
   agents: Record<AgentRole, AgentState>;
   research?: ResearchResult;
-  plan?: ItineraryPlan;
+  plan?: DayBasedPlan;
   review?: ReviewResult;
-  finalPlan?: ItineraryPlan;
+  finalPlan?: DayBasedPlan;
   logs: OrchestrationLog[];
 }
 

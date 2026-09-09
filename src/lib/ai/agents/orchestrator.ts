@@ -13,7 +13,7 @@
  */
 
 import { UserPreferences } from '@/types/profile';
-import { OrchestrationState, ItineraryPlan, ResearchResult, ActivityData } from './types';
+import { OrchestrationState, DayBasedPlan, ResearchResult, ActivityData } from './types';
 import { runResearchAgent } from './researcher';
 import { runPlannerAgent } from './planner';
 import { runReviewerAgent } from './reviewer';
@@ -38,7 +38,7 @@ export interface OrchestratorInput {
 
 export interface OrchestratorOutput {
   success: boolean;
-  plan?: ItineraryPlan;
+  plan?: DayBasedPlan;
   research?: ResearchResult;
   state: OrchestrationState;
   error?: string;
@@ -156,7 +156,7 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
     notify();
 
     // ========== PHASE 2: PLANNING WITH REVIEW LOOP ==========
-    let currentPlan: ItineraryPlan | undefined;
+    let currentPlan: DayBasedPlan | undefined;
     let approved = false;
 
     while (state.iteration < state.maxIterations && !approved) {

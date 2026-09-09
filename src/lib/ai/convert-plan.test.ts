@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { convertAgentPlanToDayPlans } from './itinerary-generator';
-import type { ItineraryPlan } from './agents/types';
+import type { DayBasedPlan } from './agents/types';
 
 /**
  * Regression guard for the generation core: the planner emits time-ordered
@@ -8,7 +8,7 @@ import type { ItineraryPlan } from './agents/types';
  * The converter must now stamp each activity with concrete start/end times.
  */
 
-const plan: ItineraryPlan = {
+const plan: DayBasedPlan = {
   destination: 'Tokyo',
   summary: 'A test trip',
   totalEstimatedCost: 'Varies',

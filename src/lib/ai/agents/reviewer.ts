@@ -12,7 +12,7 @@
 
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { ReviewRequest, ReviewResult, ReviewIssue, ItineraryPlan } from './types';
+import { ReviewRequest, ReviewResult, ReviewIssue, DayBasedPlan } from './types';
 import {
   ReviewSchema,
   ItineraryPlanSchema,
@@ -35,7 +35,7 @@ import { dedupeKey } from '../provenance';
  * pool entry named "Park" matched every item containing that substring (so real
  * alternatives were hidden from the reviewer).
  */
-export function plannedVenueKeys(plan: ItineraryPlan): Set<string> {
+export function plannedVenueKeys(plan: DayBasedPlan): Set<string> {
   const keys = new Set<string>();
   for (const day of plan.days ?? []) {
     for (const item of [
@@ -216,10 +216,10 @@ given, clearly serves it).`;
  * any of the planner's post-processing.
  */
 export async function reviseItineraryPlan(
-  originalPlan: ItineraryPlan,
+  originalPlan: DayBasedPlan,
   issues: ReviewIssue[],
   preferences: { activityTypes: string[]; budgetRange: string; travelPace: string }
-): Promise<ItineraryPlan | undefined> {
+): Promise<DayBasedPlan | undefined> {
   const revisionPrompt = `Revise this itinerary to fix the identified issues.
 
 ORIGINAL PLAN:
@@ -254,7 +254,7 @@ works — change only what the issues call for.`;
     // schemas/plan.ts), so coerce them onto the pipeline's contract here.
     const normalizeItems = (
       items: (typeof object.days)[number]['morning']
-    ): ItineraryPlan['days'][number]['morning'] =>
+    ): DayBasedPlan['days'][number]['morning'] =>
       (items ?? [])
         .filter((item) => typeof item?.name === 'string' && item.name.trim().length > 1)
         .map((item) => ({

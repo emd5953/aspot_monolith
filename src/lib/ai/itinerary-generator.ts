@@ -18,7 +18,7 @@ import { UserPreferences, defaultPreferencesFor } from '@/types/profile';
 import { fetchDestinationData } from './tavily-service';
 import { runOrchestrator, OrchestratorOutput } from './agents/orchestrator';
 import { runAgenticOrchestrator, AgenticOrchestratorOutput } from './agents/agentic-orchestrator';
-import { ItineraryPlan, ScheduledItem, ResearchResult, ActivityData } from './agents/types';
+import { DayBasedPlan, ScheduledItem, ResearchResult, ActivityData } from './agents/types';
 import { calendarDateOf, nycNightWindow } from '@/lib/time/nyc';
 import { getTonightPool } from '@/lib/sources/pool-service';
 import { poolRowsToActivities } from './pool-events';
@@ -367,7 +367,7 @@ function buildResearchProvenanceIndex(research?: ResearchResult) {
 }
 
 /**
- * Convert multi-agent ItineraryPlan to our DayPlan format.
+ * Convert multi-agent DayBasedPlan to our DayPlan format.
  *
  * `research` is the pool the plan was built from; we use it to stamp each
  * item's provenance (reddit/places/tavily, or `ai` when the planner named
@@ -375,7 +375,7 @@ function buildResearchProvenanceIndex(research?: ResearchResult) {
  * items — honor that first.
  */
 export function convertAgentPlanToDayPlans(
-  plan: ItineraryPlan,
+  plan: DayBasedPlan,
   startDate: Date,
   research?: ResearchResult
 ): DayPlan[] {

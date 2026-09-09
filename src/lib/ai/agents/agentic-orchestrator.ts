@@ -12,7 +12,7 @@ import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { UserPreferences } from '@/types/profile';
-import { OrchestrationState, ItineraryPlan, ResearchResult, ReviewIssue, ActivityData } from './types';
+import { OrchestrationState, DayBasedPlan, ResearchResult, ReviewIssue, ActivityData } from './types';
 import { runAgenticResearcher } from './agentic-researcher';
 import { runAgenticPlanner, removeCrossDayDuplicates } from './agentic-planner';
 import { runReviewerAgent, reviseItineraryPlan } from './reviewer';
@@ -52,7 +52,7 @@ export interface AgenticOrchestratorInput {
 
 export interface AgenticOrchestratorOutput {
   success: boolean;
-  plan?: ItineraryPlan;
+  plan?: DayBasedPlan;
   research?: ResearchResult;
   finalScore: number;
   iterations: number;
@@ -318,7 +318,7 @@ export async function runAgenticOrchestrator(
     timestamp: new Date(),
   })));
 
-  let currentPlan: ItineraryPlan | undefined;
+  let currentPlan: DayBasedPlan | undefined;
   let reviewIssues: ReviewIssue[] = [];
 
   // PHASE 2: ITERATIVE PLANNING WITH ADAPTIVE STOPPING
@@ -481,7 +481,7 @@ export async function runAgenticOrchestrator(
         // reaches `new Date(day.date)` at persist time and fails the whole
         // generation after every model call has already been paid for.
         const byIndex = currentPlan.days;
-        const restamped: ItineraryPlan = {
+        const restamped: DayBasedPlan = {
           ...revised,
           days: removeCrossDayDuplicates(revised.days).days.map((day, i) => ({
             ...day,
@@ -507,7 +507,7 @@ export async function runAgenticOrchestrator(
         // holds less: a revision that quietly drops two days audits clean and
         // would otherwise always win. Coverage is not negotiable — a shorter
         // trip than the user asked for is never an improvement.
-        const countItems = (p: ItineraryPlan) =>
+        const countItems = (p: DayBasedPlan) =>
           p.days.reduce(
             (n, d) =>
               n + (d.morning?.length ?? 0) + (d.afternoon?.length ?? 0) + (d.evening?.length ?? 0),

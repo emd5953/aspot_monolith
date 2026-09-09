@@ -31,7 +31,7 @@ import {
 import { auditPlan } from '@/lib/ai/agents/plan-audit';
 import { repairPlan } from '@/lib/ai/agents/plan-repair';
 import { curateResearchByPreferences } from '@/lib/preferences/score-research';
-import type { ItineraryPlan, ResearchResult } from '@/lib/ai/agents/types';
+import type { DayBasedPlan, ResearchResult } from '@/lib/ai/agents/types';
 import type { UserPreferences } from '@/types/profile';
 
 /**
@@ -108,14 +108,14 @@ export function poolNames(): string[] {
   return Object.keys(POOLS).sort();
 }
 
-function countItems(plan: ItineraryPlan): number {
+function countItems(plan: DayBasedPlan): number {
   return plan.days.reduce(
     (n, d) => n + d.morning.length + d.afternoon.length + d.evening.length,
     0
   );
 }
 
-function countEmptyBuckets(plan: ItineraryPlan): number {
+function countEmptyBuckets(plan: DayBasedPlan): number {
   return plan.days.reduce(
     (n, d) =>
       n +
@@ -155,7 +155,7 @@ export function gradePool(name: string): Grade {
     };
   });
 
-  const plan: ItineraryPlan = {
+  const plan: DayBasedPlan = {
     destination: curated.destination,
     summary: `${TRIP_DAYS}-day graded plan`,
     totalEstimatedCost: '$$',

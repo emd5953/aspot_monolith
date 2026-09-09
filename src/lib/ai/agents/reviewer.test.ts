@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ItineraryPlan, ResearchResult, ScheduledItem } from './types';
+import type { DayBasedPlan, ResearchResult, ScheduledItem } from './types';
 import { dedupeKey } from '../provenance';
 
 /**
@@ -28,7 +28,7 @@ const item = (name: string, over: Partial<ScheduledItem> = {}): ScheduledItem =>
 });
 
 /** Two clean days, no mechanical faults for the audit to find. */
-function cleanPlan(): ItineraryPlan {
+function cleanPlan(): DayBasedPlan {
   return {
     destination: 'Testville',
     summary: 'test',
@@ -52,7 +52,7 @@ function cleanPlan(): ItineraryPlan {
 }
 
 /** The Nashville failure: the same venue on two consecutive days. */
-function duplicateVenuePlan(): ItineraryPlan {
+function duplicateVenuePlan(): DayBasedPlan {
   const plan = cleanPlan();
   plan.days[1].morning = [item('The Bluebird Cafe')];
   plan.days[0].morning = [item('Bluebird Cafe')];
@@ -82,7 +82,7 @@ const preferences = {
   travelPace: 'moderate',
 } as never;
 
-const req = (plan: ItineraryPlan) => ({
+const req = (plan: DayBasedPlan) => ({
   plan,
   preferences,
   research: research(

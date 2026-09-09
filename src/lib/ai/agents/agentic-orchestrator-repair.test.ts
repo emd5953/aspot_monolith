@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ItineraryPlan, ResearchResult, ScheduledItem } from './types';
+import type { DayBasedPlan, ResearchResult, ScheduledItem } from './types';
 import type { UserPreferences } from '@/types/profile';
 
 /**
@@ -74,7 +74,7 @@ function research(extraNames: string[] = []): ResearchResult {
 }
 
 /** One day, deliberately faulty: backwards morning and an empty afternoon. */
-function faultyPlan(): ItineraryPlan {
+function faultyPlan(): DayBasedPlan {
   return {
     destination: 'Testville',
     summary: 'test',
@@ -95,7 +95,7 @@ function faultyPlan(): ItineraryPlan {
 }
 
 /** The plan the reviewer was actually handed. */
-function reviewedPlan(): ItineraryPlan {
+function reviewedPlan(): DayBasedPlan {
   return runReviewerAgent.mock.calls[0][0].plan;
 }
 

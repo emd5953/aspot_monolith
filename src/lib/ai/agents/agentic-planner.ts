@@ -24,7 +24,7 @@ import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import {
   PlanRequest,
-  ItineraryPlan,
+  DayBasedPlan,
   DayPlan,
   ScheduledItem,
   ReviewIssue,
@@ -396,7 +396,7 @@ export function removeCrossDayDuplicates(days: DayPlan[]): {
 // ─── Public entry point ────────────────────────────────────────────────────
 
 export async function runAgenticPlanner(request: PlanRequest): Promise<{
-  plan: ItineraryPlan;
+  plan: DayBasedPlan;
   thoughts: string[];
   reasoningSteps: ReasoningStep[];
   /**
@@ -571,7 +571,7 @@ export async function runAgenticPlanner(request: PlanRequest): Promise<{
     )} total activities`,
   });
 
-  const plan: ItineraryPlan = {
+  const plan: DayBasedPlan = {
     destination: research.destination,
     summary: `${tripDays}-day trip to ${research.destination}`,
     days,

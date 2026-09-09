@@ -28,7 +28,7 @@
  * the caller can re-audit and show its work.
  */
 
-import { ItineraryPlan, ResearchResult, ScheduledItem, DayPlan } from './types';
+import { DayBasedPlan, ResearchResult, ScheduledItem, DayPlan } from './types';
 import { dedupeKey } from '../provenance';
 import { refillBucket, type DayPool } from './pool-partition';
 import { isOpenAt, type WeeklyHours } from '@/lib/maps/place-verification';
@@ -42,7 +42,7 @@ import {
 } from './theme';
 
 export interface RepairResult {
-  plan: ItineraryPlan;
+  plan: DayBasedPlan;
   /** Human-readable log of every change, for the orchestrator's thought trail. */
   repairs: string[];
 }
@@ -190,7 +190,7 @@ export function findOpenBucket(
  * can never introduce the duplicate it was called to remove.
  */
 export function repairPlan(
-  plan: ItineraryPlan,
+  plan: DayBasedPlan,
   research: ResearchResult,
   pools: DayPool[],
   userIntent?: string

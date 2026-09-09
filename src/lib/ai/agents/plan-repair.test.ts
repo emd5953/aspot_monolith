@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { repairPlan, sortBucketChronologically } from './plan-repair';
-import type { ItineraryPlan, ResearchResult, ScheduledItem } from './types';
+import type { DayBasedPlan, ResearchResult, ScheduledItem } from './types';
 import type { DayPool } from './pool-partition';
 import type { WeeklyHours } from '@/lib/maps/place-verification';
 
@@ -19,7 +19,7 @@ const item = (name: string, over: Partial<ScheduledItem> = {}): ScheduledItem =>
 });
 
 /** 2026-09-14 is a Monday, so day 1 of this fixture is a Monday. */
-function plan(days: Partial<ItineraryPlan['days'][number]>[]): ItineraryPlan {
+function plan(days: Partial<DayBasedPlan['days'][number]>[]): DayBasedPlan {
   return {
     destination: 'Testville',
     summary: 'test',

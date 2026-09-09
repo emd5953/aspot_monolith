@@ -16,7 +16,7 @@
  * Pure and I/O-free — every check is unit-testable without a model call.
  */
 
-import { ItineraryPlan, ResearchResult, ReviewIssue, ScheduledItem } from './types';
+import { DayBasedPlan, ResearchResult, ReviewIssue, ScheduledItem } from './types';
 import { dedupeKey } from '../provenance';
 import { haversineKm, LatLng } from '@/lib/itinerary/geo';
 import { isOpenAt, type WeeklyHours } from '@/lib/maps/place-verification';
@@ -187,7 +187,7 @@ function buildPoolKeys(research: ResearchResult): Set<string> {
   return keys;
 }
 
-function dayItems(day: ItineraryPlan['days'][number]): ScheduledItem[] {
+function dayItems(day: DayBasedPlan['days'][number]): ScheduledItem[] {
   return [...(day.morning ?? []), ...(day.afternoon ?? []), ...(day.evening ?? [])];
 }
 
@@ -218,7 +218,7 @@ function centroid(points: LatLng[]): LatLng | null {
  * tavily-service.)
  */
 export function auditPlan(
-  plan: ItineraryPlan,
+  plan: DayBasedPlan,
   research: ResearchResult,
   userIntent?: string
 ): PlanAudit {

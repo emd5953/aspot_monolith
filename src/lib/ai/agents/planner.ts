@@ -13,7 +13,7 @@
 
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { PlanRequest, ItineraryPlan, DayPlan, ScheduledItem } from './types';
+import { PlanRequest, DayBasedPlan, DayPlan, ScheduledItem } from './types';
 import { ItineraryPlanSchema } from '../schemas/plan';
 
 /**
@@ -23,11 +23,11 @@ import { ItineraryPlanSchema } from '../schemas/plan';
  */
 export async function runPlannerAgent(
   request: PlanRequest & {
-    previousPlan?: ItineraryPlan;
+    previousPlan?: DayBasedPlan;
     feedback?: Array<{ issue: string; suggestion: string }>;
   }
 ): Promise<{
-  plan: ItineraryPlan;
+  plan: DayBasedPlan;
   thoughts: string[];
 }> {
   const {
@@ -226,7 +226,7 @@ will recompute calendar dates for each day, so don't worry about getting them pe
     days.push(makeFallbackDay(idx + 1, dayDate, research));
   }
 
-  const plan: ItineraryPlan = {
+  const plan: DayBasedPlan = {
     destination: research.destination,
     summary:
       object.summary ||
