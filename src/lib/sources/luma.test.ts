@@ -73,7 +73,20 @@ const ENTRIES = [
 ];
 
 const PAGE_ONE = { entries: ENTRIES, has_more: true, next_cursor: 'cursor-page-2' };
-const PAGE_TWO = { entries: [ENTRIES[0]], has_more: false, next_cursor: null };
+// A distinct entry, not a repeat of page one: the connector dedupes by
+// api_id, so reusing ENTRIES[0] here would measure deduplication rather than
+// pagination.
+const PAGE_TWO_ENTRY = makeEntry({
+  event: {
+    api_id: 'evt-page2-4',
+    name: 'Late Set in Bushwick',
+    start_at: '2026-09-16T23:00:00.000Z',
+    end_at: '2026-09-17T03:00:00.000Z',
+    url: 'late-set-bushwick',
+  },
+});
+
+const PAGE_TWO = { entries: [PAGE_TWO_ENTRY], has_more: false, next_cursor: null };
 
 describe('lumaSource', () => {
   beforeEach(() => {
@@ -137,8 +150,14 @@ describe('lumaSource', () => {
   });
 
   it('caps pagination at 6 pages', async () => {
-    const endless = { entries: [ENTRIES[0]], has_more: true, next_cursor: 'c' };
-    mockedFetch.mockImplementation(async () => endless);
+    // A unique entry per page — identical entries would be deduped and this
+    // would measure dedupe instead of the page cap.
+    let page = 0;
+    mockedFetch.mockImplementation(async () => ({
+      entries: [makeEntry({ event: { api_id: `evt-page-${page++}`, name: 'Endless' } })],
+      has_more: true,
+      next_cursor: 'c',
+    }));
 
     const candidates = await lumaSource.fetchCandidates();
     expect(mockedFetch).toHaveBeenCalledTimes(6);
@@ -153,5 +172,62 @@ describe('lumaSource', () => {
 
     const url = new URL(mockedFetch.mock.calls[0][0]);
     expect(url.searchParams.get('discover_place_api_id')).toBe('discplace-custom');
+  });
+
+  it('dedupes an api_id repeated across pages', async () => {
+    // Luma repeats entries; two rows with the same (source, source_id) make
+    // Postgres reject the whole upsert, losing the entire batch.
+    const dupe = makeEntry({ event: { api_id: 'evt-dupe', name: 'Repeated' } });
+    mockedFetch
+      .mockResolvedValueOnce({ entries: [dupe], has_more: true, next_cursor: 'c1' })
+      .mockResolvedValueOnce({ entries: [dupe], has_more: false });
+
+    const candidates = await lumaSource.fetchCandidates();
+
+    expect(candidates.filter((c) => c.sourceId === 'evt-dupe')).toHaveLength(1);
+  });
+
+  it('keeps earlier pages when a later page throws', async () => {
+    mockedFetch
+      .mockResolvedValueOnce({
+        entries: [makeEntry({ event: { api_id: 'evt-kept', name: 'Kept' } })],
+        has_more: true,
+        next_cursor: 'c1',
+      })
+      .mockRejectedValueOnce(new Error('503 from Luma'));
+
+    const candidates = await lumaSource.fetchCandidates();
+
+    expect(candidates.map((c) => c.sourceId)).toContain('evt-kept');
+  });
+
+  it('returns nothing when the source is disabled', async () => {
+    process.env.SOURCE_LUMA_ENABLED = 'false';
+
+    const candidates = await lumaSource.fetchCandidates();
+
+    expect(candidates).toEqual([]);
+    expect(mockedFetch).not.toHaveBeenCalled();
+    delete process.env.SOURCE_LUMA_ENABLED;
+  });
+
+  it('normalizes an off-format start_at instead of dropping the whole event', async () => {
+    // RawCandidateSchema requires an offset; a bare local timestamp would fail
+    // the safeParse of the entire candidate, not just its date.
+    mockedFetch.mockResolvedValueOnce({
+      entries: [
+        makeEntry({
+          event: { api_id: 'evt-loose', name: 'Loose Date', start_at: '2026-09-10 18:00:00Z' },
+        }),
+      ],
+      has_more: false,
+    });
+
+    const candidates = await lumaSource.fetchCandidates();
+
+    expect(candidates.map((c) => c.sourceId)).toContain('evt-loose');
+    expect(candidates.find((c) => c.sourceId === 'evt-loose')?.startsAt).toBe(
+      '2026-09-10T18:00:00.000Z'
+    );
   });
 });
