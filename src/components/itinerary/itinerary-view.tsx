@@ -58,7 +58,6 @@ interface Itinerary {
   endDate: Date;
   status: string;
   days: Day[];
-  packingTips?: string[];
   importantNotes?: string[];
   budgetRange?: string;
 }
@@ -343,39 +342,21 @@ export function ItineraryView({
         />
       </Card>
 
-      {/* Before you go — packing tips + important notes from the planner */}
-      {((itinerary.packingTips?.length ?? 0) > 0 ||
-        (itinerary.importantNotes?.length ?? 0) > 0) && (
+      {/* Good to know — notes from the planner */}
+      {(itinerary.importantNotes?.length ?? 0) > 0 && (
         <Card
-          className="animate-fade-up grid gap-6 p-5 md:grid-cols-2 md:p-6"
+          className="animate-fade-up p-5 md:p-6"
           style={{ animationDelay: '0.08s' }}
         >
-          {(itinerary.packingTips?.length ?? 0) > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-[color:var(--ink-muted)]">Packing tips</h3>
-              <ul className="mt-3 space-y-1.5 text-sm text-[color:var(--ink-muted)]">
-                {itinerary.packingTips!.map((tip, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span aria-hidden>🧳</span>
-                    <span>{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {(itinerary.importantNotes?.length ?? 0) > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-[color:var(--ink-muted)]">Good to know</h3>
-              <ul className="mt-3 space-y-1.5 text-sm text-[color:var(--ink-muted)]">
-                {itinerary.importantNotes!.map((note, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span aria-hidden>📌</span>
-                    <span>{note}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <h3 className="text-sm font-medium text-[color:var(--ink-muted)]">Good to know</h3>
+          <ul className="mt-3 space-y-1.5 text-sm text-[color:var(--ink-muted)]">
+            {itinerary.importantNotes!.map((note, i) => (
+              <li key={i} className="flex gap-2">
+                <span aria-hidden>📌</span>
+                <span>{note}</span>
+              </li>
+            ))}
+          </ul>
         </Card>
       )}
 

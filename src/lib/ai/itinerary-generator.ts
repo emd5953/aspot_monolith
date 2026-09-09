@@ -114,8 +114,7 @@ export interface GeneratedItinerary {
   days: DayPlan[];
   status: 'draft' | 'active' | 'completed' | 'archived';
   createdAt: Date;
-  /** "Before you go" content from the planner. Empty on the local fallback path. */
-  packingTips?: string[];
+  /** "Good to know" content from the planner. Empty on the local fallback path. */
   importantNotes?: string[];
   /** Traveler budget tier (from the preferences snapshot) — drives budget-fit. */
   budgetRange?: string;
@@ -166,7 +165,6 @@ export interface StoredItinerary {
   days: StoredDay[];
   status: GeneratedItinerary['status'];
   createdAt: Date;
-  packingTips?: string[];
   importantNotes?: string[];
   budgetRange?: string;
 }
@@ -217,9 +215,8 @@ export async function generateItinerary(
   }
 
   let dayPlans: DayPlan[];
-  // Plan-level "before you go" content. Only the agentic plans produce these;
+  // Plan-level "good to know" content. Only the agentic plans produce these;
   // the local fallback leaves them empty.
-  let packingTips: string[] = [];
   let importantNotes: string[] = [];
   let orchestratorResult: OrchestratorOutput | AgenticOrchestratorOutput | undefined;
 
@@ -267,7 +264,6 @@ export async function generateItinerary(
 
       if (agenticResult.success && agenticResult.plan) {
         dayPlans = convertAgentPlanToDayPlans(agenticResult.plan, startDate, agenticResult.research);
-        packingTips = agenticResult.plan.packingTips ?? [];
         importantNotes = agenticResult.plan.importantNotes ?? [];
         
         console.log('Truly Agentic orchestration complete');
@@ -324,7 +320,6 @@ export async function generateItinerary(
 
       if (orchestratorResult.success && orchestratorResult.plan) {
         dayPlans = convertAgentPlanToDayPlans(orchestratorResult.plan, startDate, orchestratorResult.research);
-        packingTips = orchestratorResult.plan.packingTips ?? [];
         importantNotes = orchestratorResult.plan.importantNotes ?? [];
         
         console.log('Classic Multi-Agent orchestration complete!');
@@ -352,7 +347,6 @@ export async function generateItinerary(
     endDate,
     dayPlans,
     preferences,
-    packingTips,
     importantNotes,
   });
 }
@@ -668,12 +662,10 @@ async function saveItineraryToDatabase(
     endDate: Date;
     dayPlans: DayPlan[];
     preferences: UserPreferences;
-    packingTips?: string[];
     importantNotes?: string[];
   }
 ): Promise<GeneratedItinerary> {
   const { userId, title, destination, startDate, endDate, dayPlans, preferences } = data;
-  const packingTips = data.packingTips ?? [];
   const importantNotes = data.importantNotes ?? [];
 
   // Spotz: one active itinerary per user. Archive whatever was active/draft
@@ -709,14 +701,14 @@ async function saveItineraryToDatabase(
   // Persist "before you go" content as a best-effort follow-up UPDATE rather
   // than in the insert above: the columns (migration 014) may not be applied
   // yet, and we must never let that fail the critical itinerary insert.
-  if (packingTips.length > 0 || importantNotes.length > 0) {
+  if (importantNotes.length > 0) {
     const { error: tipsError } = await supabase
       .from('itineraries')
-      .update({ packing_tips: packingTips, important_notes: importantNotes })
+      .update({ important_notes: importantNotes })
       .eq('id', itinerary.id);
     if (tipsError) {
       console.warn(
-        '[itinerary] packing_tips/important_notes not persisted (apply migration 014):',
+        '[itinerary] important_notes not persisted (apply migration 014):',
         tipsError.message
       );
     }
@@ -774,7 +766,6 @@ async function saveItineraryToDatabase(
     days: dayPlans,
     status: itinerary.status,
     createdAt: new Date(itinerary.created_at),
-    packingTips,
     importantNotes,
   };
 }
@@ -841,7 +832,6 @@ export async function getItinerary(
     days,
     status: itinerary.status,
     createdAt: new Date(itinerary.created_at),
-    packingTips: itinerary.packing_tips ?? [],
     importantNotes: itinerary.important_notes ?? [],
     budgetRange: itinerary.preferences_snapshot?.budgetRange,
   };

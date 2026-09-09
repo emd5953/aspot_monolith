@@ -60,21 +60,17 @@ describe('buildItineraryEmailHtml', () => {
     expect(html).toContain('abc&quot;onmouseover=&quot;x');
   });
 
-  it('renders packing tips + important notes (escaped) when present', () => {
+  it('renders important notes (escaped) when present', () => {
     const html = buildItineraryEmailHtml({
       ...data,
-      packingTips: ['Umbrella & layers', 'Comfy shoes'],
       importantNotes: ['Cash-only <spots>'],
     });
-    expect(html).toContain('Before you head out');
-    expect(html).toContain('Umbrella &amp; layers');
     expect(html).toContain('Good to know');
     expect(html).toContain('Cash-only &lt;spots&gt;');
   });
 
-  it('omits the before-you-go section entirely when there are no tips', () => {
-    const html = buildItineraryEmailHtml(data); // no packingTips/importantNotes
-    expect(html).not.toContain('Before you head out');
+  it('omits the good-to-know section entirely when there are no notes', () => {
+    const html = buildItineraryEmailHtml(data); // no importantNotes
     expect(html).not.toContain('Good to know');
   });
 });

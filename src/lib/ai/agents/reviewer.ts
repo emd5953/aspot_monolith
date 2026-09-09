@@ -281,7 +281,6 @@ works — change only what the issues call for.`;
         estimatedCost: day.estimatedCost ?? 'Varies',
       })),
       totalEstimatedCost: object.totalEstimatedCost ?? 'Varies',
-      packingTips: object.packingTips ?? [],
       importantNotes: object.importantNotes ?? [],
     };
   } catch (error) {

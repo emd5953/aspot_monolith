@@ -203,7 +203,6 @@ export const ItineraryPlanSchema = z.object({
     .min(1)
     .describe('One entry per trip day, in order.'),
   totalEstimatedCost: z.string().optional().default('Varies'),
-  packingTips: z.array(z.string()).optional().default([]),
   importantNotes: z.array(z.string()).optional().default([]),
 });
 

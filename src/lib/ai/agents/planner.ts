@@ -233,7 +233,6 @@ will recompute calendar dates for each day, so don't worry about getting them pe
       `${tripDuration}-day adventure in ${research.destination}`,
     days,
     totalEstimatedCost: object.totalEstimatedCost ?? 'Varies by choices',
-    packingTips: object.packingTips ?? [],
     importantNotes: object.importantNotes ?? [],
   };
 

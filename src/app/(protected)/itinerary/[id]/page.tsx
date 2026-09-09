@@ -41,7 +41,6 @@ interface Itinerary {
   endDate: Date;
   status: string;
   days: Day[];
-  packingTips?: string[];
   importantNotes?: string[];
   budgetRange?: string;
 }

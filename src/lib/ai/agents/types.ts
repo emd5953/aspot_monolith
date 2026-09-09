@@ -181,7 +181,6 @@ export interface ItineraryPlan {
   summary: string;
   days: DayPlan[];
   totalEstimatedCost: string;
-  packingTips?: string[];
   importantNotes?: string[];
 }
 
