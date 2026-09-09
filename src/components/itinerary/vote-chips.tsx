@@ -39,16 +39,24 @@ export function VoteChips({ planId, initialUp, initialDown, myVote }: VoteChipsP
       setDown(down + 1);
     }
 
+    const revert = () => {
+      setUp(prev.up);
+      setDown(prev.down);
+      setVote(prev.vote);
+    };
+
     fetch(`/api/plans/${planId}/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ vote: nextVote }),
-    }).catch(() => {
-      // Revert on failure
-      setUp(prev.up);
-      setDown(prev.down);
-      setVote(prev.vote);
-    });
+    })
+      // `fetch` only rejects on a network error, so an expired session (401)
+      // or a server error resolved normally and left the count visibly
+      // incremented — and aria-pressed set — while nothing was persisted.
+      .then((res) => {
+        if (!res.ok) revert();
+      })
+      .catch(revert);
   };
 
   const chip = (dir: 1 | -1, count: number, active: boolean, label: string) => (

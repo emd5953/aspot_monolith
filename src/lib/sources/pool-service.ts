@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { nycDate, nycTimeToUtc } from '@/lib/time/nyc';
 import { RawCandidate, isInNyc } from './types';
 
 /**
@@ -142,14 +143,10 @@ export async function getTonightPool(
   opts: TonightPoolOptions = {}
 ): Promise<PoolCandidateRow[]> {
   const from = opts.from ?? new Date();
-  const to =
-    opts.to ??
-    (() => {
-      const t = new Date(from);
-      t.setDate(t.getDate() + 1);
-      t.setHours(6, 0, 0, 0);
-      return t;
-    })();
+  // 6am NYC the morning after `from`'s NYC date. Anchored to America/New_York
+  // on purpose: setHours() would use the server's zone, and on Vercel (UTC)
+  // that makes "6am" 1am ET, cutting five hours off the night.
+  const to = opts.to ?? nycTimeToUtc(nycDate(from), 30);
 
   const { data, error } = await supabase
     .from('candidate_events')

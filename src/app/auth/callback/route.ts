@@ -4,7 +4,14 @@ import { createClient } from '@/lib/supabase/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/dashboard';
+  // Same-origin paths only. The value comes from a query string (see the
+  // /s/<code> share flow), so an absolute or protocol-relative URL here would
+  // be an open redirect.
+  const requestedNext = searchParams.get('next');
+  const next =
+    requestedNext && requestedNext.startsWith('/') && !requestedNext.startsWith('//')
+      ? requestedNext
+      : '/dashboard';
 
   console.log('Auth callback hit:', { code: !!code, origin, next });
 

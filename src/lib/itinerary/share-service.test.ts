@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getVoteCounts } from './share-service';
+import { canVoteOnPlan, getVoteCounts } from './share-service';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /** Minimal supabase stub for the vote-tally read path. */
@@ -40,5 +40,45 @@ describe('getVoteCounts', () => {
     const supabase = stubSupabase([{ plan_id: 'other', user_id: 'x', vote: 1 }]);
     const counts = await getVoteCounts(supabase, ['p1']);
     expect(counts).toEqual([{ planId: 'p1', up: 0, down: 0 }]);
+  });
+});
+
+describe('canVoteOnPlan', () => {
+  function stubPlan(row: unknown) {
+    return {
+      from: () => ({
+        select: () => ({
+          eq: () => ({ maybeSingle: async () => ({ data: row, error: null }) }),
+        }),
+      }),
+    } as unknown as Parameters<typeof canVoteOnPlan>[0];
+  }
+
+  it('allows the itinerary owner', async () => {
+    const db = stubPlan({
+      id: 'p1',
+      itinerary_days: [{ itineraries: [{ user_id: 'me', share_code: null }] }],
+    });
+    expect(await canVoteOnPlan(db, 'p1', 'me')).toBe(true);
+  });
+
+  it('allows a friend once the itinerary has been shared', async () => {
+    const db = stubPlan({
+      id: 'p1',
+      itinerary_days: [{ itineraries: [{ user_id: 'owner', share_code: 'abc123' }] }],
+    });
+    expect(await canVoteOnPlan(db, 'p1', 'friend')).toBe(true);
+  });
+
+  it('refuses a stranger on an unshared itinerary', async () => {
+    const db = stubPlan({
+      id: 'p1',
+      itinerary_days: [{ itineraries: [{ user_id: 'owner', share_code: null }] }],
+    });
+    expect(await canVoteOnPlan(db, 'p1', 'stranger')).toBe(false);
+  });
+
+  it('refuses an unknown plan id', async () => {
+    expect(await canVoteOnPlan(stubPlan(null), 'nope', 'me')).toBe(false);
   });
 });

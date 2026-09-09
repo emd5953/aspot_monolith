@@ -24,6 +24,20 @@ const MAX_PAGES = 6;
 
 type Entry = Record<string, any>;
 
+/**
+ * ISO-with-offset, matching `RawCandidateSchema`'s strict
+ * `z.string().datetime({ offset: true })`. Luma's raw `start_at` is not always
+ * in that shape, and because the whole candidate is safeParse'd as one object,
+ * one off-format timestamp would drop the entire event rather than just its
+ * date. Posh and Partiful normalize first for the same reason.
+ */
+function toIso(value: unknown): string | undefined {
+  const s = asString(value);
+  if (!s) return undefined;
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
 /** Fields may sit directly on the entry or one level down under `event`. */
 function pick(entry: Entry, key: string): any {
   const event = entry.event;
@@ -109,8 +123,8 @@ function normalizeEntry(entry: Entry): RawCandidate | null {
     sourceUrl: toLumaUrl(pick(entry, 'url')),
     title,
     description: asString(pick(entry, 'description')),
-    startsAt: asString(pick(entry, 'start_at')),
-    endsAt: asString(pick(entry, 'end_at')),
+    startsAt: toIso(pick(entry, 'start_at')),
+    endsAt: toIso(pick(entry, 'end_at')),
     venueName: venueFromGeoInfo(entry.geo_address_info),
     lat,
     lng,
@@ -132,9 +146,16 @@ export const lumaSource: EventSource = {
   },
 
   async fetchCandidates(): Promise<RawCandidate[]> {
+    if (!this.enabled()) return [];
+
     const placeId = process.env.SOURCE_LUMA_PLACE_ID || LUMA_PLACE_ID;
 
     const candidates: RawCandidate[] = [];
+    // Luma repeats entries across pages. An unnoticed duplicate makes
+    // upsertCandidates send two rows with the same (source, source_id), and
+    // Postgres rejects the WHOLE statement with "ON CONFLICT DO UPDATE command
+    // cannot affect row a second time" — losing the entire batch, not the dupe.
+    const seenIds = new Set<string>();
     let cursor: string | undefined;
 
     for (let page = 0; page < MAX_PAGES; page++) {
@@ -143,12 +164,25 @@ export const lumaSource: EventSource = {
       url.searchParams.set('pagination_limit', String(PAGE_LIMIT));
       if (cursor) url.searchParams.set('pagination_cursor', cursor);
 
-      const data = await politeFetchJson<Entry>(url.toString());
+      let data: Entry;
+      try {
+        data = await politeFetchJson<Entry>(url.toString());
+      } catch (err) {
+        // A first-page failure means the source is down; surface it rather
+        // than reporting an empty night. Later pages keep what we collected.
+        if (page === 0) throw err;
+        console.warn('[luma] discover fetch failed on page', page, err);
+        break;
+      }
+
       const entries: Entry[] = Array.isArray(data?.entries) ? data.entries : [];
 
       for (const entry of entries) {
         const normalized = normalizeEntry(entry);
-        if (normalized) candidates.push(normalized);
+        if (!normalized) continue;
+        if (seenIds.has(normalized.sourceId)) continue;
+        seenIds.add(normalized.sourceId);
+        candidates.push(normalized);
       }
 
       if (!data?.has_more) break;

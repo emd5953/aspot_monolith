@@ -19,6 +19,7 @@ import { fetchDestinationData } from './tavily-service';
 import { runOrchestrator, OrchestratorOutput } from './agents/orchestrator';
 import { runAgenticOrchestrator, AgenticOrchestratorOutput } from './agents/agentic-orchestrator';
 import { ItineraryPlan, ScheduledItem, ResearchResult, ActivityData } from './agents/types';
+import { calendarDateOf, nycNightWindow } from '@/lib/time/nyc';
 import { getTonightPool } from '@/lib/sources/pool-service';
 import { poolRowsToActivities } from './pool-events';
 import type { Attraction, Restaurant, ActivityOption } from '@/types/destination';
@@ -198,9 +199,14 @@ export async function generateItinerary(
   // generation still works from web research alone.
   let poolEvents: ActivityData[] = [];
   try {
-    const windowStart = new Date(startDate);
-    const windowEnd = new Date(endDate);
-    windowEnd.setHours(30, 0, 0, 0); // through 6am the following morning
+    // NYC-anchored: startDate/endDate are bare calendar dates parsed as UTC
+    // midnight, and setHours() would resolve "6am" in the server's zone. On
+    // Vercel (UTC) the old form started the window at 8pm the *previous*
+    // evening, letting yesterday's leftovers crowd out tonight's events.
+    const { from: windowStart, to: windowEnd } = nycNightWindow(
+      calendarDateOf(startDate),
+      calendarDateOf(endDate)
+    );
     const poolRows = await getTonightPool(supabase, { from: windowStart, to: windowEnd });
     poolEvents = poolRowsToActivities(poolRows);
     if (poolEvents.length > 0) {

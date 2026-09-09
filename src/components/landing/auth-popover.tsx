@@ -29,6 +29,21 @@ const TEXT_SHADOW =
  * collide into noise. The sheet also inverts the CTA and lightens the input
  * fills, because dark-on-dark disappears against the panel.
  */
+
+/**
+ * Where to land after auth. `/s/<code>` bounces unauthenticated visitors to
+ * `/?next=/s/<code>`, so the share link survives sign-in instead of dropping
+ * them on the landing page with no way back to the plan.
+ *
+ * Only same-origin paths are honored — an absolute URL here would be an open
+ * redirect.
+ */
+function nextPath(): string {
+  if (typeof window === 'undefined') return '/dashboard';
+  const raw = new URLSearchParams(window.location.search).get('next');
+  return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/dashboard';
+}
+
 export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -88,7 +103,7 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
         setError(error.message);
         setLoading(false);
       } else {
-        window.location.href = '/dashboard';
+        window.location.href = nextPath();
       }
     } else {
       const { error } = await supabase.auth.signUp({
@@ -96,7 +111,7 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
         password,
         options: {
           data: { display_name: displayName.trim() },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath())}`,
         },
       });
       if (error) {
@@ -115,7 +130,9 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath())}`,
+      },
     });
     if (error) {
       setError(error.message);

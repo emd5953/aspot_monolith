@@ -67,7 +67,7 @@ export function extractEvents(data: unknown): unknown[] {
 }
 
 /** Read a next-cursor from the response, or fall back to offset stepping. */
-function extractNextCursor(data: unknown, currentCursor: number): number {
+function extractNextCursor(data: unknown, currentCursor: number, pageLength: number): number {
   if (isRecord(data)) {
     const objs: Record<string, unknown>[] = [data];
     if (isRecord(data.data)) objs.push(data.data);
@@ -82,8 +82,10 @@ function extractNextCursor(data: unknown, currentCursor: number): number {
       }
     }
   }
-  // Offset-style fallback: advance by page size.
-  return currentCursor + PAGE_SIZE;
+  // Offset-style fallback: advance by what this page actually returned. The
+  // request never sends a page-size parameter, so assuming PAGE_SIZE would
+  // skip or re-fetch events whenever the BFF picks a different size.
+  return currentCursor + (pageLength > 0 ? pageLength : PAGE_SIZE);
 }
 
 function asString(v: unknown): string | undefined {
@@ -194,6 +196,10 @@ export const poshSource: EventSource = {
       try {
         data = await politeFetchJson<unknown>(url);
       } catch (err) {
+        // A first-page failure means the whole source is down — there is
+        // nothing to salvage, and returning [] would report as "no events
+        // tonight" instead of an outage. Later pages degrade gracefully.
+        if (page === 0) throw err;
         console.warn('[posh] explore fetch failed on page', page, err);
         break;
       }
@@ -214,7 +220,7 @@ export const poshSource: EventSource = {
       // Repeated page (nothing fresh) -> stop.
       if (newOnPage === 0) break;
 
-      const next = extractNextCursor(data, cursor);
+      const next = extractNextCursor(data, cursor, events.length);
       if (next === cursor) break;
       cursor = next;
     }
