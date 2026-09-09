@@ -31,9 +31,7 @@ export default async function DashboardPage() {
     <main className="fixed inset-0 z-10 mx-auto flex flex-col items-center justify-center overflow-hidden px-6 text-center">
       <div className="flex w-full max-w-xl flex-col items-center">
         <h1 className="animate-fade-up font-heading text-4xl leading-[1.05] tracking-tight text-white sm:text-5xl md:text-6xl">
-          Yurrrrr{firstName ? `, ${firstName}` : ''}.
-          <br />
-          What&apos;s the word?
+          What&apos;s the moves{firstName ? `, ${firstName}` : ''}?
         </h1>
 
         <div className="animate-fade-up mt-8 w-full" style={{ animationDelay: '0.15s' }}>

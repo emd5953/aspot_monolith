@@ -147,9 +147,7 @@ export function LandingHero() {
             className={`animate-fade-up font-heading text-4xl leading-[1.05] tracking-tight text-white sm:text-5xl md:text-7xl`}
             style={{ animationDelay: '0.15s' }}
           >
-            Yurrrrr,
-            <br />
-            what&rsquo;s the word?
+            What&rsquo;s the moves?
           </h1>
 
           <p
