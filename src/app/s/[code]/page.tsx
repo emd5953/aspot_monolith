@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { resolveShareCode, getVoteCounts } from '@/lib/itinerary/share-service';
 import { getItinerary } from '@/lib/ai/itinerary-generator';
 import { redirect } from 'next/navigation';
@@ -25,18 +26,22 @@ export default async function SharedItineraryPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/');
 
-  const itineraryId = await resolveShareCode(supabase, code);
+  // Service client for the data: the share code is the capability, and RLS
+  // grants no blanket shared-read (migration 019).
+  const db = createServiceClient();
+
+  const itineraryId = await resolveShareCode(db, code);
   if (!itineraryId) {
     return <DeadLink />;
   }
 
-  const itinerary = await getItinerary(supabase, itineraryId);
+  const itinerary = await getItinerary(db, itineraryId);
   if (!itinerary) {
     return <DeadLink />;
   }
 
   const planIds = itinerary.days.flatMap((d) => d.activities.map((a) => a.id));
-  const votes = await getVoteCounts(supabase, planIds, user.id);
+  const votes = await getVoteCounts(db, planIds, user.id);
 
   // Whose moves are these? Best-effort display name — RLS may keep it hidden
   // from a non-owner, in which case "A friend" does the job.

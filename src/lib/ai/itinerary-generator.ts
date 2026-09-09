@@ -789,7 +789,7 @@ export async function getItinerary(
       *,
       itinerary_days (
         *,
-        activities (*)
+        activities:plans (*)
       )
     `)
     .eq('id', itineraryId)
