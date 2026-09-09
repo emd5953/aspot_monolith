@@ -398,7 +398,7 @@ export async function getItineraryDays(
     .from('itinerary_days')
     .select(`
       *,
-      activities (*)
+      activities:plans (*)
     `)
     .eq('itinerary_id', itineraryId)
     .order('day_number', { ascending: true });
