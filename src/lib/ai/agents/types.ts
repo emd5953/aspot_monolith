@@ -128,6 +128,19 @@ export interface ActivityData extends ResearchProvenance {
   /** Free-form price marker; see AttractionData.priceRange. */
   priceRange: string;
   bestTime?: 'morning' | 'afternoon' | 'evening' | 'anytime';
+  /**
+   * The event's real published start time (ISO 8601 with offset), carried
+   * verbatim from `candidate_events.starts_at`. Absent for web-research
+   * candidates and for pool rows whose source published no time — absent means
+   * UNKNOWN, never "no particular time".
+   *
+   * This is the ordering signal for the flat plan list. It is never authored or
+   * adjusted by a model: Spotz shows the time the venue published or shows
+   * none, the same rule that governs venue names.
+   */
+  startsAt?: string;
+  /** Real published end time (ISO 8601). Absent when unknown — never inferred. */
+  endsAt?: string;
 }
 
 // Planner Agent types
