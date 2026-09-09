@@ -81,6 +81,7 @@ Spotz finds the Moves for tonight. Say the word — "date night in the Village, 
 - **Stack:** Next.js (App Router) + React 19 + TypeScript; Supabase (Postgres, RLS, Realtime, OAuth); OpenAI via the Vercel AI SDK; Tavily for web research; Google Maps/Places; source connectors (Partiful/Posh/Luma + a TikTok stub) feed a `candidate_events` pool via a cron-gated `/api/ingest`; Resend for Deep-mode email; deployed on Vercel.
 - **The contract is the schema.** Zod types in `src/lib/ai/schemas` are the hand-off between every pipeline step. LLM outputs are schema-validated, never regex-extracted.
 - **Core principle:** the prompt is the floor AND the steering wheel — there is no quiz, no preference profile. The system never invents places or events; every candidate (web research or the Moves pool) carries provenance.
+- **The servers run UTC; the product is Eastern.** Anything reasoning about "tonight" goes through `src/lib/time/nyc.ts` — never `Date.prototype.setHours`, which resolves in the server's zone and is therefore correct on an Eastern laptop and wrong in production.
 - **Two modes, one pipeline:** Fast ("Plan it", streams on screen) and Deep ("Send it", background work + email). Same six steps: Understand → Discover → Rank → Plan → Critique → Persist.
 - **Migrations** live in `supabase/migrations/`. `src/types/profile.ts` holds the neutral default `UserPreferences` the pipeline scores against (no quiz feeds it). `src/test` holds fixtures/setup.
 
@@ -100,4 +101,4 @@ When the user requests a durable behavior change, record it here or in the relev
 - [`src/app/api/`](src/app/api/AGENTS.md) — App Router route handlers: authenticate, authorize, delegate to `lib`.
 - [`src/components/`](src/components/AGENTS.md) — React UI and the hand-drawn aesthetic that is the product.
 
-Owned directly by this root (no child doc yet — simple, single-purpose): `src/lib/maps`, `src/lib/calendar`, `src/lib/email`, `src/lib/ratelimit`, `src/lib/supabase` (client/server/middleware), `src/app/(protected)`, `src/types`, `src/test`.
+Owned directly by this root (no child doc yet — simple, single-purpose): `src/lib/maps`, `src/lib/calendar`, `src/lib/email`, `src/lib/ratelimit`, `src/lib/time` (NYC-anchored night windows), `src/lib/supabase` (client/server/middleware, plus `service.ts` — the RLS-bypassing service-role client, server-only, for ingestion and share-link reads), `src/app/(protected)`, `src/types`, `src/test`.

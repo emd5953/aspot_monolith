@@ -15,6 +15,7 @@ React UI. The aesthetic is the product: hand-drawn cards, taped post-its, human 
 
 - Build on `ui/` primitives and Tailwind tokens; keep the hand-drawn look consistent across new surfaces.
 - Components render and call API routes (`@/app/api/...`); they do not embed generation/persistence logic — that lives in `@/lib`.
+- Optimistic updates must revert on `!res.ok`, not only in `.catch()`. `fetch` rejects only on network failure, so an expired session (`401`) or a `500` resolves normally and would otherwise leave the UI showing state that was never persisted.
 - The home prompt is a single sentence in ("say the word, get the moves"); don't turn creation flows into multi-step forms or a chatbot. Conversation is for *refining* an existing plan.
 - Spotz voice: NYC-native, playful, zero corporate. Copy reads like a friend who knows where it's at ("Yurrrrr", "the moves", "no cap"), never like a SaaS product.
 
