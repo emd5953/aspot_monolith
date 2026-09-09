@@ -57,3 +57,22 @@ file globs. The brain auto-syncs incrementally on every gstack skill start.
 Run `/sync-gbrain` to force-refresh, `/sync-gbrain --full` for full reindex.
 
 <!-- gstack-gbrain-search-guidance:end -->
+
+## Git workflow (trunk-based)
+
+Local `main` is a read-only mirror of remote. Never commit to it directly.
+
+The loop:
+1. `git checkout main && git pull --rebase` — sync before anything
+2. `git checkout -b feat/thing` — branch off fresh main
+3. Commit freely on the branch
+4. `git pull --rebase origin main` periodically to stay current
+5. Push, open PR, merge via remote — never locally
+6. Delete the branch, re-sync main
+
+Rules:
+- Branches stay short-lived (1–3 days). Long branches = merge pain.
+- One branch = one logical change.
+- Naming: `feat/`, `fix/`, `chore/` + ticket ID.
+- Rebase your branch onto main; merge main via PR. Don't repeatedly merge main into your branch.
+- Main is protected on the remote: no direct pushes, PR + review required.
