@@ -42,8 +42,10 @@ export default function ItineraryPage() {
     }
   };
 
+  // Anything not currently live belongs in history. Matching only 'archived'
+  // made a 'completed' itinerary vanish from the UI entirely.
   const active = itineraries.find((it) => it.status === 'active' || it.status === 'draft');
-  const history = itineraries.filter((it) => it.status === 'archived');
+  const history = itineraries.filter((it) => it.id !== active?.id);
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });

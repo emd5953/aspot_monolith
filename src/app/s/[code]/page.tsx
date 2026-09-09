@@ -24,7 +24,9 @@ export default async function SharedItineraryPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect('/');
+  // Keep the destination: this is the primary entry point for the share flow,
+  // and dropping the code stranded friends on the landing page after sign-in.
+  if (!user) redirect(`/?next=${encodeURIComponent(`/s/${code}`)}`);
 
   // Service client for the data: the share code is the capability, and RLS
   // grants no blanket shared-read (migration 019).
