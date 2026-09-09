@@ -49,6 +49,15 @@ function toIso(value: unknown): string | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
+/**
+ * Discover-page items carry an `event-`-prefixed id (`event-nP2El…`), while the
+ * `/e/<id>` page, the `/_next/data` route and `similarEvents` all use the bare
+ * id. Strip the prefix so every id in the BFS is in the bare form.
+ */
+function bareEventId(id: string): string {
+  return id.replace(/^event-/, '');
+}
+
 function isNycOrUnknownRegion(item: unknown): boolean {
   const region = asString(asRecord(item)?.region);
   return region === undefined || region.toUpperCase() === 'NYC';
@@ -80,7 +89,8 @@ function parseDiscover(html: string): DiscoverPage | null {
       const items = asRecord(section)?.items;
       if (!Array.isArray(items)) continue;
       for (const item of items) {
-        const id = asString(asRecord(item)?.id);
+        const raw = asString(asRecord(item)?.id);
+        const id = raw ? bareEventId(raw) : undefined;
         if (id && !nycEventIds.includes(id)) nycEventIds.push(id);
       }
     }
@@ -107,7 +117,11 @@ async function hydrateEvent(buildId: string, id: string): Promise<Hydrated | nul
     const data = await politeFetchJson<unknown>(
       `https://partiful.com/_next/data/${buildId}/e/${id}.json`
     );
-    const pageProps = asRecord(asRecord(asRecord(data)?.props)?.pageProps);
+    // The `/_next/data` route returns `{ pageProps }` at the top level; the
+    // discover page's inlined `__NEXT_DATA__` nests it under `props`. Accept both.
+    const root = asRecord(data);
+    const pageProps =
+      asRecord(root?.pageProps) ?? asRecord(asRecord(root?.props)?.pageProps);
     const event = asRecord(pageProps?.event);
     if (!event) {
       console.warn(`[partiful] event ${id}: missing pageProps.event`);
@@ -196,7 +210,8 @@ export async function fetchPartifulCandidates(): Promise<RawCandidate[]> {
     if (depth < MAX_DEPTH) {
       for (const similar of hydrated.similar) {
         if (!isNycOrUnknownRegion(similar)) continue;
-        const similarId = asString(asRecord(similar)?.id);
+        const rawSimilarId = asString(asRecord(similar)?.id);
+        const similarId = rawSimilarId ? bareEventId(rawSimilarId) : undefined;
         if (!similarId || enqueued.has(similarId)) continue;
         enqueued.add(similarId);
         queue.push({ id: similarId, depth: depth + 1 });

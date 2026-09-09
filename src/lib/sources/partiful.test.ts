@@ -138,6 +138,28 @@ describe('partifulSource', () => {
     expect(candidates.length).toBeGreaterThan(0);
   });
 
+  it('strips the discover page\'s `event-` id prefix before hydrating', async () => {
+    mockText.mockResolvedValue(discoverHtml(['event-ev-1']));
+
+    const candidates = await partifulSource.fetchCandidates();
+
+    expect(mockJson).toHaveBeenCalledWith(dataUrl('ev-1'));
+    expect(mockJson).not.toHaveBeenCalledWith(dataUrl('event-ev-1'));
+    expect(candidates.map((c) => c.sourceId)).toContain('ev-1');
+  });
+
+  it('hydrates the real _next/data shape, where pageProps is top-level', async () => {
+    mockText.mockResolvedValue(discoverHtml(['ev-1']));
+    mockJson.mockImplementation(async () => ({
+      pageProps: { event: eventJson('ev-1'), similarEvents: [] },
+    }));
+
+    const candidates = await partifulSource.fetchCandidates();
+
+    expect(candidates.map((c) => c.sourceId)).toEqual(['ev-1']);
+    expect(candidates[0].title).toBe('Event ev-1');
+  });
+
   it('BFS-expands similarEvents to depth 2 with dedupe, and skips invalid events', async () => {
     const candidates = await partifulSource.fetchCandidates();
 
