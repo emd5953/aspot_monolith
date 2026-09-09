@@ -53,6 +53,41 @@ export async function resolveShareCode(
   return data?.id ?? null;
 }
 
+
+/**
+ * May `userId` vote on `planId`? True when they own the itinerary the plan
+ * belongs to, or when that itinerary has been shared.
+ *
+ * Needs a service-role client: since migration 019 removed the blanket
+ * shared-read policies, a friend cannot SELECT a plan they do not own, so the
+ * check has to run above RLS. Without it any signed-in user could vote on any
+ * plan UUID, including plans on itineraries that were never shared.
+ */
+export async function canVoteOnPlan(
+  db: SupabaseClient,
+  planId: string,
+  userId: string
+): Promise<boolean> {
+  const { data, error } = await db
+    .from('plans')
+    .select('id, itinerary_days!inner(itineraries!inner(user_id, share_code))')
+    .eq('id', planId)
+    .maybeSingle();
+  if (error) throw new Error(`vote permission check failed: ${error.message}`);
+  if (!data) return false;
+
+  const days = data.itinerary_days as unknown;
+  const itinerary = Array.isArray(days)
+    ? (days[0] as { itineraries?: unknown })?.itineraries
+    : (days as { itineraries?: unknown })?.itineraries;
+  const row = (Array.isArray(itinerary) ? itinerary[0] : itinerary) as
+    | { user_id?: string; share_code?: string | null }
+    | undefined;
+  if (!row) return false;
+
+  return row.user_id === userId || Boolean(row.share_code);
+}
+
 /** Cast/replace a vote (+1 / -1) on a plan. vote=0 removes the vote. */
 export async function castVote(
   supabase: SupabaseClient,
