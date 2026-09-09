@@ -30,22 +30,25 @@ export async function GET(
       return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
 
-    // getItinerary returns a non-null StoredItinerary here (guard.ok) with flat,
-    // properly-typed activities — no cast needed.
+    // One night, one flat list. The .ics day shape survives as a single entry
+    // holding every plan; `buildItineraryIcs` already emits a timed VEVENT
+    // where a plan has real times and an all-day one where it does not.
     const data: IcsItinerary = {
       id: itinerary!.id,
       title: itinerary!.title,
-      days: itinerary!.days.map((day) => ({
-        date: day.date,
-        activities: day.activities.map((act) => ({
-          id: act.id,
-          title: act.title,
-          locationName: act.locationName,
-          notes: act.notes,
-          startTime: act.startTime,
-          endTime: act.endTime,
-        })),
-      })),
+      days: [
+        {
+          date: itinerary!.startDate,
+          activities: itinerary!.plans.map((plan) => ({
+            id: plan.id,
+            title: plan.title,
+            locationName: plan.locationName,
+            notes: plan.notes,
+            startTime: plan.startTime,
+            endTime: plan.endTime,
+          })),
+        },
+      ],
     };
 
     const ics = buildItineraryIcs(data);

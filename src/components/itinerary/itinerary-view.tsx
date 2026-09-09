@@ -9,10 +9,9 @@ import {
   MapPin,
   Calendar,
   Check,
-  Route,
   Share2,
 } from 'lucide-react';
-import { DaySchedule } from './day-schedule';
+import { PlanList } from './plan-list';
 import { ItineraryMap } from './itinerary-map';
 import { Card } from '@/components/ui/card';
 import { OverflowMenu } from '@/components/ui/overflow-menu';
@@ -24,7 +23,6 @@ import {
   BUDGET_STATUS_LABEL,
   type BudgetStatus,
 } from '@/lib/itinerary/cost';
-import { isDaySpreadOut, canTidyDay } from '@/lib/itinerary/geo';
 
 interface Activity {
   id: string;
@@ -42,14 +40,6 @@ interface Activity {
   locationCoords?: { lat: number; lng: number };
 }
 
-interface Day {
-  id: string;
-  dayNumber: number;
-  date: Date;
-  notes?: string;
-  activities: Activity[];
-}
-
 interface Itinerary {
   id: string;
   title: string;
@@ -57,7 +47,8 @@ interface Itinerary {
   startDate: Date;
   endDate: Date;
   status: string;
-  days: Day[];
+  /** The Move-list, in rendered order. */
+  plans: Activity[];
   importantNotes?: string[];
   budgetRange?: string;
 }
@@ -66,14 +57,12 @@ interface ItineraryViewProps {
   itinerary: Itinerary;
   onEditActivity?: (activity: Activity) => void;
   onDeleteActivity?: (activityId: string) => void;
-  onAddActivity?: (dayId: string) => void;
-  onReorderActivities?: (dayId: string, activityIds: string[]) => void;
+  onAddActivity?: () => void;
+  onReorderActivities?: (planIds: string[]) => void;
   onRegenerate?: () => void;
   onDelete?: () => void;
   onStatusChange?: (status: string) => void;
-  onEditDay?: (dayId: string, dayNumber: number, activities: Activity[]) => void;
   onTitleChange?: (title: string) => void;
-  onTidyDay?: (dayId: string) => Promise<void> | void;
 }
 
 const STATUS_TONES: Record<string, string> = {
@@ -93,15 +82,11 @@ export function ItineraryView({
   onRegenerate,
   onDelete,
   onStatusChange,
-  onEditDay,
   onTitleChange,
-  onTidyDay,
 }: ItineraryViewProps) {
-  const [activeTab, setActiveTab] = useState(0);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(itinerary.title);
-  const [isTidying, setIsTidying] = useState(false);
   const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
 
   const handleShare = async () => {
@@ -117,32 +102,17 @@ export function ItineraryView({
     }
   };
 
-  const activeDay = itinerary.days[activeTab];
-  const activeDayPoints = (activeDay?.activities || []).map((a) => ({
-    id: a.id,
-    coordinates: a.locationCoords,
-  }));
-
-  const handleTidy = async () => {
-    if (!onTidyDay || !activeDay) return;
-    setIsTidying(true);
-    try {
-      await onTidyDay(activeDay.id);
-    } finally {
-      setIsTidying(false);
-    }
-  };
-
   const formatDateRange = (start: Date, end: Date) => {
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
     return `${start.toLocaleDateString('en-US', options)} – ${end.toLocaleDateString('en-US', options)}`;
   };
 
-  // Estimated cost rollup + budget fit (only meaningful when activities carry
-  // cost estimates — many don't, so guard on hasData).
-  const cost = rollUpCost(itinerary.days);
+  // Estimated cost rollup + budget fit (only meaningful when plans carry cost
+  // estimates — many don't, so guard on hasData). One night, so the rollup
+  // takes the single-day shape it still expects.
+  const cost = rollUpCost([{ activities: itinerary.plans }]);
   const budgetFit = cost.hasData
-    ? classifyBudget(cost.total, itinerary.budgetRange, itinerary.days.length)
+    ? classifyBudget(cost.total, itinerary.budgetRange, 1)
     : null;
   const BUDGET_TONE: Record<BudgetStatus, string> = {
     under: 'bg-emerald-50 text-emerald-800 border-emerald-200',
@@ -309,37 +279,14 @@ export function ItineraryView({
       {/* Map */}
       <Card className="animate-fade-up p-4 md:p-6" style={{ animationDelay: '0.05s' }}>
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-medium text-[color:var(--ink-muted)]">
-            Day {itinerary.days[activeTab]?.dayNumber} route
-          </p>
-          {cost.hasData && cost.perDay[activeTab] > 0 && (
+          <p className="text-sm font-medium text-[color:var(--ink-muted)]">Route</p>
+          {cost.hasData && (
             <p className="text-sm font-medium text-[color:var(--ink)]">
-              Est. {formatUsd(cost.perDay[activeTab])}
+              Est. {formatUsd(cost.total)}
             </p>
           )}
         </div>
-        {isDaySpreadOut(activeDayPoints) && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-            <p className="text-xs font-medium text-amber-800">
-              🗺️ This day covers a lot of ground — consider grouping nearby stops to cut down on
-              travel.
-            </p>
-            {onTidyDay && canTidyDay(activeDayPoints) && (
-              <button
-                onClick={handleTidy}
-                disabled={isTidying}
-                className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100 disabled:opacity-60"
-              >
-                <Route className="h-3 w-3" strokeWidth={2.5} />
-                {isTidying ? 'Tidying…' : 'Tidy route'}
-              </button>
-            )}
-          </div>
-        )}
-        <ItineraryMap
-          destination={itinerary.destination}
-          activities={itinerary.days[activeTab]?.activities || []}
-        />
+        <ItineraryMap destination={itinerary.destination} activities={itinerary.plans} />
       </Card>
 
       {/* Good to know — notes from the planner */}
@@ -360,56 +307,15 @@ export function ItineraryView({
         </Card>
       )}
 
-      {/* Day Tabs */}
-      <Card className="animate-fade-up overflow-hidden p-0" style={{ animationDelay: '0.1s' }}>
-        <div className="border-b border-[color:var(--border)] px-2 pt-2">
-          <div className="scrollbar-none flex gap-1 overflow-x-auto">
-            {itinerary.days.map((day, index) => (
-              <button
-                key={day.id}
-                onClick={() => setActiveTab(index)}
-                className={`whitespace-nowrap rounded-t-xl px-4 py-2.5 text-sm font-medium transition-all ${
-                  activeTab === index
-                    ? 'bg-[color:var(--surface-soft)] text-[color:var(--ink)]'
-                    : 'text-[color:var(--ink-muted)] hover:bg-[color:var(--surface-soft)]/60 hover:text-[color:var(--ink)]'
-                }`}
-              >
-                Day {day.dayNumber}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="p-4 md:p-6">
-          {itinerary.days[activeTab] && (
-            <DaySchedule
-              dayNumber={itinerary.days[activeTab].dayNumber}
-              date={itinerary.days[activeTab].date}
-              activities={itinerary.days[activeTab].activities}
-              notes={itinerary.days[activeTab].notes}
-              onEditActivity={onEditActivity}
-              onDeleteActivity={onDeleteActivity}
-              onAddActivity={
-                onAddActivity ? () => onAddActivity(itinerary.days[activeTab].id) : undefined
-              }
-              onReorder={
-                onReorderActivities
-                  ? (ids) => onReorderActivities(itinerary.days[activeTab].id, ids)
-                  : undefined
-              }
-              onEditDay={
-                onEditDay
-                  ? () =>
-                      onEditDay(
-                        itinerary.days[activeTab].id,
-                        itinerary.days[activeTab].dayNumber,
-                        itinerary.days[activeTab].activities
-                      )
-                  : undefined
-              }
-            />
-          )}
-        </div>
+      {/* The Move-list */}
+      <Card className="animate-fade-up p-4 md:p-6" style={{ animationDelay: '0.1s' }}>
+        <PlanList
+          plans={itinerary.plans}
+          onEditPlan={onEditActivity}
+          onDeletePlan={onDeleteActivity}
+          onAddPlan={onAddActivity}
+          onReorder={onReorderActivities}
+        />
       </Card>
     </div>
   );

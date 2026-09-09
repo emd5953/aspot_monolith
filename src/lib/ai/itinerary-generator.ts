@@ -140,6 +140,15 @@ export interface StoredItinerary {
   destination: string;
   startDate: Date;
   endDate: Date;
+  /**
+   * The Move-list: one flat run of stops in `sort_order`.
+   *
+   * This is what every caller should read. The DB still nests plans under a
+   * single `itinerary_days` row to satisfy `plans.day_id NOT NULL`, and that
+   * nesting is flattened here so nothing above persistence knows days exist.
+   */
+  plans: StoredActivity[];
+  /** @deprecated The raw day nesting. Read `plans`. */
   days: StoredDay[];
   status: GeneratedItinerary['status'];
   createdAt: Date;
@@ -483,6 +492,11 @@ export async function getItinerary(
         })),
     }));
 
+  // Flatten to the one list callers actually want. Days are in day_number
+  // order and each day's plans in sort_order, so concatenating preserves the
+  // rendered order — including any the user set by hand.
+  const plans = days.flatMap((day) => day.activities);
+
   return {
     id: itinerary.id,
     userId: itinerary.user_id,
@@ -490,6 +504,7 @@ export async function getItinerary(
     destination: itinerary.destination,
     startDate: new Date(itinerary.start_date),
     endDate: new Date(itinerary.end_date),
+    plans,
     days,
     status: itinerary.status,
     createdAt: new Date(itinerary.created_at),

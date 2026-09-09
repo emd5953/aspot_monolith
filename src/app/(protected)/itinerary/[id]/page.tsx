@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { ItineraryView } from '@/components/itinerary/itinerary-view';
 import { RegenerateModal } from '@/components/itinerary/regenerate-modal';
-import { EditDayModal } from '@/components/itinerary/edit-day-modal';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { ItemSource } from '@/lib/ai/provenance';
@@ -25,14 +24,6 @@ interface Activity {
   locationCoords?: { lat: number; lng: number };
 }
 
-interface Day {
-  id: string;
-  dayNumber: number;
-  date: Date;
-  notes?: string;
-  activities: Activity[];
-}
-
 interface Itinerary {
   id: string;
   title: string;
@@ -40,7 +31,7 @@ interface Itinerary {
   startDate: Date;
   endDate: Date;
   status: string;
-  days: Day[];
+  plans: Activity[];
   importantNotes?: string[];
   budgetRange?: string;
 }
@@ -52,12 +43,6 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
   const [isLoading, setIsLoading] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
-  const [showEditDayModal, setShowEditDayModal] = useState(false);
-  const [editingDay, setEditingDay] = useState<{
-    dayId: string;
-    dayNumber: number;
-    activities: Activity[];
-  } | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -76,10 +61,7 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
         ...it,
         startDate: new Date(it.startDate),
         endDate: new Date(it.endDate),
-        days: it.days.map((d: { date: string; activities: Activity[] }) => ({
-          ...d,
-          date: new Date(d.date),
-        })),
+        plans: it.plans ?? [],
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
@@ -131,33 +113,16 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
-  const handleReorderActivities = async (dayId: string, activityIds: string[]) => {
+  const handleReorderActivities = async (planIds: string[]) => {
     try {
       await fetch(`/api/itinerary/${id}/activities/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dayId, activityIds }),
+        body: JSON.stringify({ activityIds: planIds }),
       });
       fetchItinerary();
     } catch (err) {
       console.error('Failed to reorder:', err);
-    }
-  };
-
-  const handleTidyDay = async (dayId: string) => {
-    try {
-      const res = await fetch(`/api/itinerary/${id}/activities/tidy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dayId }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error || 'Failed to tidy route');
-      }
-      await fetchItinerary();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to tidy route');
     }
   };
 
@@ -187,24 +152,6 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to update title');
     }
-  };
-
-  const handleEditDay = (dayId: string, dayNumber: number, activities: Activity[]) => {
-    setEditingDay({ dayId, dayNumber, activities });
-    setShowEditDayModal(true);
-  };
-
-  const handleEditDaySubmit = async (prompt: string) => {
-    if (!editingDay) return;
-    const res = await fetch(`/api/itinerary/${id}/days/${editingDay.dayId}/regenerate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
-    });
-    if (!res.ok) throw new Error('Failed to regenerate day');
-    await fetchItinerary();
-    setShowEditDayModal(false);
-    setEditingDay(null);
   };
 
   if (isLoading) {
@@ -247,9 +194,7 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
         onRegenerate={isRegenerating ? undefined : () => setShowRegenerateModal(true)}
         onDelete={handleDelete}
         onStatusChange={handleStatusChange}
-        onEditDay={handleEditDay}
         onTitleChange={handleTitleChange}
-        onTidyDay={handleTidyDay}
       />
 
       <RegenerateModal
@@ -258,16 +203,7 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
         onRegenerate={handleRegenerate}
       />
 
-      <EditDayModal
-        isOpen={showEditDayModal}
-        dayNumber={editingDay?.dayNumber || 1}
-        currentActivities={editingDay?.activities.map((a) => a.title) || []}
-        onClose={() => {
-          setShowEditDayModal(false);
-          setEditingDay(null);
-        }}
-        onSubmit={handleEditDaySubmit}
-      />
+
 
       {isRegenerating && (
         <div

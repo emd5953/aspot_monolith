@@ -15,9 +15,9 @@ rationale.
   (fast/deep segmented control), `overflow-menu.tsx`, `top-nav.tsx`,
   `surface.ts` (route → surface-mode helper). Compose from these; don't
   reinvent base controls or bring back wobble/shadow-stack styling.
-- `itinerary/` — the plan surface: search pill, view, day schedule, map,
-  timeline, edit/regenerate modals, activity cards, `vote-chips.tsx`
-  (👍/👎 on a plan).
+- `itinerary/` — the Move-list surface: search pill, `itinerary-view.tsx`,
+  `plan-list.tsx` (one flat orderable list), map, activity cards,
+  regenerate modal, `vote-chips.tsx` (👍/👎 on a plan).
 - `quiz/`, `trips/`, `dashboard/` — none. Spotz has no onboarding quiz, no
   trip/collab dashboard, and no dashboard-specific components (the
   `/dashboard` route lives in `src/app/(protected)/dashboard/page.tsx`
@@ -34,6 +34,12 @@ rationale.
   `--surface-page`, dark ink, hairline borders, no video.
 - One heading + one supporting line per screen, max. Captions that explain a
   control are deleted — the control explains itself.
+- One night, one flat list: no day tabs, no morning/afternoon/evening headers,
+  no timeline toggle. A stop shows the time its source published or no time —
+  never a fabricated one.
+- Reorder has two paths that must stay equivalent: drag (md and up) and the
+  arrow buttons inside each card (touch). Both hand the same id order to the
+  same endpoint.
 - Components render and call API routes (`@/app/api/...`); they do not embed generation/persistence logic — that lives in `@/lib`.
 - Optimistic updates must revert on `!res.ok`, not only in `.catch()`. `fetch` rejects only on network failure, so an expired session (`401`) or a `500` resolves normally and would otherwise leave the UI showing state that was never persisted.
 - The home prompt is a single sentence in ("say the word, get the moves"); don't turn creation flows into multi-step forms or a chatbot. Conversation is for _refining_ an existing plan.

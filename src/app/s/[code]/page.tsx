@@ -42,7 +42,7 @@ export default async function SharedItineraryPage({
     return <DeadLink />;
   }
 
-  const planIds = itinerary.days.flatMap((d) => d.activities.map((a) => a.id));
+  const planIds = itinerary.plans.map((p) => p.id);
   const votes = await getVoteCounts(db, planIds, user.id);
 
   // Whose moves are these? Best-effort display name — RLS may keep it hidden
@@ -68,10 +68,6 @@ export default async function SharedItineraryPage({
           ...itinerary,
           startDate: new Date(itinerary.startDate),
           endDate: new Date(itinerary.endDate),
-          days: itinerary.days.map((d) => ({
-            ...d,
-            date: new Date(d.date),
-          })),
         }}
       />
 
@@ -80,22 +76,20 @@ export default async function SharedItineraryPage({
         <Card>
           <p className="text-sm font-medium text-[color:var(--ink-muted)]">Vote</p>
           <ul className="mt-3 space-y-1.5">
-            {itinerary.days.flatMap((d) =>
-              d.activities.map((a) => {
-                const v = votesByActivity.get(a.id);
-                return (
-                  <li key={a.id} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="min-w-0 truncate text-[color:var(--ink-soft)]">{a.title}</span>
-                    <VoteChips
-                      planId={a.id}
-                      initialUp={v?.up ?? 0}
-                      initialDown={v?.down ?? 0}
-                      myVote={v?.mine ?? 0}
-                    />
-                  </li>
-                );
-              })
-            )}
+            {itinerary.plans.map((a) => {
+              const v = votesByActivity.get(a.id);
+              return (
+                <li key={a.id} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="min-w-0 truncate text-[color:var(--ink-soft)]">{a.title}</span>
+                  <VoteChips
+                    planId={a.id}
+                    initialUp={v?.up ?? 0}
+                    initialDown={v?.down ?? 0}
+                    myVote={v?.mine ?? 0}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </Card>
       </div>
