@@ -1,24 +1,26 @@
-# aSpot
+# Spotz
 
-**aSpot turns a sentence into a trip.**
+**Spotz turns a sentence into a night out.**
 
-Say what you actually want — "2 nights in NYC for R&B bars," "long weekend in Lisbon, vegan food and tile museums" — and aSpot does the research, builds the days, and hands you a real itinerary that reflects what you said. Not a top-10 list. Not a chatbot you have to coax. A trip.
+Say what you're actually trying to do — "R&B bars in Bed-Stuy," "something loud in Bushwick after 11," "cheap and outside" — and Spotz builds you a Move-list: real NYC events and spots, happening tonight, that match what you said.
+
+Not a top-10 list. Not a chatbot you have to coax. One night, planned.
 
 ---
 
 ## What it is
 
-A travel planner for people who care about the *feel* of a trip, not a checklist.
+A going-out planner for NYC. One city, one night at a time.
 
-You give it one sentence. It gives you a day-by-day plan with real places — bars, restaurants, attractions — chosen to match the vibe you described, the dates you're going, and the taste profile you set up once during a short onboarding quiz. You can drag activities around, regenerate a single day with another sentence ("more food, less museums"), revert if you go too far, and share the trip with the people you're traveling with.
+You give it one sentence. It hands back an ordered list of Moves — parties, functions, bars, popups — pulled from live event platforms and real places, arranged into an order that works geographically. Share the link and your friends vote 👍/👎 on each Move.
 
-The product's promise is simple: **say it, get it.**
+You have **one active Move-list** at a time. Previous nights fall into history. That constraint is the product: Spotz is for tonight, not for a folder of maybes.
+
+**There is no quiz.** The prompt does all the steering.
 
 ## Who it's for
 
-Taste-driven travelers. The kind of person who can tell you the difference between "nightlife in NYC" and "R&B bars in NYC" and expects the system to honor that difference. The aesthetic — hand-drawn cards, taped post-its, a sky video, "Plan it" in human typography — is the tell. This isn't business travel. It's the trip you actually want to take.
-
-A short quiz captures the baseline (pace, comfort zone, cuisines, social style, authenticity preference). The prompt overrides the quiz when they conflict. **Profile is the floor; prompt is the steering wheel.**
+People who go out in New York and can tell the difference between "nightlife" and "R&B bars," and expect the system to honor that difference.
 
 ---
 
@@ -26,68 +28,57 @@ A short quiz captures the baseline (pace, comfort zone, cuisines, social style, 
 
 ### The core loop
 
-Three moments matter:
-
-1. **Tell us what you want.** A single prompt pill on the home screen. One sentence in.
-2. **See it appear.** The trip surfaces piece by piece — research finds candidates, the planner picks them into days, the result lands. No 30-second blank wait.
-3. **Make it yours.** The first version is a strong opinion, not a final answer. Drag, swap, regenerate, revert.
+1. **Say the word.** One prompt on the home screen.
+2. **Watch it land.** Research finds candidates, the planner picks the Moves, the list appears.
+3. **Send it to the group.** Share the link; friends vote on each Move. You keep edit control.
 
 ### Two modes, one pipeline
 
-The same engine runs in both modes. The difference is whether you're playing or planning.
+|                | Plan it (Fast)          | Send it (Deep)            |
+| -------------- | ----------------------- | ------------------------- |
+| For            | seeing what's out there | actually going            |
+| You            | wait on screen          | walk away, get an email   |
+| Latency        | ~15–30s                 | minutes                   |
+| Quality target | strong draft            | polished, more iterations |
 
-| | Plan it (Fast) | Send it (Deep) |
-|---|---|---|
-| For | exploring possibilities | actually going on the trip |
-| You | wait on screen | walk away, get an email |
-| Latency | ~15–30s | minutes |
-| Quality target | strong draft | polished, more iterations |
-
-Both produce real trips. Fast is the default; Deep is for when you're committing.
-
-### The pipeline
-
-Every itinerary — fast or deep, brand new or single-day edit — goes through the same six steps:
-
-```
-prompt + profile
-    ↓
-1. Understand    → structured trip brief (theme, must-haves, deal-breakers)
-2. Discover      → real candidates from real sources, with provenance
-3. Rank          → score against intent + profile, keep top-N
-4. Plan          → arrange into days with geography and pacing
-5. Critique      → does it serve the brief? surgical fixes only
-6. Persist       → save and stream to the screen as it lands
-```
-
-Each step has one job and a typed contract with the next. Editing a single day is the same pipeline at a smaller scope.
+Fast is the default. Deep runs the fully agentic planner and advanced curation, then emails you when it lands.
 
 ---
 
-## Research: where the trip comes from
+## Where the Moves come from
 
-The system never invents places. Research is the part that earns the trust.
+Spotz never invents an event. Everything traces back to a source.
 
-**Today (live):**
-- **Tavily** for web search, queried with the user's prompt-derived intent (the focus, vibe, must-haves) plus their quiz preferences. Three parallel searches: attractions, restaurants, activities.
-- **An LLM extractor** turns the search snippets into structured candidates (real names, descriptions, price ranges, ratings).
-- **A scorer** ranks candidates against the user's intent and profile, keeps the top-N per category, and hands them to the planner.
-- **Disk cache** keyed by `destination + intent` so the same prompt doesn't re-pay the network cost within a week.
+### The candidate pool
 
-**Where it's going (next):**
-- **Reddit-targeted searches** for the long-tail local truth that travel SEO buries.
-- **Google Places verification** as a hard filter — anything search/Reddit names gets confirmed against a real address before it can reach the planner. Structural defense against hallucination.
-- **Provenance carried through every step** so the planner can say "I picked this because it's a 4.6-star R&B-leaning bar with three Reddit threads calling it a local favorite," not just "I picked this."
-- **Date-aware events** (Eventbrite/Resy/Ticketmaster) when trip dates fall in a window where a specific show or pop-up is the obvious right answer.
+Source connectors pull live NYC events into a `candidate_events` pool on a schedule. **Generation reads the pool and never fetches sources live** — that decouples freshness from request latency, so a slow third-party endpoint can't stall a user's night.
+
+| Source       | Endpoint                                                   | Status                                    |
+| ------------ | ---------------------------------------------------------- | ----------------------------------------- |
+| **Partiful** | `/discover` `__NEXT_DATA__` trending + `similarEvents` BFS | live                                      |
+| **Posh**     | `posh.vip` BFF explore, cursor pagination                  | live — currently 403s from datacenter IPs |
+| **Luma**     | `api.lu.ma` discover, NYC place id                         | live                                      |
+| **TikTok**   | commercial scraper API                                     | stubbed, disabled                         |
+
+Ingestion runs every 4 hours via Vercel cron (`vercel.json` → `/api/ingest`, gated by `CRON_SECRET`, writes with the service role). Each connector is independently disableable with `SOURCE_<NAME>_ENABLED`.
+
+Every candidate carries provenance: `source`, `sourceId`, `sourceUrl`, and the untouched `raw` payload. A candidate that fails its Zod schema is skipped — never repaired by guessing. Duplicates of the same party across platforms are collapsed deterministically (normalized title + date, source-priority tiebreak).
+
+These are all **undocumented third-party internals** that can change or block without notice. Connectors parse defensively and stay polite: sequential requests through a shared delay, bounded pagination.
+
+### Plus web research
+
+**Tavily** search, driven by the prompt's extracted intent, with an LLM extractor turning snippets into structured candidates and a scorer ranking them. **Google Places** verification enriches and confirms real addresses. Undated, unlocated spots stay eligible — a bar without a Places entry is still a bar.
 
 ---
 
-## What aSpot is not
+## What Spotz is not
 
-- **Not a booking platform.** Reservations, flights, hotels — out of scope.
-- **Not a content site.** No SEO articles, no top-10 lists. Output is generated for you, not pulled off a shelf.
-- **Not a chatbot.** You don't negotiate with it to get a trip. Conversation is reserved for *refining* an existing trip, not creating one.
-- **Not a SaaS dashboard.** If it ever feels like one, the product is broken.
+- **Not a trip planner.** One night in one city. No multi-day itineraries, no Lisbon.
+- **Not a booking platform.** Tickets, reservations, tables — out of scope.
+- **Not a content site.** Nothing pulled off a shelf.
+- **Not a chatbot.** You don't negotiate with it. Conversation refines an existing list; it doesn't create one.
+- **Not a group-planning tool.** Share links and votes, deliberately. No roles, no membership, no governance.
 
 ---
 
@@ -97,11 +88,12 @@ The system never invents places. Research is the part that earns the trust.
 - **Auth & DB:** Supabase (Postgres, RLS, Realtime, OAuth)
 - **AI:** OpenAI via the Vercel AI SDK
 - **Web research:** Tavily
-- **Maps:** Google Maps + Places (display today, verification soon)
-- **Email:** Resend (delivery for Deep mode)
-- **Deploy:** Vercel (`waitUntil` for Deep mode background work)
-- **Validation:** Zod everywhere — the schema is the contract between every pipeline step
-- **Styling:** Tailwind CSS, custom hand-drawn components, Caveat + Inter
+- **Maps:** Google Maps + Places
+- **Email:** Resend (Deep mode delivery)
+- **Deploy:** Vercel — `waitUntil` for Deep mode, cron for ingestion
+- **Validation:** Zod everywhere — the schema is the contract between pipeline steps
+- **Testing:** Vitest, fixture-based (connectors never hit the network in tests)
+- **Styling:** Tailwind CSS, hand-drawn components, Caveat + Inter
 
 ---
 
@@ -111,7 +103,7 @@ The system never invents places. Research is the part that earns the trust.
 
 - Node 18+
 - A Supabase project
-- API keys: OpenAI (required), Tavily (required for live research), Google Maps (required for maps), Resend (optional, for Deep mode email)
+- API keys: OpenAI (required), Tavily (required for research), Google Maps (required), Resend (optional, Deep mode email)
 
 ### Setup
 
@@ -119,7 +111,7 @@ The system never invents places. Research is the part that earns the trust.
 git clone <repo>
 cd aspot_monolith
 npm install
-cp .env.local.example .env.local   # then fill in keys
+cp .env.example .env.local        # then fill in keys
 npm run dev
 ```
 
@@ -129,7 +121,7 @@ npm run dev
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=      # ingestion + shared-link reads; server only
 
 # AI + research
 OPENAI_API_KEY=
@@ -137,6 +129,17 @@ TAVILY_API_KEY=
 
 # Maps
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+GOOGLE_MAPS_SERVER_KEY=
+
+# Ingestion cron
+CRON_SECRET=                    # Authorization: Bearer <secret> on /api/ingest
+
+# Source connectors (all default on except TikTok)
+SOURCE_PARTIFUL_ENABLED=
+SOURCE_POSH_ENABLED=
+SOURCE_LUMA_ENABLED=
+SOURCE_LUMA_PLACE_ID=
+SOURCE_TIKTOK_ENABLED=false
 
 # Deep-mode email (optional)
 RESEND_API_KEY=
@@ -146,7 +149,17 @@ NEXT_PUBLIC_SITE_URL=
 
 ### Database
 
-Migrations live in `supabase/migrations/`. Apply them with `supabase db push` or paste them into the Supabase SQL editor in order.
+Migrations live in `supabase/migrations/`, applied in order. The Spotz pivot is `016`–`019`; `016` is **destructive** (drops the trips/quiz tables, renames `activities` → `plans`).
+
+`supabase db push`, or paste them into the Supabase SQL editor. Note that `017` and `018` are not re-runnable as written.
+
+### Triggering ingestion manually
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/ingest
+```
+
+Returns per-source `fetched`/`written` counts. **`ok: false` with a `207` means a source failed** — check `failedSources`.
 
 ---
 
@@ -155,48 +168,56 @@ Migrations live in `supabase/migrations/`. Apply them with `supabase db push` or
 ```
 src/
 ├── app/
-│   ├── (protected)/        dashboard, itinerary, trips, quiz, profile
-│   ├── api/                generate, regenerate, edit-day, trips, etc.
+│   ├── (protected)/        dashboard, itinerary, profile
+│   ├── api/                itinerary, ingest, plans (votes), shared
+│   ├── s/[code]/           public shared Move-list
 │   └── auth/               OAuth callback
 ├── components/
-│   ├── itinerary/          search pill, view, day schedule, map, edit modals
-│   ├── trips/              create, invite, members
-│   ├── quiz/               flow, questions, progress
-│   └── ui/                 hand-drawn primitives
+│   ├── itinerary/          prompt pill, Move-list, votes, share, map
+│   ├── landing/            hero, auth popover
+│   └── dashboard/ ui/
 ├── lib/
-│   ├── ai/                 prompt parser, agents, Tavily service, cache
-│   ├── itinerary/          CRUD, versioning, day regeneration
-│   ├── preferences/        quiz → profile, scoring/curation
-│   ├── trips/              collaboration
-│   ├── maps/               Google Places + maps
-│   └── supabase/           client/server/middleware
-└── types/                  shared TypeScript contracts
+│   ├── sources/            connectors + candidate pool  ← the Moves supply chain
+│   ├── ai/                 prompt parser, agents, Tavily, cache
+│   ├── itinerary/          CRUD, versioning, shares + votes
+│   ├── time/               NYC-anchored night windows (servers run UTC)
+│   ├── maps/ email/ calendar/ ratelimit/ preferences/
+│   └── supabase/           client / server / service-role
+└── types/                  shared contracts
 ```
+
+Each significant directory carries an `AGENTS.md` describing its contracts — start with the root one.
 
 ---
 
 ## Scripts
 
-| Command | What it does |
-|---|---|
-| `npm run dev` | Local dev server |
-| `npm run build` | Production build |
-| `npm start` | Run the production build |
-| `npm run lint` | ESLint |
-| `npm run format` | Prettier write |
-| `npm test` | Vitest, single run |
-| `npm run test:watch` | Vitest, watch mode |
+| Command                 | What it does             |
+| ----------------------- | ------------------------ |
+| `npm run dev`           | Local dev server         |
+| `npm run build`         | Production build         |
+| `npm start`             | Run the production build |
+| `npm run lint`          | ESLint                   |
+| `npm run format`        | Prettier write           |
+| `npm run format:check`  | Prettier check           |
+| `npm test`              | Vitest, single run       |
+| `npm run test:watch`    | Vitest, watch mode       |
+| `npm run test:coverage` | Vitest with coverage     |
+
+---
+
+## Notes for contributors
+
+- **Servers run UTC; the product is Eastern.** Never use `Date.prototype.setHours` to reason about "tonight" — use `src/lib/time/nyc.ts`. This bug class is invisible on an Eastern laptop and wrong in production.
+- **Connectors fetch and normalize only.** `pool-service` owns every database write.
+- **A failing source must be loud.** `fetched: 0` is indistinguishable from a quiet night, so a first-page failure throws rather than returning an empty list.
+- **Share codes are capabilities.** Shared reads run on the service role because knowing the unguessable code _is_ the permission; RLS grants no blanket shared-read.
 
 ---
 
 ## Where this is going
 
-The bet is that **personalization compounds**. Every trip you take, every edit you make, every "yes this worked / no it didn't" should sharpen aSpot's read on your taste. Trip ten should feel like it was planned by a friend who knows you.
-
-Near-term priorities, in order:
-
-1. Schema-enforced agent outputs (no more regex-extracting JSON).
-2. Streaming the trip to the screen as it generates (no blank waits).
-3. Reddit + Google Places in the research pipeline.
-4. A model registry so the planner-vs-extractor models are swappable from one place.
-5. Eval harness — a small set of canonical prompts the system runs against on every release, so quality regressions get caught before users do.
+1. Resolve the Posh 403 — browser-context headers, a proxy, or drop the source.
+2. TikTok connector behind a commercial scraper API.
+3. Reddit-targeted research for the long-tail local truth travel SEO buries.
+4. Eval harness — canonical prompts run on every release, so quality regressions get caught before users do.
