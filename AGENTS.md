@@ -78,12 +78,13 @@ Default section order:
 
 Spotz finds the Moves for tonight. Say the word — "date night in the Village, no cover", "we tryna dance in Bushwick" — and it hands back a curated, time-anchored run of real NYC events, functions, popups, and food spots. Share the link; the crew votes 👍/👎 on individual plans. One active itinerary at a time — no trip dashboard, no quiz, no travel-agent chatbot.
 
-- **Stack:** Next.js (App Router) + React 19 + TypeScript; Supabase (Postgres, RLS, Realtime, OAuth); OpenAI via the Vercel AI SDK; Tavily for web research; Google Maps/Places; source connectors (Partiful/Posh/Luma + a TikTok stub) feed a `candidate_events` pool via a cron-gated `/api/ingest`; Resend for Deep-mode email; deployed on Vercel.
+- **Stack:** Next.js (App Router) + React 19 + TypeScript; Supabase (Postgres, RLS, Realtime, OAuth); OpenAI via the Vercel AI SDK; Tavily for web research; Google Maps/Places; source connectors (Partiful/Posh/Luma + a TikTok stub) feed a `candidate_events` pool via a cron-gated `/api/ingest` — its `starts_at` is the ordering signal and is carried through the pipeline verbatim; Resend for Deep-mode email; deployed on Vercel.
 - **The contract is the schema.** Zod types in `src/lib/ai/schemas` are the hand-off between every pipeline step. LLM outputs are schema-validated, never regex-extracted.
 - **Core principle:** the prompt is the floor AND the steering wheel — there is no quiz, no preference profile. The system never invents places or events; every candidate (web research or the Moves pool) carries provenance.
 - **The servers run UTC; the product is Eastern.** Anything reasoning about "tonight" goes through `src/lib/time/nyc.ts` — never `Date.prototype.setHours`, which resolves in the server's zone and is therefore correct on an Eastern laptop and wrong in production.
-- **Two modes, one pipeline:** Fast ("Plan it", streams on screen) and Deep ("Send it", background work + email). Same six steps: Understand → Discover → Rank → Plan → Critique → Persist.
-- **Migrations** live in `supabase/migrations/`. `src/types/profile.ts` holds the neutral default `UserPreferences` the pipeline scores against (no quiz feeds it). `src/test` holds fixtures/setup.
+- **Spotz selects, it does not schedule.** One night, one flat ordered list of real events. Each stop shows the time its source published, or no time — the system never invents a clock time, and there are no days or time buckets. Ordering is by real start time, and a manual reorder overrides it permanently.
+- **Two modes, one pipeline:** Fast ("Plan it", streams on screen) and Deep ("Send it", background work + email) differ in research width and delivery, not logic. Steps: Discover → Rank → Select → Order → Persist.
+- **Migrations** live in `supabase/migrations/`. Migration 016 dropped the pre-pivot tables (`trips`, `trip_members`, `quiz_progress`, `user_preferences`, notifications/rsvps/votes/suggestions), so `src/types/profile.ts` is an in-memory-only shape: it holds the neutral default `UserPreferences` the pipeline scores against, with no quiz-shaped fields and nothing that can vary it per user. `src/test` holds fixtures/setup.
 
 ### Verification
 
@@ -96,9 +97,9 @@ When the user requests a durable behavior change, record it here or in the relev
 ## Child DOX Index
 
 - [`src/lib/ai/`](src/lib/ai/AGENTS.md) — the generation engine: research, curation, persistence, schemas, cost/time. Contains child [`agents/`](src/lib/ai/agents/AGENTS.md).
-- [`src/lib/itinerary/`](src/lib/itinerary/AGENTS.md) — persistence, versioning, ownership, sharing/voting, and post-generation editing (reorder, swap, day-regenerate, revert, cost rollup).
+- [`src/lib/itinerary/`](src/lib/itinerary/AGENTS.md) — persistence, versioning, ownership, sharing/voting, and post-generation editing (manual reorder, revert, cost rollup).
 - [`src/lib/sources/`](src/lib/sources/AGENTS.md) — the Moves supply chain: source connectors (Partiful/Posh/Luma/TikTok), the candidate pool, ingestion.
 - [`src/app/api/`](src/app/api/AGENTS.md) — App Router route handlers: authenticate, authorize, delegate to `lib`.
-- [`src/components/`](src/components/AGENTS.md) — React UI and the hand-drawn aesthetic that is the product.
+- [`src/components/`](src/components/AGENTS.md) — React UI: minimal surfaces, cinematic vs. paper mode.
 
 Owned directly by this root (no child doc yet — simple, single-purpose): `src/lib/maps`, `src/lib/calendar`, `src/lib/email`, `src/lib/ratelimit`, `src/lib/time` (NYC-anchored night windows), `src/lib/supabase` (client/server/middleware, plus `service.ts` — the RLS-bypassing service-role client, server-only, for ingestion and share-link reads), `src/app/(protected)`, `src/types`, `src/test`.

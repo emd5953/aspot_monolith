@@ -2,14 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { Button } from '@/components/ui/button';
 
 interface LogoutButtonProps {
-  /** `light` uses white text for photo/video hero contexts */
-  tone?: 'default' | 'light';
+  /** `cinematic` uses white text for the video-backed screens. */
+  tone?: 'cinematic' | 'paper';
 }
 
-export function LogoutButton({ tone = 'default' }: LogoutButtonProps) {
+export function LogoutButton({ tone = 'paper' }: LogoutButtonProps) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -19,11 +19,11 @@ export function LogoutButton({ tone = 'default' }: LogoutButtonProps) {
     router.refresh();
   };
 
-  if (tone === 'light') {
+  if (tone === 'cinematic') {
     return (
       <button
         onClick={handleLogout}
-        className="rounded-full px-4 py-2 text-sm font-medium text-white/90 transition-colors hover:text-white [text-shadow:0_1px_3px_rgba(10,30,60,0.45),0_4px_16px_rgba(10,30,60,0.35)]"
+        className="rounded-full px-4 py-2 text-sm font-medium text-white/90 transition-colors hover:text-white"
       >
         Sign out
       </button>
@@ -31,8 +31,8 @@ export function LogoutButton({ tone = 'default' }: LogoutButtonProps) {
   }
 
   return (
-    <HandDrawnButton onClick={handleLogout} variant="ghost" size="sm">
+    <Button onClick={handleLogout} variant="ghost" size="sm">
       Sign out
-    </HandDrawnButton>
+    </Button>
   );
 }

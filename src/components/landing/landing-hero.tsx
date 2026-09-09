@@ -5,11 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import { SkyPrompt } from './sky-prompt';
 import { AuthPopover } from './auth-popover';
 
-const TEXT_SHADOW_HERO =
-  '[text-shadow:0_2px_4px_rgba(10,30,60,0.35),0_8px_32px_rgba(10,30,60,0.45)]';
-const TEXT_SHADOW_BODY =
-  '[text-shadow:0_1px_3px_rgba(10,30,60,0.45),0_4px_16px_rgba(10,30,60,0.35)]';
-
 type AuthMode = 'login' | 'signup' | null;
 
 /**
@@ -24,11 +19,8 @@ function HeroBanner() {
   const params = useSearchParams();
   const [dismissed, setDismissed] = useState(false);
 
-  const kind = params.get('verify') === '1'
-    ? 'verify'
-    : params.get('authError') === '1'
-      ? 'authError'
-      : null;
+  const kind =
+    params.get('verify') === '1' ? 'verify' : params.get('authError') === '1' ? 'authError' : null;
   const show = kind !== null && !dismissed;
 
   // Auto-dismiss after 8 seconds so the landing stays clean.
@@ -99,7 +91,7 @@ export function LandingHero() {
             type="button"
             onClick={() => setAuthMode(null)}
             aria-label="Spotz home"
-            className={`font-heading text-2xl leading-none text-white ${TEXT_SHADOW_BODY}`}
+            className="font-heading text-2xl leading-none text-white"
           >
             Spotz
           </button>
@@ -117,14 +109,10 @@ export function LandingHero() {
             <button
               ref={loginRef}
               type="button"
-              onClick={() =>
-                setAuthMode((m) => (m === 'login' ? null : 'login'))
-              }
+              onClick={() => setAuthMode((m) => (m === 'login' ? null : 'login'))}
               aria-expanded={authMode === 'login'}
               className={`relative z-10 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-300 ${
-                authMode === 'login'
-                  ? 'text-slate-900'
-                  : `text-white ${TEXT_SHADOW_BODY}`
+                authMode === 'login' ? 'text-slate-900' : 'text-white'
               }`}
             >
               Log in
@@ -132,14 +120,10 @@ export function LandingHero() {
             <button
               ref={signupRef}
               type="button"
-              onClick={() =>
-                setAuthMode((m) => (m === 'signup' ? null : 'signup'))
-              }
+              onClick={() => setAuthMode((m) => (m === 'signup' ? null : 'signup'))}
               aria-expanded={authMode === 'signup'}
               className={`relative z-10 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-300 ${
-                authMode === 'login'
-                  ? `text-white ${TEXT_SHADOW_BODY}`
-                  : 'text-slate-900'
+                authMode === 'login' ? 'text-white' : 'text-slate-900'
               }`}
             >
               Sign up
@@ -159,34 +143,21 @@ export function LandingHero() {
       {/* Hero */}
       <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-88px)] flex-col items-center justify-center px-5 pt-16 pb-32 sm:px-6 text-center">
         <div className="flex w-full max-w-xl flex-col items-center">
-          <p
-            className={`animate-fade-up text-sm font-semibold tracking-wide text-white ${TEXT_SHADOW_BODY}`}
-            style={{ animationDelay: '0.05s' }}
-          >
-            Your pocket moves plug
-          </p>
-
           <h1
-            className={`animate-fade-up mt-5 font-heading text-4xl leading-[1.05] tracking-tight text-white sm:text-5xl md:text-7xl ${TEXT_SHADOW_HERO}`}
+            className={`animate-fade-up font-heading text-4xl leading-[1.05] tracking-tight text-white sm:text-5xl md:text-7xl`}
             style={{ animationDelay: '0.15s' }}
           >
-            Yurrrrr,
-            <br />
-            what&rsquo;s the word?
+            What&rsquo;s the moves?
           </h1>
 
           <p
-            className={`animate-fade-up mt-6 text-base font-medium leading-relaxed text-white md:text-lg ${TEXT_SHADOW_BODY}`}
-            style={{ animationDelay: '0.25s' }}
+            className="animate-fade-up mt-5 text-base font-medium text-white"
+            style={{ animationDelay: '0.15s' }}
           >
-            Say the vibe. Spotz finds the moves &mdash; parties, popups, food
-            spots, functions. Tonight.
+            Parties, popups, food. Tonight.
           </p>
 
-          <div
-            className="animate-fade-up mt-10 w-full"
-            style={{ animationDelay: '0.35s' }}
-          >
+          <div className="animate-fade-up mt-8 w-full" style={{ animationDelay: '0.25s' }}>
             <SkyPrompt
               onSubmit={(prompt) => {
                 // Stash the prompt so the signup flow can seed the first
@@ -200,20 +171,6 @@ export function LandingHero() {
               }}
             />
           </div>
-
-          <p
-            className={`animate-fade-up mt-5 text-sm font-medium text-white ${TEXT_SHADOW_BODY}`}
-            style={{ animationDelay: '0.5s' }}
-          >
-            No credit card. Just the word.{' '}
-            <button
-              type="button"
-              onClick={() => setAuthMode('signup')}
-              className="underline decoration-white/70 decoration-1 underline-offset-4 transition-colors hover:decoration-white"
-            >
-              Start free
-            </button>
-          </p>
         </div>
       </main>
     </>

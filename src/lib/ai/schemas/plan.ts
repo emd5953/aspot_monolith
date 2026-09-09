@@ -203,13 +203,68 @@ export const ItineraryPlanSchema = z.object({
     .min(1)
     .describe('One entry per trip day, in order.'),
   totalEstimatedCost: z.string().optional().default('Varies'),
-  packingTips: z.array(z.string()).optional().default([]),
   importantNotes: z.array(z.string()).optional().default([]),
 });
 
 export type ScheduledItemSchemaT = z.infer<typeof ScheduledItemSchema>;
 export type DayPlanSchemaT = z.infer<typeof DayPlanSchema>;
 export type ItineraryPlanSchemaT = z.infer<typeof ItineraryPlanSchema>;
+
+// ─── Flat selection schema (the Move-list) ──────────────────────────────────
+
+/**
+ * What the model returns for a Spotz night: a ranked selection of real places,
+ * and nothing about *when*.
+ *
+ * There is deliberately no time field. The model picks and orders by fit; the
+ * pipeline stamps the real published `startsAt` afterwards by matching each
+ * pick back to the pool candidate it came from. A model asked for a time will
+ * invent one, and an invented time is the defect this rewrite removes — so it
+ * is never asked.
+ */
+export const SelectedPlanSchema = z.object({
+  name: z
+    .string()
+    .describe(
+      "The exact name of the place or event, copied from the options given. e.g. 'House of Yes', not 'a club'."
+    ),
+  type: z
+    .string()
+    .describe(
+      'Exactly one of: attraction | restaurant | activity. Use "restaurant" for any food or drinks stop.'
+    ),
+  description: z
+    .string()
+    .optional()
+    .describe('One sentence on why this fits what the user asked for.'),
+  matchReasons: z
+    .array(z.string())
+    .optional()
+    .describe('Short bullet reasons this pick fits the prompt.'),
+});
+
+/**
+ * The full night. `plans` is in the model's own ranked order; the pipeline
+ * re-orders by real start time before anything is persisted.
+ */
+export const MoveListSchema = z.object({
+  summary: z
+    .string()
+    .describe("One sentence on the shape of the night, referencing the user's ask."),
+  plans: z
+    .array(SelectedPlanSchema)
+    .min(1)
+    .describe('The picks for tonight, best first.'),
+  totalEstimatedCost: z.string().optional().default('Varies'),
+  importantNotes: z
+    .array(z.string())
+    .optional()
+    .default([])
+    .describe('Cover, age limits, dress code, sell-out risk — what to know before going.'),
+});
+
+export type SelectedPlanSchemaT = z.infer<typeof SelectedPlanSchema>;
+export type MoveListSchemaT = z.infer<typeof MoveListSchema>;
 
 // ─── Strategy schema (used by agentic-planner first pass) ───────────────────
 

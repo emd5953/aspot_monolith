@@ -24,7 +24,6 @@ interface ItineraryEmailData {
   endDate: string;
   days: EmailDay[];
   viewUrl: string; // full URL to the itinerary in the app
-  packingTips?: string[];
   importantNotes?: string[];
 }
 
@@ -83,7 +82,7 @@ export function buildItineraryEmailHtml(data: ItineraryEmailData): string {
     )
     .join('');
 
-  // "Before you go" lists — only rendered when present, all entries escaped.
+  // "Good to know" list — only rendered when present, all entries escaped.
   const tipsSection = (label: string, items?: string[]) =>
     items && items.length > 0
       ? `
@@ -97,8 +96,7 @@ export function buildItineraryEmailHtml(data: ItineraryEmailData): string {
       </tr>`
       : '';
 
-  const beforeYouGoHtml =
-    tipsSection('🎒 Before you head out', data.packingTips) +
+  const goodToKnowHtml =
     tipsSection('📌 Good to know', data.importantNotes);
 
   return `
@@ -134,8 +132,7 @@ export function buildItineraryEmailHtml(data: ItineraryEmailData): string {
             </td>
           </tr>
 
-          <!-- Before you go -->
-          ${beforeYouGoHtml}
+          ${goodToKnowHtml}
 
           <!-- CTA -->
           <tr>

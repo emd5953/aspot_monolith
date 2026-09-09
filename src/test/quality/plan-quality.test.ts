@@ -1,110 +1,56 @@
 import { describe, it, expect } from 'vitest';
-import { gradeAll, gradePool, formatGrades, poolNames, type Grade } from './grade';
+import {
+  gradeAll,
+  gradePool,
+  formatGrades,
+  poolNames,
+  POOLS,
+  type Grade,
+} from './grade';
+import { checkPlan } from '@/lib/ai/agents/plan-check';
+import { dropDuplicatePlans, orderByStartTime } from '@/lib/ai/agents/order-plans';
+import type { ItineraryPlan, ResearchResult } from '@/lib/ai/agents/types';
 
 /**
- * Deterministic quality evals for the generation pipeline.
+ * Deterministic quality evals for the selection pipeline.
  *
- * The grader is programmatic — `auditPlan`, no model, no judge — so these are
- * stable enough to gate a build. They measure the mechanical floor: duplicates,
- * geography, meals, chronology, opening hours, provenance. They say nothing
- * about whether a trip is *good*. That needs a judge or a human and belongs in
- * a separate, non-deterministic suite.
+ * Every baseline below was MEASURED, not chosen — run the suite, read the
+ * printed table, write those numbers down. A baseline picked by intuition
+ * fails on noise and passes on regressions.
  *
- * Every baseline below was measured, not chosen. Assertions are ratchets:
- * better than baseline passes, worse fails. When you improve the pipeline these
- * go green and you bump the numbers — the diff is then the evidence that the
- * change did something.
- *
- * WHY THIS EXISTS: the three bugs in the repair pass were caught by reading
- * real output and recognizing that The High Line does not close on Mondays.
- * That does not scale and does not survive a change of maintainer. These
- * assertions catch the same class of defect structurally, in 300ms, without
- * anyone needing to know the venues.
+ * Assertions are ratchets: better than baseline passes, worse fails. When an
+ * improvement turns one green, bump it in the same commit — the diff is then
+ * the evidence the change did something.
  */
 
 interface Baseline {
-  /** Audit score ceiling after repair. Higher is better. */
-  ceiling: number;
-  /** Findings remaining after repair. Lower is better. */
-  findings: number;
-  /** Scheduled items surviving to the final plan. Guards against shrinkage. */
-  scheduledItems: number;
-  /** Buckets left empty because the pool had nothing open. Lower is better. */
-  emptyBuckets: number;
-  /** Whether the pool has enough located items to cluster days by area. */
-  geoClustered: boolean;
-  /** Pool coverage. Guards the *inputs* — see the anti-gaming test below. */
+  /** Candidates surviving curation. Guards the input, see the coverage note. */
+  curated: number;
+  /** Curated candidates carrying real coordinates. */
   located: number;
-  withHours: number;
+  /** Plans in the finished list. Guards against shrinkage. */
+  plans: number;
+  /** Plans traceable to the pool. Should equal `plans` — nothing invented. */
+  fromPool: number;
+  /** plan-check ceiling. */
+  ceiling: number;
+  findings: number;
 }
 
-/**
- * Rebaselined when meals became first-class.
- *
- * Some `findings` counts went UP here, which is not a regression — new checks
- * arrived (lunch, dinner, day span, day overflow) and found defects that were
- * always shipping, they just had no detector. 17 of these 20 days had no lunch
- * at all. Repair now inserts the missing meals, which is why `scheduledItems`
- * rose across every pool at the same time: more content AND fewer findings.
- *
- * The residual findings are mostly day-span and geography, which repair
- * deliberately does not touch — rearranging stops across days is a re-plan.
- */
 const BASELINES: Record<string, Baseline> = {
-  'lisbon-portugal': {
-    ceiling: 80,
-    findings: 1,
-    scheduledItems: 26,
-    emptyBuckets: 0,
-    geoClustered: true,
-    located: 27,
-    withHours: 0,
-  },
-  'nashville-tennessee': {
-    ceiling: 80,
-    findings: 3,
-    scheduledItems: 20,
-    emptyBuckets: 0,
-    geoClustered: true,
-    located: 30,
-    withHours: 0,
-  },
-  'new-york-city': {
-    ceiling: 80,
-    findings: 5,
-    scheduledItems: 24,
-    emptyBuckets: 1,
-    geoClustered: true,
-    located: 29,
-    withHours: 22,
-  },
-  // No coordinates and no hours at all — captured before Places verification.
-  // Its clean grade is NOT a quality signal; see the anti-gaming test.
-  'new-york-city-unlocated': {
-    ceiling: 100,
-    findings: 0,
-    scheduledItems: 28,
-    emptyBuckets: 0,
-    geoClustered: false,
-    located: 0,
-    withHours: 0,
-  },
-  'tokyo-japan': {
-    ceiling: 65,
-    findings: 5,
-    scheduledItems: 26,
-    emptyBuckets: 0,
-    geoClustered: true,
-    located: 26,
-    withHours: 0,
-  },
+  'lisbon-portugal': { curated: 44, located: 34, plans: 6, fromPool: 6, ceiling: 100, findings: 0 },
+  'nashville-tennessee': { curated: 44, located: 41, plans: 6, fromPool: 6, ceiling: 100, findings: 0 },
+  'new-york-city': { curated: 46, located: 35, plans: 6, fromPool: 6, ceiling: 100, findings: 0 },
+  // Predates Places verification: no coordinates at all. Kept deliberately as
+  // the case proving the pipeline degrades cleanly rather than breaking.
+  'new-york-city-unlocated': { curated: 46, located: 0, plans: 6, fromPool: 6, ceiling: 100, findings: 0 },
+  'tokyo-japan': { curated: 46, located: 31, plans: 6, fromPool: 6, ceiling: 100, findings: 0 },
 };
 
 const grades = gradeAll();
 const byPool = new Map(grades.map((g) => [g.pool, g]));
 
-// Print the table once so a regression run shows the current state, not just
-// which assertion tripped.
+// Print once so a failing run shows the whole picture, not just the assertion.
 console.log('\n' + formatGrades(grades) + '\n');
 
 describe('quality evals — every fixture pool is graded', () => {
@@ -117,83 +63,129 @@ describe.each(poolNames())('quality eval — %s', (pool) => {
   const grade = byPool.get(pool) as Grade;
   const baseline = BASELINES[pool];
 
-  it('does not regress the audit score ceiling', () => {
-    expect(grade.ceilingAfter).toBeGreaterThanOrEqual(baseline.ceiling);
+  it('does not shrink the pool the selector chooses from', () => {
+    expect(grade.curated).toBeGreaterThanOrEqual(baseline.curated);
   });
 
-  it('does not accumulate new findings', () => {
-    expect(grade.findingsAfter).toBeLessThanOrEqual(baseline.findings);
+  it('does not lose coordinate coverage', () => {
+    // Every geographic feature no-ops without coords, so LOSING this data
+    // makes downstream checks quieter, not better. Pin it.
+    expect(grade.located).toBeGreaterThanOrEqual(baseline.located);
   });
 
-  // A pass that "fixes" the plan by deleting most of it would ace every check
-  // above. The audit's ceiling is a min over findings, so it goes *up* when
-  // the plan holds less — exactly the failure mode the orchestrator's coverage
-  // guard exists for. Pin the item count too.
-  it('does not shrink the itinerary', () => {
-    expect(grade.scheduledItems).toBeGreaterThanOrEqual(baseline.scheduledItems);
+  it('does not ship a shorter list', () => {
+    expect(grade.plans).toBeGreaterThanOrEqual(baseline.plans);
   });
 
-  it('does not leave more empty buckets', () => {
-    expect(grade.emptyBuckets).toBeLessThanOrEqual(baseline.emptyBuckets);
+  it('invents nothing — every plan traces back to the pool', () => {
+    expect(grade.fromPool).toBe(grade.plans);
+    expect(grade.fromPool).toBeGreaterThanOrEqual(baseline.fromPool);
   });
 
-  it('still clusters days geographically when the pool allows it', () => {
-    expect(grade.geoClustered).toBe(baseline.geoClustered);
+  it('does not regress the check ceiling', () => {
+    expect(grade.ceiling).toBeGreaterThanOrEqual(baseline.ceiling);
   });
 
-  it('repair never audits worse than the plan it was given', () => {
-    expect(grade.ceilingAfter).toBeGreaterThanOrEqual(grade.ceilingBefore);
-    expect(grade.findingsAfter).toBeLessThanOrEqual(grade.findingsBefore);
+  it('does not accumulate findings', () => {
+    expect(grade.findings).toBeLessThanOrEqual(baseline.findings);
   });
 });
 
 /**
- * The metric is only as honest as its inputs.
+ * The grade must not be gameable by shipping less.
  *
- * Every geographic check in `plan-audit` no-ops without coordinates, and the
- * hours check no-ops without hours — so *losing* that data makes the score go
- * UP. `new-york-city-unlocated` demonstrates it: a flawless 100/0 findings
- * purely because nothing can be seen. If Places verification silently broke,
- * every pool would drift toward that state and the ceilings would improve.
- *
- * Pinning coverage is what stops a blindness regression from reading as a win.
+ * `checkPlan`'s ceiling is a min over findings, so it RISES when the list
+ * holds less — an empty list has no duplicates and nothing off-pool, and
+ * scores a flawless 100. The plan-count baselines above are what stop that
+ * from reading as an improvement; this test states the trap outright so
+ * nobody removes them to make a red build green.
  */
-describe('quality evals — coverage cannot silently drop', () => {
-  it.each(poolNames())('%s keeps its located-item coverage', (pool) => {
-    const grade = byPool.get(pool) as Grade;
-    expect(grade.located).toBeGreaterThanOrEqual(BASELINES[pool].located);
-  });
+describe('anti-gaming', () => {
+  const empty: ItineraryPlan = {
+    destination: 'New York City',
+    summary: '',
+    plans: [],
+    totalEstimatedCost: 'Varies',
+  };
 
-  it.each(poolNames())('%s keeps its opening-hours coverage', (pool) => {
-    const grade = byPool.get(pool) as Grade;
-    expect(grade.withHours).toBeGreaterThanOrEqual(BASELINES[pool].withHours);
-  });
-
-  it('the unlocated pool scores clean only because it is blind', () => {
-    const blind = byPool.get('new-york-city-unlocated') as Grade;
-    const seeing = byPool.get('new-york-city') as Grade;
-
-    // Same city, same trip length. The one we can see has real defects; the one
-    // we cannot see looks perfect. That is the trap this suite guards.
-    expect(blind.ceilingAfter).toBe(100);
-    expect(blind.located).toBe(0);
-    expect(seeing.located).toBeGreaterThan(0);
-    expect(seeing.findingsAfter).toBeGreaterThan(blind.findingsAfter);
+  it('an empty list scores perfectly, which is why plan counts are pinned', () => {
+    const check = checkPlan(empty, POOLS['new-york-city']);
+    expect(check.scoreCeiling).toBe(100);
+    expect(check.findings).toHaveLength(0);
+    // ...and every pool's baseline demands real plans, so this cannot pass the gate.
+    for (const b of Object.values(BASELINES)) expect(b.plans).toBeGreaterThan(0);
   });
 });
 
-describe('quality evals — the grader itself', () => {
-  it('is deterministic across runs', () => {
-    for (const pool of poolNames()) {
-      expect(gradePool(pool)).toEqual(gradePool(pool));
-    }
+/**
+ * The two checks that survived the scheduling deletion still bite. If these
+ * ever go quiet, the suite above is measuring nothing.
+ */
+describe('the gate still detects real defects', () => {
+  const research = POOLS['new-york-city'];
+  const firstName = (research.attractions ?? [])[0]?.name ?? 'A';
+
+  it('catches a venue shipped twice', () => {
+    const doubled: ItineraryPlan = {
+      destination: 'New York City',
+      summary: '',
+      totalEstimatedCost: 'Varies',
+      plans: [
+        { name: firstName, type: 'attraction' },
+        { name: firstName, type: 'attraction' },
+      ],
+    };
+    const check = checkPlan(doubled, research);
+    expect(check.stats.duplicateItems).toBe(1);
+    expect(check.scoreCeiling).toBeLessThan(100);
   });
 
-  it('actually exercises the repair pass on the pools that need it', () => {
-    // If this goes quiet, repair stopped running rather than stopped being
-    // needed — the findings baselines above assume it fires.
-    const nyc = byPool.get('new-york-city') as Grade;
-    expect(nyc.repairs.length).toBeGreaterThan(0);
-    expect(nyc.repairs.some((r) => r.includes('closed all day'))).toBe(true);
+  it('catches a list of places research never found', () => {
+    const invented: ItineraryPlan = {
+      destination: 'New York City',
+      summary: '',
+      totalEstimatedCost: 'Varies',
+      plans: [
+        { name: 'The Nonexistent Room', type: 'activity' },
+        { name: 'Club Imaginary', type: 'activity' },
+      ],
+    };
+    const check = checkPlan(invented, research);
+    expect(check.stats.offPoolItems).toBe(2);
+    expect(check.scoreCeiling).toBeLessThan(100);
+  });
+
+  it('dedupe and ordering are wired into the graded path', () => {
+    // Guards against a refactor that grades a path the product does not run.
+    const dupes = [
+      { name: 'X', type: 'activity' as const },
+      { name: 'X', type: 'activity' as const },
+    ];
+    expect(dropDuplicatePlans(dupes)).toHaveLength(1);
+    expect(
+      orderByStartTime([
+        { name: 'late', type: 'activity', startsAt: '2026-09-12T23:00:00-04:00' },
+        { name: 'early', type: 'activity', startsAt: '2026-09-12T19:00:00-04:00' },
+      ]).map((p) => p.name)
+    ).toEqual(['early', 'late']);
+  });
+});
+
+/**
+ * The fixtures are captured web-research pools from before the Moves pool
+ * existed, so none of them carry a published start time. That is a property of
+ * the corpus, not of the pipeline — `pipeline.test.ts` covers time stamping and
+ * ordering against pool events directly. Pinned so that when a timed fixture is
+ * finally added, this test fails and forces the corpus note to be updated.
+ */
+describe('corpus limits', () => {
+  it('no fixture pool carries real event times yet', () => {
+    for (const g of grades) expect(g.timed).toBe(0);
+  });
+
+  it('is deterministic across runs', () => {
+    const a = gradePool('new-york-city', POOLS['new-york-city'] as ResearchResult);
+    const b = gradePool('new-york-city', POOLS['new-york-city'] as ResearchResult);
+    expect(a).toEqual(b);
   });
 });

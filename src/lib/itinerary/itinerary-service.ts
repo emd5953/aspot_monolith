@@ -215,120 +215,36 @@ export async function removeActivity(
 }
 
 /**
- * Reorder activities within a day
- * Returns conflict info if time slots overlap
+ * Set the order of the Move-list.
+ *
+ * `sort_order` follows array position, so the caller sends plan ids in the
+ * order it wants them rendered. This is the user's own arrangement and it
+ * overrides the start-time ordering generation seeded.
+ *
+ * No overlap check: the times shown are the ones each venue published, and the
+ * user cannot edit them. Two events overlapping is a real choice ("catch the
+ * first hour, then move"), not a defect to warn about.
  */
 export async function reorderActivities(
   supabase: SupabaseClient,
-  dayId: string,
   activityIds: string[]
-): Promise<{ success: boolean; conflicts?: TimeConflict[] }> {
-  // Update sort orders
-  const updates = activityIds.map((id, index) => ({
-    id,
-    sort_order: index + 1,
-  }));
-
-  for (const update of updates) {
+): Promise<{ success: boolean }> {
+  for (const [index, id] of activityIds.entries()) {
     const { error } = await supabase
       .from('plans')
-      .update({ sort_order: update.sort_order })
-      .eq('id', update.id);
+      .update({ sort_order: index + 1 })
+      .eq('id', id);
 
     if (error) {
       throw new Error(`Failed to reorder activities: ${error.message}`);
     }
   }
 
-  // Check for time conflicts after reordering
-  const conflicts = await detectTimeConflicts(supabase, dayId);
-
-  return {
-    success: true,
-    conflicts: conflicts.length > 0 ? conflicts : undefined,
-  };
+  return { success: true };
 }
 
-export interface TimeConflict {
-  activity1Id: string;
-  activity1Title: string;
-  activity2Id: string;
-  activity2Title: string;
-  overlapMinutes: number;
-}
 
-/**
- * Detect time conflicts between activities in a day
- */
-export async function detectTimeConflicts(
-  supabase: SupabaseClient,
-  dayId: string
-): Promise<TimeConflict[]> {
-  const { data: activities, error } = await supabase
-    .from('plans')
-    .select('*')
-    .eq('day_id', dayId)
-    .order('sort_order', { ascending: true });
 
-  if (error || !activities) {
-    return [];
-  }
-
-  const conflicts: TimeConflict[] = [];
-
-  // Check each pair of activities for time overlap
-  for (let i = 0; i < activities.length; i++) {
-    for (let j = i + 1; j < activities.length; j++) {
-      const a1 = activities[i];
-      const a2 = activities[j];
-
-      // Skip if either activity doesn't have times
-      if (!a1.start_time || !a1.end_time || !a2.start_time || !a2.end_time) {
-        continue;
-      }
-
-      const overlap = calculateOverlap(
-        a1.start_time, a1.end_time,
-        a2.start_time, a2.end_time
-      );
-
-      if (overlap > 0) {
-        conflicts.push({
-          activity1Id: a1.id,
-          activity1Title: a1.title,
-          activity2Id: a2.id,
-          activity2Title: a2.title,
-          overlapMinutes: overlap,
-        });
-      }
-    }
-  }
-
-  return conflicts;
-}
-
-/**
- * Calculate overlap in minutes between two time ranges
- */
-function calculateOverlap(
-  start1: string, end1: string,
-  start2: string, end2: string
-): number {
-  const toMinutes = (time: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
-
-  const s1 = toMinutes(start1);
-  const e1 = toMinutes(end1);
-  const s2 = toMinutes(start2);
-  const e2 = toMinutes(end2);
-
-  const overlapStart = Math.max(s1, s2);
-  const overlapEnd = Math.min(e1, e2);
-
-  return Math.max(0, overlapEnd - overlapStart);
-}
 
 /**
  * Move an activity to a different day

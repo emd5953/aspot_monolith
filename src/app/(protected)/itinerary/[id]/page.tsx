@@ -5,10 +5,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { ItineraryView } from '@/components/itinerary/itinerary-view';
 import { RegenerateModal } from '@/components/itinerary/regenerate-modal';
-import { EditDayModal } from '@/components/itinerary/edit-day-modal';
-import { KanyeQuotes } from '@/components/itinerary/kanye-quotes';
-import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
-import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import type { ItemSource } from '@/lib/ai/provenance';
 
 interface Activity {
@@ -26,14 +24,6 @@ interface Activity {
   locationCoords?: { lat: number; lng: number };
 }
 
-interface Day {
-  id: string;
-  dayNumber: number;
-  date: Date;
-  notes?: string;
-  activities: Activity[];
-}
-
 interface Itinerary {
   id: string;
   title: string;
@@ -41,8 +31,7 @@ interface Itinerary {
   startDate: Date;
   endDate: Date;
   status: string;
-  days: Day[];
-  packingTips?: string[];
+  plans: Activity[];
   importantNotes?: string[];
   budgetRange?: string;
 }
@@ -54,12 +43,6 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
   const [isLoading, setIsLoading] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
-  const [showEditDayModal, setShowEditDayModal] = useState(false);
-  const [editingDay, setEditingDay] = useState<{
-    dayId: string;
-    dayNumber: number;
-    activities: Activity[];
-  } | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -78,10 +61,7 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
         ...it,
         startDate: new Date(it.startDate),
         endDate: new Date(it.endDate),
-        days: it.days.map((d: { date: string; activities: Activity[] }) => ({
-          ...d,
-          date: new Date(d.date),
-        })),
+        plans: it.plans ?? [],
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
@@ -90,10 +70,7 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
-  const handleRegenerate = async (options: {
-    useAgenticMode: boolean;
-    focusAreas?: string[];
-  }) => {
+  const handleRegenerate = async (options: { useAgenticMode: boolean; focusAreas?: string[] }) => {
     setIsRegenerating(true);
     setShowRegenerateModal(false);
     try {
@@ -136,33 +113,16 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
-  const handleReorderActivities = async (dayId: string, activityIds: string[]) => {
+  const handleReorderActivities = async (planIds: string[]) => {
     try {
       await fetch(`/api/itinerary/${id}/activities/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dayId, activityIds }),
+        body: JSON.stringify({ activityIds: planIds }),
       });
       fetchItinerary();
     } catch (err) {
       console.error('Failed to reorder:', err);
-    }
-  };
-
-  const handleTidyDay = async (dayId: string) => {
-    try {
-      const res = await fetch(`/api/itinerary/${id}/activities/tidy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dayId }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error || 'Failed to tidy route');
-      }
-      await fetchItinerary();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to tidy route');
     }
   };
 
@@ -194,64 +154,37 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
-  const handleEditDay = (dayId: string, dayNumber: number, activities: Activity[]) => {
-    setEditingDay({ dayId, dayNumber, activities });
-    setShowEditDayModal(true);
-  };
-
-  const handleEditDaySubmit = async (prompt: string) => {
-    if (!editingDay) return;
-    const res = await fetch(`/api/itinerary/${id}/days/${editingDay.dayId}/regenerate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
-    });
-    if (!res.ok) throw new Error('Failed to regenerate day');
-    await fetchItinerary();
-    setShowEditDayModal(false);
-    setEditingDay(null);
-  };
-
   if (isLoading) {
     return (
-      <main className="relative mx-auto max-w-4xl px-4 pt-32 pb-24 md:px-6">
-        <HandDrawnCard className="p-16 text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--accent)]" />
-          <p className="mt-4 text-sm text-[color:var(--ink-muted)]">Loading itinerary</p>
-        </HandDrawnCard>
+      <main className="mx-auto max-w-4xl px-5 pt-10 pb-24 md:px-6">
+        <Card aria-busy className="animate-pulse">
+          <div className="h-8 w-2/3 rounded bg-[color:var(--ink)]/8" />
+          <div className="mt-4 h-4 w-1/3 rounded bg-[color:var(--ink)]/8" />
+          <div className="mt-8 h-40 rounded bg-[color:var(--ink)]/5" />
+        </Card>
       </main>
     );
   }
 
   if (error || !itinerary) {
     return (
-      <main className="relative mx-auto max-w-xl px-4 pt-32 pb-24 md:px-6">
-        <HandDrawnCard className="p-10 text-center">
-          <p className="text-sm font-medium text-rose-600">Something went wrong</p>
-          <h2 className="mt-3 font-heading text-3xl text-[color:var(--ink)]">
-            {error || 'Itinerary not found'}
-          </h2>
-          <HandDrawnButton
-            onClick={() => router.push('/itinerary')}
-            variant="primary"
-            size="md"
-            className="mt-8"
-          >
-            Back to itineraries
-          </HandDrawnButton>
-        </HandDrawnCard>
+      <main className="mx-auto max-w-xl px-5 pt-16 pb-24 text-center md:px-6">
+        <p className="text-sm text-[color:var(--ink-muted)]">{error || 'Itinerary not found'}</p>
+        <Button onClick={() => router.push('/itinerary')} className="mt-4">
+          Back to moves
+        </Button>
       </main>
     );
   }
 
   return (
-    <main className="relative mx-auto max-w-4xl px-4 pt-20 pb-24 md:px-6">
+    <main className="mx-auto max-w-4xl px-5 pt-6 pb-24 md:px-6">
       <button
         onClick={() => router.push('/itinerary')}
-        className="mb-2 inline-flex items-center gap-2 text-sm text-white/85 transition-colors hover:text-white [text-shadow:0_1px_3px_rgba(10,30,60,0.5)]"
+        className="mb-3 inline-flex items-center gap-1.5 text-sm text-[color:var(--ink-muted)] transition-colors hover:text-[color:var(--ink)]"
       >
-        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
-        Back to itineraries
+        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+        Moves
       </button>
 
       <ItineraryView
@@ -261,9 +194,7 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
         onRegenerate={isRegenerating ? undefined : () => setShowRegenerateModal(true)}
         onDelete={handleDelete}
         onStatusChange={handleStatusChange}
-        onEditDay={handleEditDay}
         onTitleChange={handleTitleChange}
-        onTidyDay={handleTidyDay}
       />
 
       <RegenerateModal
@@ -272,22 +203,17 @@ export default function ItineraryDetailPage({ params }: { params: Promise<{ id: 
         onRegenerate={handleRegenerate}
       />
 
-      <EditDayModal
-        isOpen={showEditDayModal}
-        dayNumber={editingDay?.dayNumber || 1}
-        currentActivities={editingDay?.activities.map((a) => a.title) || []}
-        onClose={() => {
-          setShowEditDayModal(false);
-          setEditingDay(null);
-        }}
-        onSubmit={handleEditDaySubmit}
-      />
+
 
       {isRegenerating && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md">
-            <KanyeQuotes />
-          </div>
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-[color:var(--surface-page)]/90 p-4"
+          role="status"
+        >
+          <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-[color:var(--ink)] border-t-transparent" />
+          <p className="loading-dots text-sm font-medium text-[color:var(--ink-muted)]">
+            Rebuilding the plan
+          </p>
         </div>
       )}
     </main>

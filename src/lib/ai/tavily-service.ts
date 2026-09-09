@@ -73,16 +73,7 @@ function buildSearchQueries(
   prefs: UserPreferences,
   userIntent?: string
 ): { attractions: string; restaurants: string; activities: string } {
-  const authenticity =
-    prefs.authenticityPreference === 'authentic_local'
-      ? 'local hidden gems off the beaten path'
-      : prefs.authenticityPreference === 'popular_spots'
-        ? 'top must-see iconic'
-        : '';
-
   const interests = (prefs.activityTypes || []).slice(0, 3).join(' ');
-  const motivations = (prefs.travelMotivations || []).slice(0, 2).join(' ');
-  const cuisines = (prefs.cuisinePreferences || []).slice(0, 4).join(' ');
 
   const adventurous = (prefs.comfortZone ?? 5) >= 7 ? 'adventurous unique' : '';
   const budget =
@@ -96,15 +87,15 @@ function buildSearchQueries(
 
   return {
     attractions:
-      `${intent} best ${authenticity} ${motivations} ${interests} ${adventurous} things to do attractions in ${destination}`
+      `${intent} best ${interests} ${adventurous} things to do attractions in ${destination}`
         .replace(/\s+/g, ' ')
         .trim(),
     restaurants:
-      `${intent} best ${authenticity} ${cuisines} ${budget} restaurants where to eat in ${destination}`
+      `${intent} best ${budget} restaurants where to eat in ${destination}`
         .replace(/\s+/g, ' ')
         .trim(),
     activities:
-      `${intent} best ${authenticity} ${motivations} ${adventurous} activities experiences tours in ${destination}`
+      `${intent} best ${adventurous} activities experiences tours in ${destination}`
         .replace(/\s+/g, ' ')
         .trim(),
   };
@@ -160,7 +151,6 @@ export function buildRedditSearchQueries(
   userIntent?: string
 ): { attractions: string; restaurants: string; activities: string } {
   const interests = (prefs.activityTypes || []).slice(0, 3).join(' ');
-  const cuisines = (prefs.cuisinePreferences || []).slice(0, 3).join(' ');
   const intent = (userIntent || '').trim();
 
   const build = (focus: string) =>
@@ -170,7 +160,7 @@ export function buildRedditSearchQueries(
 
   return {
     attractions: build(`best ${interests} things to do`),
-    restaurants: build(`best ${cuisines} restaurants where locals eat`),
+    restaurants: build('best restaurants where locals eat'),
     activities: build(`favorite ${interests} activities and experiences`),
   };
 }
@@ -525,7 +515,6 @@ export async function fetchDestinationDataWithPrefs(
 
   return {
     name: destination,
-    country: '', // Tavily doesn't reliably give us this; not used downstream
     description: '',
     attractions: verifiedAttractions,
     restaurants: verifiedRestaurants,
@@ -549,17 +538,13 @@ export async function fetchDestinationData(
   const fallbackPrefs: UserPreferences = {
     id: '',
     userId: '',
-    travelMotivations: [],
     planningStyle: 'structured_flexible',
-    authenticityPreference: 'balanced',
     timeRhythm: 'steady_daytime',
     comfortZone: 5,
     activityTypes: [],
-    cuisinePreferences: [],
     budgetRange: 'moderate',
     travelPace: 'moderate',
     socialPreferences: 'couple',
-    rawAnswers: {},
     createdAt: new Date(),
     updatedAt: new Date(),
   };

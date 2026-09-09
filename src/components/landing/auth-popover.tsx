@@ -12,22 +12,13 @@ interface AuthPopoverProps {
   onSwitchMode: (next: Mode) => void;
 }
 
-// Heavy shadow stack so white reads over any background (clouds, buildings).
-const TEXT_SHADOW =
-  '[text-shadow:0_1px_3px_rgba(10,25,55,0.8),0_4px_18px_rgba(10,25,55,0.6)]';
-
 /**
- * Two presentations of one form.
+ * Two presentations of one form, both a solid panel — no transparent glass,
+ * so no text-shadow stack is needed to stay legible over the video.
  *
- * From md up: a transparent-background popover anchored under the nav. Inputs
- * are dark-tinted glass (readable over clouds OR skyline), the primary CTA is
- * solid dark ink, and text carries a heavy drop-shadow stack.
- *
- * Below md: a bottom sheet with its own surface and a scrim. The transparent
- * treatment depends on clean sky sitting behind it — on a phone the panel
- * lands on top of the hero headline instead, and the two sets of white text
- * collide into noise. The sheet also inverts the CTA and lightens the input
- * fills, because dark-on-dark disappears against the panel.
+ * From md up: a popover anchored under the nav. Below md: a bottom sheet.
+ * Same solid slate panel either way, just repositioned; the CTA inverts on
+ * the sheet because dark-on-dark disappears against a matching panel.
  */
 
 /**
@@ -145,21 +136,19 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
       <>
         <Scrim />
         <div ref={wrapperRef} className={PANEL_CLASS}>
-        <Grabber />
-        <p className={`text-base font-bold text-white ${TEXT_SHADOW}`}>
-          Check your inbox
-        </p>
-        <p className={`mt-2 text-sm font-medium text-white ${TEXT_SHADOW}`}>
-          We sent a confirmation link to{' '}
-          <span className="font-semibold">{email}</span>. Tap it to finish.
-        </p>
-        <button
-          type="button"
-          onClick={onClose}
-          className={`mt-4 text-xs font-semibold text-white underline decoration-white/80 underline-offset-2 hover:decoration-white ${TEXT_SHADOW}`}
-        >
-          Got it
-        </button>
+          <Grabber />
+          <p className="text-base font-bold text-white">Check your inbox</p>
+          <p className="mt-2 text-sm font-medium text-white">
+            We sent a confirmation link to <span className="font-semibold">{email}</span>. Tap it to
+            finish.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-4 text-xs font-semibold text-white underline decoration-white/80 underline-offset-2 hover:decoration-white"
+          >
+            Got it
+          </button>
         </div>
       </>
     );
@@ -186,112 +175,106 @@ export function AuthPopover({ mode, onClose, onSwitchMode }: AuthPopoverProps) {
     <>
       <Scrim />
       <div ref={wrapperRef} className={PANEL_CLASS}>
-      <Grabber />
-      <p
-        className={`text-xs font-bold uppercase tracking-wider text-white ${TEXT_SHADOW}`}
-      >
-        <span key={mode} className="animate-auth-fade inline-block">
-          {mode === 'login' ? 'Welcome back' : 'Create your account'}
-        </span>
-      </p>
+        <Grabber />
+        <p className="text-xs font-bold uppercase tracking-wider text-white">
+          <span key={mode} className="animate-auth-fade inline-block">
+            {mode === 'login' ? 'Welcome back' : 'Create your account'}
+          </span>
+        </p>
 
-      <form onSubmit={handleSubmit} className="mt-3">
-        {/* Name field collapses/expands as the box morphs between
+        <form onSubmit={handleSubmit} className="mt-3">
+          {/* Name field collapses/expands as the box morphs between
             signup and login. The grid 1fr→0fr trick animates height,
             and the bottom margin lives inside the collapsing region so
             the remaining fields sit flush once it's hidden. */}
-        <div
-          className="grid transition-[grid-template-rows] duration-300 ease-out"
-          style={{ gridTemplateRows: mode === 'signup' ? '1fr' : '0fr' }}
-          aria-hidden={mode !== 'signup'}
-        >
-          <div className="overflow-hidden">
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your name"
-              required={mode === 'signup'}
-              tabIndex={mode === 'signup' ? 0 : -1}
-              className={`${inputClass} mb-2.5`}
-            />
+          <div
+            className="grid transition-[grid-template-rows] duration-300 ease-out"
+            style={{ gridTemplateRows: mode === 'signup' ? '1fr' : '0fr' }}
+            aria-hidden={mode !== 'signup'}
+          >
+            <div className="overflow-hidden">
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Your name"
+                required={mode === 'signup'}
+                tabIndex={mode === 'signup' ? 0 : -1}
+                className={`${inputClass} mb-2.5`}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="space-y-2.5">
-          <input
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            required
-            className={inputClass}
-          />
+          <div className="space-y-2.5">
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              className={inputClass}
+            />
 
-          <input
-            type="password"
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={mode === 'login' ? 'Password' : 'Pick a password'}
-            required
-            className={inputClass}
-          />
+            <input
+              type="password"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={mode === 'login' ? 'Password' : 'Pick a password'}
+              required
+              className={inputClass}
+            />
 
-          {error && (
-            <p
-              className={`rounded-full bg-rose-500/80 px-4 py-2 text-center text-xs font-semibold text-white backdrop-blur-md ${TEXT_SHADOW}`}
+            {error && (
+              <p className="rounded-full bg-rose-500/80 px-4 py-2 text-center text-xs font-semibold text-white backdrop-blur-md">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || !email.trim() || !password}
+              // Inverted on the sheet — solid slate-900 on a slate-900 panel
+              // reads as a hole. Back to dark-on-sky from md up.
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-[0_12px_28px_-8px_rgba(10,25,55,0.8)] ring-1 ring-white/25 transition-all hover:-translate-y-[1px] disabled:opacity-85 disabled:hover:translate-y-0 md:bg-slate-900 md:py-2.5 md:text-white md:hover:bg-slate-800"
             >
-              {error}
-            </p>
-          )}
+              <span key={mode} className="animate-auth-fade">
+                {submitLabel}
+              </span>
+              {!loading && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />}
+            </button>
+          </div>
+        </form>
 
-          <button
-            type="submit"
-            disabled={loading || !email.trim() || !password}
-            // Inverted on the sheet — solid slate-900 on a slate-900 panel
-            // reads as a hole. Back to dark-on-sky from md up.
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-[0_12px_28px_-8px_rgba(10,25,55,0.8)] ring-1 ring-white/25 transition-all hover:-translate-y-[1px] disabled:opacity-85 disabled:hover:translate-y-0 md:bg-slate-900 md:py-2.5 md:text-white md:hover:bg-slate-800"
-          >
-            <span key={mode} className="animate-auth-fade">
-              {submitLabel}
-            </span>
-            {!loading && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />}
-          </button>
+        <div className="my-4 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-white">
+          <span className="h-px flex-1 bg-white/50" />
+          or
+          <span className="h-px flex-1 bg-white/50" />
         </div>
-      </form>
 
-      <div
-        className={`my-4 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-white ${TEXT_SHADOW}`}
-      >
-        <span className="h-px flex-1 bg-white/50" />
-        or
-        <span className="h-px flex-1 bg-white/50" />
-      </div>
+        <button
+          type="button"
+          onClick={handleGoogle}
+          disabled={loadingGoogle}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(10,25,55,0.55)] backdrop-blur-xl transition-all hover:border-white disabled:opacity-60 md:border-white/80 md:bg-slate-900/65 md:py-2.5 md:hover:bg-slate-900/80"
+        >
+          <GoogleGlyph />
+          Continue with Google
+        </button>
 
-      <button
-        type="button"
-        onClick={handleGoogle}
-        disabled={loadingGoogle}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(10,25,55,0.55)] backdrop-blur-xl transition-all hover:border-white disabled:opacity-60 md:border-white/80 md:bg-slate-900/65 md:py-2.5 md:hover:bg-slate-900/80"
-      >
-        <GoogleGlyph />
-        Continue with Google
-      </button>
-
-      <p className={`mt-4 text-center text-xs font-medium text-white ${TEXT_SHADOW}`}>
-        <span key={mode} className="animate-auth-fade inline-block">
-          {mode === 'login' ? "Don't have one? " : 'Already signed up? '}
-          <button
-            type="button"
-            onClick={() => onSwitchMode(mode === 'login' ? 'signup' : 'login')}
-            className="font-bold underline decoration-white/80 underline-offset-2 hover:decoration-white"
-          >
-            {mode === 'login' ? 'Sign up' : 'Log in'}
-          </button>
-        </span>
-      </p>
+        <p className="mt-4 text-center text-xs font-medium text-white">
+          <span key={mode} className="animate-auth-fade inline-block">
+            {mode === 'login' ? "Don't have one? " : 'Already signed up? '}
+            <button
+              type="button"
+              onClick={() => onSwitchMode(mode === 'login' ? 'signup' : 'login')}
+              className="font-bold underline decoration-white/80 underline-offset-2 hover:decoration-white"
+            >
+              {mode === 'login' ? 'Sign up' : 'Log in'}
+            </button>
+          </span>
+        </p>
       </div>
     </>
   );
@@ -309,19 +292,15 @@ const PANEL_CLASS = [
   'p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
   'shadow-[0_-20px_60px_-20px_rgba(5,15,35,0.8)]',
   'md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-full md:mt-3',
-  'md:max-h-none md:w-[300px] md:overflow-visible md:rounded-none md:border-0',
-  'md:bg-transparent md:p-4 md:shadow-none md:backdrop-blur-none',
+  'md:max-h-none md:w-[300px] md:overflow-visible',
+  'md:rounded-2xl md:border md:border-white/15 md:bg-slate-900/92 md:backdrop-blur-2xl',
+  'md:p-4 md:shadow-[0_20px_50px_-15px_rgba(5,15,35,0.7)]',
   'md:origin-top-right',
 ].join(' ');
 
 /** Sheet handle — signals "this dismisses" on mobile. Absent on desktop. */
 function Grabber() {
-  return (
-    <div
-      aria-hidden
-      className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/35 md:hidden"
-    />
-  );
+  return <div aria-hidden className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/35 md:hidden" />;
 }
 
 /**
@@ -330,10 +309,7 @@ function Grabber() {
  */
 function Scrim() {
   return (
-    <div
-      aria-hidden
-      className="animate-scrim-in fixed inset-0 z-40 bg-slate-950/60 md:hidden"
-    />
+    <div aria-hidden className="animate-scrim-in fixed inset-0 z-40 bg-slate-950/60 md:hidden" />
   );
 }
 

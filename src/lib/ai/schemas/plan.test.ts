@@ -167,7 +167,6 @@ describe('ItineraryPlanSchema', () => {
   it('parses a valid plan and applies plan-level defaults', () => {
     const parsed = ItineraryPlanSchema.parse(validPlan);
     expect(parsed.totalEstimatedCost).toBe('Varies');
-    expect(parsed.packingTips).toEqual([]);
     expect(parsed.importantNotes).toEqual([]);
   });
 

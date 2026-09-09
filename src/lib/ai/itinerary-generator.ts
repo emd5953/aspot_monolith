@@ -15,23 +15,15 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserPreferences, defaultPreferencesFor } from '@/types/profile';
-import { fetchDestinationData } from './tavily-service';
-import { runOrchestrator, OrchestratorOutput } from './agents/orchestrator';
-import { runAgenticOrchestrator, AgenticOrchestratorOutput } from './agents/agentic-orchestrator';
-import { ItineraryPlan, ScheduledItem, ResearchResult, ActivityData } from './agents/types';
+import { ResearchResult, ActivityData, PlanItem } from './agents/types';
+import { runPipeline } from './agents/pipeline';
+import { discoverCandidates } from './agents/research';
 import { calendarDateOf, nycNightWindow } from '@/lib/time/nyc';
 import { getTonightPool } from '@/lib/sources/pool-service';
 import { poolRowsToActivities } from './pool-events';
 import type { Attraction, Restaurant, ActivityOption } from '@/types/destination';
-import {
-  type ItemSource,
-  deriveSource,
-  buildProvenanceIndex,
-  lookupSource,
-  type ProvenanceCandidate,
-} from './provenance';
+import { type ItemSource, dedupeKey } from './provenance';
 import { coordsColumns } from '@/lib/itinerary/itinerary-service';
-import { assignDayTimes } from './schedule-times';
 import { estimateActivityCost } from './estimate-cost';
 
 // ---------------------------------------------------------------------------
@@ -69,23 +61,6 @@ export interface DayPlan {
   notes: string;
 }
 
-// Helper interface for database operations
-interface SimpleActivity {
-  id?: string;
-  title: string;
-  description: string;
-  locationName: string;
-  category: string;
-  startTime?: string;
-  endTime?: string;
-  duration?: number;
-  estimatedCost?: number;
-  sortOrder: number;
-  notes: string;
-  source?: ItemSource;
-  coordinates?: { lat: number; lng: number };
-}
-
 export interface ItineraryInput {
   userId: string;
   destination: string;
@@ -111,11 +86,13 @@ export interface GeneratedItinerary {
   destination: string;
   startDate: Date;
   endDate: Date;
+  /** @deprecated Day-shaped output from the retiring planner. */
   days: DayPlan[];
+  /** The Move-list: one flat run of plans, ordered by real start time. */
+  plans?: PlanItem[];
   status: 'draft' | 'active' | 'completed' | 'archived';
   createdAt: Date;
-  /** "Before you go" content from the planner. Empty on the local fallback path. */
-  packingTips?: string[];
+  /** "Good to know" content from the planner. Empty on the local fallback path. */
   importantNotes?: string[];
   /** Traveler budget tier (from the preferences snapshot) — drives budget-fit. */
   budgetRange?: string;
@@ -163,46 +140,47 @@ export interface StoredItinerary {
   destination: string;
   startDate: Date;
   endDate: Date;
+  /**
+   * The Move-list: one flat run of stops in `sort_order`.
+   *
+   * This is what every caller should read. The DB still nests plans under a
+   * single `itinerary_days` row to satisfy `plans.day_id NOT NULL`, and that
+   * nesting is flattened here so nothing above persistence knows days exist.
+   */
+  plans: StoredActivity[];
+  /** @deprecated The raw day nesting. Read `plans`. */
   days: StoredDay[];
   status: GeneratedItinerary['status'];
   createdAt: Date;
-  packingTips?: string[];
   importantNotes?: string[];
   budgetRange?: string;
 }
 
 /**
- * Generate a complete personalized itinerary
- * Uses Sim Studio workflow if configured, otherwise falls back to local pipeline
+ * Generate tonight's Move-list.
+ *
+ * One pass: discover real candidates → select and rank them → order by the
+ * time each event actually starts → persist. There is no scheduling step,
+ * because Spotz does not decide when anything happens; the source already did.
+ *
+ * `deep` widens the research scrape and is delivered by email; it is the same
+ * pipeline with a bigger pool, not a different one.
  */
 export async function generateItinerary(
   supabase: SupabaseClient,
   input: ItineraryInput,
   preferences: UserPreferences,
-  useTrulyAgentic: boolean = false, // Use the truly agentic, multi-iteration system
-  useAdvancedCuration: boolean = false, // Use advanced curation (extensive scraping + iterations)
-  onProgress?: ProgressCallback // Progress callback for streaming
+  deep: boolean = false,
+  onProgress?: ProgressCallback
 ): Promise<GeneratedItinerary> {
   const { userId, destination, startDate, endDate, title, userIntent, rawPrompt } = input;
-  
-  // Calculate trip duration
-  const tripDuration = Math.ceil(
-    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-  ) + 1;
 
-  if (tripDuration < 1 || tripDuration > 30) {
-    throw new Error('Trip duration must be between 1 and 30 days');
-  }
-
-  // The Moves: pull live events for the outing window from the candidate pool
-  // (fed by the Posh/Luma/Partiful/TikTok connectors). Non-fatal on failure —
-  // generation still works from web research alone.
+  // The Moves: live events for tonight's window, from the candidate pool.
+  // Non-fatal — generation still works from web research alone.
   let poolEvents: ActivityData[] = [];
   try {
-    // NYC-anchored: startDate/endDate are bare calendar dates parsed as UTC
-    // midnight, and setHours() would resolve "6am" in the server's zone. On
-    // Vercel (UTC) the old form started the window at 8pm the *previous*
-    // evening, letting yesterday's leftovers crowd out tonight's events.
+    // NYC-anchored. `setHours` would resolve in the server's zone, which on
+    // Vercel (UTC) started the window the previous evening.
     const { from: windowStart, to: windowEnd } = nycNightWindow(
       calendarDateOf(startDate),
       calendarDateOf(endDate)
@@ -216,410 +194,50 @@ export async function generateItinerary(
     console.warn('[pool] candidate pool unavailable, continuing without live events:', err);
   }
 
-  let dayPlans: DayPlan[];
-  // Plan-level "before you go" content. Only the agentic plans produce these;
-  // the local fallback leaves them empty.
-  let packingTips: string[] = [];
-  let importantNotes: string[] = [];
-  let orchestratorResult: OrchestratorOutput | AgenticOrchestratorOutput | undefined;
+  onProgress?.({ status: 'researching', message: 'Finding whats on tonight...', progress: 20 });
 
-  if (useTrulyAgentic) {
-    // TRULY AGENTIC MODE: Full reasoning, adaptive stopping, dynamic tool selection
-    console.log('[TIMING] Starting TRULY AGENTIC System...');
-    console.log('Features: Dynamic tool selection, reasoning chains, adaptive stopping');
-    onProgress?.({ status: 'researching', message: 'Researching destination...', progress: 10 });
-    const startTime = Date.now();
-    
-    try {
-      const agenticResult = await runAgenticOrchestrator({
-        destination,
-        startDate,
-        endDate,
-        preferences,
-        qualityThreshold: useAdvancedCuration ? 85 : 60, // Higher threshold for advanced mode
-        maxIterations: useAdvancedCuration ? 5 : 1, // More iterations for advanced mode
-        useAdvancedCuration, // Pass flag to enable extensive scraping
-        userIntent,
-        rawPrompt,
-        poolEvents,
-        onProgress: (state) => {
-          console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
-          
-          // Map internal status to user-friendly messages
-          const statusMap: Record<string, { message: string; progress: number }> = {
-            'researching': { message: 'Researching top attractions and hidden gems...', progress: 20 },
-            'planning': { message: 'Creating your personalized itinerary...', progress: 50 },
-            'reviewing': { message: 'Optimizing your schedule...', progress: 70 },
-            'complete': { message: 'Finalizing details...', progress: 90 },
-          };
-          
-          const mapped = statusMap[state.status] || { message: 'Processing...', progress: 40 };
-          onProgress?.({ status: state.status, message: mapped.message, progress: mapped.progress });
-          
-          if (state.reasoning && state.reasoning.length > 0) {
-            const latest = state.reasoning[state.reasoning.length - 1];
-            console.log(`  [${latest.agent}] ${latest.thought}`);
-          }
-        },
-      });
+  const { research } = await discoverCandidates({
+    destination,
+    preferences,
+    userIntent,
+    rawPrompt,
+    startDate,
+    endDate,
+    poolEvents,
+    useAdvancedMode: deep,
+  });
 
-      console.log(`[TIMING] Truly Agentic System completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+  onProgress?.({ status: 'planning', message: 'Picking the moves...', progress: 60 });
 
-      if (agenticResult.success && agenticResult.plan) {
-        dayPlans = convertAgentPlanToDayPlans(agenticResult.plan, startDate, agenticResult.research);
-        packingTips = agenticResult.plan.packingTips ?? [];
-        importantNotes = agenticResult.plan.importantNotes ?? [];
-        
-        console.log('Truly Agentic orchestration complete');
-        console.log(`Final score: ${agenticResult.finalScore}/100`);
-        console.log(`Iterations: ${agenticResult.iterations}`);
-        console.log(`Reasoning steps: ${agenticResult.reasoning.length}`);
-        console.log('\nReasoning Chain:');
-        agenticResult.reasoning.forEach((step, i) => {
-          console.log(`${i + 1}. [${step.agent}] ${step.thought} -> ${step.action} -> ${step.result}`);
-        });
-      } else {
-        console.warn('Truly Agentic system failed, falling back to local pipeline');
-        onProgress?.({ status: 'fallback', message: 'Using alternative generation...', progress: 50 });
-        dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
-      }
-    } catch (error) {
-      console.error('Truly Agentic error:', error);
-      onProgress?.({ status: 'fallback', message: 'Using fallback generation...', progress: 50 });
-      dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
-    }
-  } else {
-    // Classic Multi-Agent System: fixed research → plan → review loop (up to 3 iterations)
-    console.log('[TIMING] Starting Classic Multi-Agent System (Fixed-Loop)...');
-    onProgress?.({ status: 'researching', message: 'Researching destination...', progress: 15 });
-    const startTime = Date.now();
-    console.log('Agents: Research → Plan → Review (fixed loop, up to 3 iterations)');
-    
-    try {
-      orchestratorResult = await runOrchestrator({
-        destination,
-        startDate,
-        endDate,
-        preferences,
-        userIntent,
-        rawPrompt,
-        poolEvents,
-        onProgress: (state) => {
-          console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
-          
-          // Map internal status to user-friendly messages
-          const statusMap: Record<string, { message: string; progress: number }> = {
-            'researching': { message: 'Finding the best local restaurants...', progress: 25 },
-            'planning': { message: 'Mapping optimal routes and neighborhoods...', progress: 50 },
-            'reviewing': { message: 'Checking opening hours and availability...', progress: 70 },
-            'complete': { message: 'Personalizing based on your preferences...', progress: 85 },
-          };
-          
-          const mapped = statusMap[state.status] || { message: 'Processing...', progress: 40 };
-          onProgress?.({ status: state.status, message: mapped.message, progress: mapped.progress });
-        },
-      });
+  const result = await runPipeline({
+    research,
+    preferences,
+    userIntent,
+    rawPrompt,
+    poolLimit: deep ? 40 : 24,
+  });
 
-      console.log(`[TIMING] Classic Multi-Agent System (Fixed-Loop) completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
-
-      if (orchestratorResult.success && orchestratorResult.plan) {
-        dayPlans = convertAgentPlanToDayPlans(orchestratorResult.plan, startDate, orchestratorResult.research);
-        packingTips = orchestratorResult.plan.packingTips ?? [];
-        importantNotes = orchestratorResult.plan.importantNotes ?? [];
-        
-        console.log('Classic Multi-Agent orchestration complete!');
-        console.log(`Final score: ${orchestratorResult.state.review?.score || 'N/A'}/100`);
-        console.log(`Iterations: ${orchestratorResult.state.iteration}`);
-      } else {
-        console.warn('Multi-Agent system failed, falling back to local pipeline:', orchestratorResult.error);
-        onProgress?.({ status: 'fallback', message: 'Using alternative generation...', progress: 50 });
-        dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
-      }
-    } catch (error) {
-      console.error('Multi-Agent error:', error);
-      onProgress?.({ status: 'fallback', message: 'Using fallback generation...', progress: 50 });
-      dayPlans = await generateLocalItinerary(destination, tripDuration, preferences, startDate);
-    }
+  if (!result.success || !result.plan?.plans?.length) {
+    throw new Error(result.error ?? 'Could not put a plan together for tonight');
   }
 
-  // Save to database
-  onProgress?.({ status: 'saving', message: 'Saving your itinerary...', progress: 95 });
-  return await saveItineraryToDatabase(supabase, {
+  if (result.check && result.check.findings.length > 0) {
+    console.warn('[plan-check]\n' + result.check.summary);
+  }
+
+  onProgress?.({ status: 'saving', message: 'Saving your moves...', progress: 95 });
+
+  return await savePlansToDatabase(supabase, {
     userId,
-    title: title || `Trip to ${destination}`,
+    title: title || `Tonight in ${destination}`,
     destination,
     startDate,
     endDate,
-    dayPlans,
+    plans: result.plan.plans,
+    research: result.research,
     preferences,
-    packingTips,
-    importantNotes,
+    importantNotes: result.plan.importantNotes,
   });
-}
-
-/**
- * Flatten the research pool into the name → source index used to trace each
- * planned item back to where it came from. The planner emits items by name and
- * drops the candidate's signals, so this is how provenance survives planning.
- */
-function buildResearchProvenanceIndex(research?: ResearchResult) {
-  if (!research) return new Map<string, ItemSource>();
-  const candidates: ProvenanceCandidate[] = [
-    ...(research.attractions ?? []),
-    ...(research.restaurants ?? []),
-    ...(research.activities ?? []),
-  ];
-  return buildProvenanceIndex(candidates);
-}
-
-/**
- * Convert multi-agent ItineraryPlan to our DayPlan format.
- *
- * `research` is the pool the plan was built from; we use it to stamp each
- * item's provenance (reddit/places/tavily, or `ai` when the planner named
- * something we can't trace back). A plan may already carry `source` on its
- * items — honor that first.
- */
-export function convertAgentPlanToDayPlans(
-  plan: ItineraryPlan,
-  startDate: Date,
-  research?: ResearchResult
-): DayPlan[] {
-  const provenanceIndex = buildResearchProvenanceIndex(research);
-
-  return plan.days.map((day, index) => {
-    const allItems: ScheduledItem[] = [
-      ...day.morning,
-      ...day.afternoon,
-      ...day.evening,
-    ];
-
-    const dayDate = new Date(startDate);
-    dayDate.setDate(dayDate.getDate() + index);
-
-    // Convert to ActivityRecommendation format
-    const activities: ActivityRecommendation[] = allItems.map((item, i) => ({
-      type: (item.type === 'restaurant' ? 'restaurant' : item.type === 'attraction' ? 'attraction' : 'activity') as 'attraction' | 'restaurant' | 'activity',
-      // ScheduledItem only carries name/type/description; fill the rest of the
-      // Attraction shape with sane defaults so downstream stays well-typed.
-      item: {
-        name: item.name,
-        description: item.description || '',
-        category: item.type || 'activity',
-        address: '',
-        estimatedDuration: item.duration || 90,
-        priceRange: 'moderate',
-      } satisfies Attraction,
-      matchScore: 80,
-      matchReasons: item.matchReasons || [],
-      suggestedTimeSlot: i < allItems.length / 3 ? 'morning' : i < (2 * allItems.length) / 3 ? 'afternoon' : 'evening',
-      suggestedDuration: item.duration || 90,
-      source: item.source ?? lookupSource(item.name, provenanceIndex),
-    }));
-
-    // Restore the planner's schedule: honor each item's "HH:MM" and fill any
-    // gaps so every activity gets a concrete start/end time.
-    const times = assignDayTimes(
-      allItems.map((it) => ({ time: it.time, durationMin: it.duration }))
-    );
-    activities.forEach((activity, i) => {
-      activity.startTime = times[i].startTime;
-      activity.endTime = times[i].endTime;
-    });
-
-    return {
-      dayNumber: day.dayNumber,
-      date: dayDate,
-      activities,
-      totalDuration: allItems.reduce((sum, item) => sum + (item.duration || 0), 0),
-      notes: day.notes || (day.theme ? `Theme: ${day.theme}` : ''),
-    };
-  });
-}
-
-/**
- * Convert ActivityRecommendation to SimpleActivity for database
- */
-function activityToSimple(activity: ActivityRecommendation, index: number): SimpleActivity {
-  // These three shapes have overlapping fields; narrow to the ones we use.
-  const item = activity.item as {
-    name?: string;
-    description?: string;
-    address?: string;
-    cuisine?: string[];
-    priceRange?: string;
-    redditMentions?: number;
-    coordinates?: { lat: number; lng: number };
-  };
-
-  // Provenance: the agentic path stamps `activity.source` explicitly (its item
-  // is a name-only stub); the local path leaves it unset, so derive from the
-  // real candidate's own signals.
-  const source: ItemSource = activity.source ?? deriveSource(item);
-
-  // Prefer the real address if research returned one. Falls back to the name
-  // so the map still geocodes correctly. Never echo the title verbatim —
-  // that's what was causing "Lunch at Nathan's / Lunch at Nathan's".
-  const locationName = item.address?.trim() || item.name || '';
-
-  // If there's no description (common for restaurants), synthesise a short
-  // one from cuisine + price so the card has something useful under the title.
-  let description = item.description || '';
-  if (!description && item.cuisine && item.cuisine.length > 0) {
-    description = `${item.cuisine.join(', ')} · ${item.priceRange || ''}`.trim();
-  }
-
-  return {
-    title: item.name || '',
-    description,
-    locationName,
-    category: activity.type || 'activity',
-    startTime: activity.startTime,
-    endTime: activity.endTime,
-    duration: activity.suggestedDuration || undefined,
-    // Rough ballpark from the candidate's price tier + category, so the trip
-    // cost rollup has data. 0 (free) persists as null via the insert's `|| null`.
-    estimatedCost: estimateActivityCost(activity.type, item.priceRange) || undefined,
-    sortOrder: index + 1,
-    notes: activity.matchReasons?.join(', ') || '',
-    source,
-    // Real coords when research resolved them (e.g. Places verification) so the
-    // map + per-day proximity have something to work with.
-    coordinates: item.coordinates,
-  };
-}
-
-/**
- * Local fallback pipeline used when the agentic systems fail. Uses whatever
- * the research layer returns and slots items into a light time-of-day schedule.
- */
-async function generateLocalItinerary(
-  destination: string,
-  tripDuration: number,
-  preferences: UserPreferences,
-  startDate: Date,
-  activityDensity: 'relaxed' | 'moderate' | 'packed' = 'moderate'
-): Promise<DayPlan[]> {
-  console.log(`Fetching destination data for ${destination}...`);
-  const data = await fetchDestinationData(destination);
-
-  const perDay =
-    activityDensity === 'relaxed' ? 3 : activityDensity === 'packed' ? 7 : 5;
-
-  // Simple preference-aware sort: anything whose category is in the user's
-  // preferred activity types or cuisine list gets a small boost.
-  const preferred = new Set([
-    ...(preferences.activityTypes ?? []),
-    ...(preferences.cuisinePreferences ?? []),
-  ]);
-
-  const score = (category: string) => (preferred.has(category) ? 1 : 0);
-
-  const attractionPool: ActivityRecommendation[] = (data.attractions ?? [])
-    .slice()
-    .sort((a, b) => score(b.category) - score(a.category))
-    .map((item) => ({
-      type: 'attraction' as const,
-      item,
-      matchScore: 70 + score(item.category) * 15,
-      matchReasons: preferred.has(item.category) ? ['Matches your preferences'] : [],
-      suggestedTimeSlot: 'morning' as const,
-      suggestedDuration: item.estimatedDuration ?? 120,
-    }));
-
-  const restaurantPool: ActivityRecommendation[] = (data.restaurants ?? [])
-    .slice()
-    .sort((a, b) => {
-      const aScore = Math.max(0, ...a.cuisine.map(score));
-      const bScore = Math.max(0, ...b.cuisine.map(score));
-      return bScore - aScore;
-    })
-    .map((item) => {
-      const matches = item.cuisine.some((c) => preferred.has(c));
-      return {
-        type: 'restaurant' as const,
-        item,
-        matchScore: 70 + (matches ? 15 : 0),
-        matchReasons: matches ? ['Matches your cuisine preferences'] : [],
-        suggestedTimeSlot: 'afternoon' as const,
-        suggestedDuration: 90,
-      };
-    });
-
-  const activityPool: ActivityRecommendation[] = (data.activities ?? []).map(
-    (item) => ({
-      type: 'activity' as const,
-      item,
-      matchScore: 70 + score(item.category) * 15,
-      matchReasons: preferred.has(item.category) ? ['Matches your preferences'] : [],
-      suggestedTimeSlot: 'evening' as const,
-      suggestedDuration: item.duration ?? 120,
-    })
-  );
-
-  const days: DayPlan[] = [];
-  let attractionIdx = 0;
-  let restaurantIdx = 0;
-  let activityIdx = 0;
-
-  const pick = (
-    pool: ActivityRecommendation[],
-    idxRef: { i: number },
-    slot: ActivityRecommendation['suggestedTimeSlot']
-  ): ActivityRecommendation | null => {
-    if (pool.length === 0) return null;
-    const item = pool[idxRef.i % pool.length];
-    idxRef.i += 1;
-    return { ...item, suggestedTimeSlot: slot };
-  };
-
-  for (let d = 0; d < tripDuration; d++) {
-    const date = new Date(startDate);
-    date.setDate(date.getDate() + d);
-
-    const attractionRef = { i: attractionIdx };
-    const restaurantRef = { i: restaurantIdx };
-    const activityRef = { i: activityIdx };
-
-    const activities: ActivityRecommendation[] = [];
-    // Rotate attraction / restaurant / activity slots until we hit perDay.
-    const slotOrder: ActivityRecommendation['suggestedTimeSlot'][] = [
-      'morning',
-      'afternoon',
-      'evening',
-    ];
-    for (let i = 0; i < perDay; i++) {
-      const slot = slotOrder[i % 3];
-      let next: ActivityRecommendation | null = null;
-      if (slot === 'afternoon') next = pick(restaurantPool, restaurantRef, slot);
-      if (!next && slot === 'evening') next = pick(activityPool, activityRef, slot);
-      if (!next) next = pick(attractionPool, attractionRef, slot);
-      if (!next) break;
-      activities.push(next);
-    }
-
-    attractionIdx = attractionRef.i;
-    restaurantIdx = restaurantRef.i;
-    activityIdx = activityRef.i;
-
-    // No planner times on the local path — lay activities out sequentially so
-    // the day still has a real timeline.
-    const times = assignDayTimes(activities.map((a) => ({ durationMin: a.suggestedDuration })));
-    activities.forEach((activity, i) => {
-      activity.startTime = times[i].startTime;
-      activity.endTime = times[i].endTime;
-    });
-
-    days.push({
-      dayNumber: d + 1,
-      date,
-      activities,
-      totalDuration: activities.reduce((sum, a) => sum + a.suggestedDuration, 0),
-      notes: `Day ${d + 1} in ${destination}`,
-    });
-  }
-
-  return days;
 }
 
 /**
@@ -661,7 +279,20 @@ export async function insertActivityRow(
 /**
  * Save itinerary and activities to database
  */
-async function saveItineraryToDatabase(
+/**
+ * Persist a flat Move-list.
+ *
+ * Spotz is one night: one itinerary, one ordered run of plans. The DB still
+ * has an `itinerary_days` table with `plans.day_id NOT NULL` FK-cascading off
+ * it, so this writes exactly ONE day row and hangs every plan off it. That row
+ * is an implementation detail — nothing above persistence knows it exists and
+ * no UI renders it. Flattening it away is a later migration, made low-risk
+ * precisely because nothing references days by then.
+ *
+ * `sort_order` is the rendered order, seeded from the pipeline's start-time
+ * ordering. The user can drag plans afterwards and their order wins.
+ */
+async function savePlansToDatabase(
   supabase: SupabaseClient,
   data: {
     userId: string;
@@ -669,18 +300,16 @@ async function saveItineraryToDatabase(
     destination: string;
     startDate: Date;
     endDate: Date;
-    dayPlans: DayPlan[];
+    plans: PlanItem[];
+    research: ResearchResult;
     preferences: UserPreferences;
-    packingTips?: string[];
     importantNotes?: string[];
   }
 ): Promise<GeneratedItinerary> {
-  const { userId, title, destination, startDate, endDate, dayPlans, preferences } = data;
-  const packingTips = data.packingTips ?? [];
+  const { userId, title, destination, startDate, endDate, plans, research, preferences } = data;
   const importantNotes = data.importantNotes ?? [];
 
-  // Spotz: one active itinerary per user. Archive whatever was active/draft
-  // before the new one lands (history page shows the archived ones).
+  // One active itinerary per user: archive whatever was live before this lands.
   const { error: archiveError } = await supabase
     .from('itineraries')
     .update({ status: 'archived' })
@@ -690,7 +319,6 @@ async function saveItineraryToDatabase(
     console.warn('[itinerary] failed to archive previous itineraries:', archiveError.message);
   }
 
-  // Create itinerary record
   const { data: itinerary, error: itineraryError } = await supabase
     .from('itineraries')
     .insert({
@@ -709,62 +337,68 @@ async function saveItineraryToDatabase(
     throw new Error(`Failed to create itinerary: ${itineraryError.message}`);
   }
 
-  // Persist "before you go" content as a best-effort follow-up UPDATE rather
-  // than in the insert above: the columns (migration 014) may not be applied
-  // yet, and we must never let that fail the critical itinerary insert.
-  if (packingTips.length > 0 || importantNotes.length > 0) {
-    const { error: tipsError } = await supabase
+  // Best-effort: the column (migration 014) may not be applied, and that must
+  // never fail the itinerary insert itself.
+  if (importantNotes.length > 0) {
+    const { error: notesError } = await supabase
       .from('itineraries')
-      .update({ packing_tips: packingTips, important_notes: importantNotes })
+      .update({ important_notes: importantNotes })
       .eq('id', itinerary.id);
-    if (tipsError) {
+    if (notesError) {
       console.warn(
-        '[itinerary] packing_tips/important_notes not persisted (apply migration 014):',
-        tipsError.message
+        '[itinerary] important_notes not persisted (apply migration 014):',
+        notesError.message
       );
     }
   }
 
-  // Create day records
-  for (const dayPlan of dayPlans) {
-    const { data: day, error: dayError } = await supabase
-      .from('itinerary_days')
-      .insert({
-        itinerary_id: itinerary.id,
-        day_number: dayPlan.dayNumber,
-        date: dayPlan.date.toISOString().split('T')[0],
-        notes: dayPlan.notes,
-      })
-      .select()
-      .single();
+  const { data: day, error: dayError } = await supabase
+    .from('itinerary_days')
+    .insert({
+      itinerary_id: itinerary.id,
+      day_number: 1,
+      date: startDate.toISOString().split('T')[0],
+      notes: '',
+    })
+    .select()
+    .single();
 
-    if (dayError) {
-      throw new Error(`Failed to create day: ${dayError.message}`);
-    }
+  if (dayError) {
+    throw new Error(`Failed to create day: ${dayError.message}`);
+  }
 
-    // Create activity records for this day
-    for (let i = 0; i < dayPlan.activities.length; i++) {
-      const activity = dayPlan.activities[i];
-      const simpleActivity = activityToSimple(activity, i);
+  // Look venue detail back up from the pool the pick came from: a PlanItem
+  // carries a name, not an address or coordinates.
+  const byName = new Map<string, PoolLookup>();
+  for (const item of [
+    ...(research.attractions ?? []),
+    ...(research.restaurants ?? []),
+    ...(research.activities ?? []),
+  ]) {
+    const key = dedupeKey(item.name);
+    if (key && !byName.has(key)) byName.set(key, item as PoolLookup);
+  }
 
-      const activityData = {
-        day_id: day.id,
-        title: simpleActivity.title,
-        description: simpleActivity.description,
-        location_name: simpleActivity.locationName,
-        category: simpleActivity.category,
-        start_time: simpleActivity.startTime || null,
-        end_time: simpleActivity.endTime || null,
-        duration: simpleActivity.duration || null,
-        estimated_cost: simpleActivity.estimatedCost || null,
-        sort_order: simpleActivity.sortOrder,
-        notes: simpleActivity.notes,
-        source: simpleActivity.source ?? null,
-        ...coordsColumns(simpleActivity.coordinates),
-      };
+  for (let i = 0; i < plans.length; i++) {
+    const plan = plans[i];
+    const pooled = byName.get(dedupeKey(plan.name));
 
-      await insertActivityRow(supabase, activityData);
-    }
+    await insertActivityRow(supabase, {
+      day_id: day.id,
+      title: plan.name,
+      description: plan.description ?? '',
+      location_name: pooled?.address?.trim() || plan.name,
+      category: plan.type,
+      // The real published time, or NULL. Never a made-up slot.
+      start_time: toClockTime(plan.startsAt),
+      end_time: toClockTime(plan.endsAt),
+      duration: null,
+      estimated_cost: estimateActivityCost(plan.type, pooled?.priceRange) || null,
+      sort_order: i + 1,
+      notes: plan.matchReasons?.join(', ') || '',
+      source: plan.source ?? null,
+      ...coordsColumns(pooled?.coordinates),
+    });
   }
 
   return {
@@ -774,12 +408,36 @@ async function saveItineraryToDatabase(
     destination: itinerary.destination,
     startDate: new Date(itinerary.start_date),
     endDate: new Date(itinerary.end_date),
-    days: dayPlans,
+    days: [],
+    plans,
     status: itinerary.status,
     createdAt: new Date(itinerary.created_at),
-    packingTips,
     importantNotes,
   };
+}
+
+/** Fields we read off a pool candidate when persisting a pick. */
+interface PoolLookup {
+  address?: string;
+  priceRange?: string;
+  coordinates?: { lat: number; lng: number };
+}
+
+/**
+ * ISO instant → "HH:MM" in New York, for the `TIME` column. Null when the
+ * source published no time — the column is nullable and unknown must stay
+ * unknown rather than becoming midnight.
+ */
+function toClockTime(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return null;
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/New_York',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d);
 }
 
 /**
@@ -834,6 +492,11 @@ export async function getItinerary(
         })),
     }));
 
+  // Flatten to the one list callers actually want. Days are in day_number
+  // order and each day's plans in sort_order, so concatenating preserves the
+  // rendered order — including any the user set by hand.
+  const plans = days.flatMap((day) => day.activities);
+
   return {
     id: itinerary.id,
     userId: itinerary.user_id,
@@ -841,10 +504,10 @@ export async function getItinerary(
     destination: itinerary.destination,
     startDate: new Date(itinerary.start_date),
     endDate: new Date(itinerary.end_date),
+    plans,
     days,
     status: itinerary.status,
     createdAt: new Date(itinerary.created_at),
-    packingTips: itinerary.packing_tips ?? [],
     importantNotes: itinerary.important_notes ?? [],
     budgetRange: itinerary.preferences_snapshot?.budgetRange,
   };
@@ -882,219 +545,137 @@ export async function listItineraries(
 
 
 /**
- * Regenerate an itinerary with variation
- * Updates the existing itinerary with new activities while respecting preferences
+ * Regenerate tonight's Move-list: same night, fresh picks.
+ *
+ * Replaces the plans in place rather than creating a new itinerary, so the
+ * share link and its votes survive. Any manual reordering does not — a
+ * regenerate is a new set of plans, not a reshuffle of the old one.
  */
 export async function regenerateItinerary(
   supabase: SupabaseClient,
   itineraryId: string,
   options?: {
-    excludeActivities?: string[]; // Activity names to avoid
-    focusAreas?: string[]; // Areas to emphasize (e.g., 'food', 'culture')
-    useAgenticMode?: boolean; // Use full multi-agent system
-    useTrulyAgentic?: boolean; // Use truly agentic system with reasoning
+    /** Plan names to avoid this time round. */
+    excludeActivities?: string[];
+    /** Vibe to lean into, e.g. 'food', 'dancing'. */
+    focusAreas?: string[];
   }
 ): Promise<GeneratedItinerary> {
-  // Get existing itinerary
   const existing = await getItinerary(supabase, itineraryId);
   if (!existing) {
     throw new Error('Itinerary not found');
   }
 
-  // Spotz: no per-user quiz preferences — start from the neutral default
-  // profile; the stored vibe prompt / focus options steer regeneration.
+  // No per-user quiz profile: start neutral and let the focus options steer.
   const preferences: UserPreferences = defaultPreferencesFor(existing.userId);
-
-  // Modify preferences based on options to get variation
-  const modifiedPreferences = { ...preferences };
-  
   if (options?.focusAreas?.length) {
-    // Boost certain activity types
-    modifiedPreferences.activityTypes = [
+    preferences.activityTypes = [
       ...options.focusAreas,
-      ...preferences.activityTypes.filter(t => !options.focusAreas!.includes(t)),
+      ...preferences.activityTypes.filter((t) => !options.focusAreas!.includes(t)),
     ];
   }
 
-  // Calculate trip duration
-  const tripDuration = Math.ceil(
-    (existing.endDate.getTime() - existing.startDate.getTime()) / (1000 * 60 * 60 * 24)
-  ) + 1;
-
-  let dayPlans: DayPlan[];
-  let orchestratorResult: OrchestratorOutput | AgenticOrchestratorOutput | undefined;
-
-  // Always use agentic mode for regeneration
-  const useTrulyAgentic = options?.useTrulyAgentic ?? true;
-  const useAgenticMode = options?.useAgenticMode ?? true;
-
-  if (useTrulyAgentic) {
-    // Truly Agentic System for regeneration
-    console.log('[TIMING] Regenerating with Truly Agentic System...');
-    const startTime = Date.now();
-    
-    try {
-      const agenticResult = await runAgenticOrchestrator({
-        destination: existing.destination,
-        startDate: existing.startDate,
-        endDate: existing.endDate,
-        preferences: modifiedPreferences,
-        qualityThreshold: 60, // Accept anything above 60 for speed
-        maxIterations: 1, // Just 1 iteration for speed
-        onProgress: (state) => {
-          console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
-        },
-      });
-
-      console.log(`[TIMING] Truly Agentic regeneration completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
-
-      if (agenticResult.success && agenticResult.plan) {
-        console.log('DEBUG: Agentic result plan:', JSON.stringify(agenticResult.plan, null, 2));
-        dayPlans = convertAgentPlanToDayPlans(agenticResult.plan, existing.startDate);
-        console.log(`DEBUG: Converted to ${dayPlans.length} day plans`);
-        console.log('DEBUG: First day:', JSON.stringify(dayPlans[0], null, 2));
-        console.log(`Regeneration score: ${agenticResult.finalScore}/100`);
-        console.log(`Iterations: ${agenticResult.iterations}`);
-        console.log(`Generated ${dayPlans.length} days with ${dayPlans.reduce((sum, d) => sum + d.activities.length, 0)} total activities`);
-        console.log('\nReasoning Chain:');
-        agenticResult.reasoning.forEach((step, i) => {
-          console.log(`${i + 1}. [${step.agent}] ${step.thought}`);
-          console.log(`   -> ${step.action}`);
-          console.log(`   -> ${step.result}`);
-        });
-      } else {
-        console.error('DEBUG: Agentic result failed or no plan:', agenticResult);
-        console.warn('Truly Agentic regeneration failed, falling back to local pipeline');
-        dayPlans = await generateLocalItinerary(
-          existing.destination,
-          tripDuration,
-          modifiedPreferences,
-          existing.startDate
-        );
-      }
-    } catch (error) {
-      console.error('Truly Agentic regeneration error:', error);
-      dayPlans = await generateLocalItinerary(
-        existing.destination,
-        tripDuration,
-        modifiedPreferences,
-        existing.startDate
-      );
-    }
-  } else if (useAgenticMode) {
-    // Classic Multi-Agent System for regeneration (fixed-loop)
-    console.log('[TIMING] Regenerating with Classic Multi-Agent System (Fixed-Loop)...');
-    const startTime = Date.now();
-    
-    try {
-      orchestratorResult = await runOrchestrator({
-        destination: existing.destination,
-        startDate: existing.startDate,
-        endDate: existing.endDate,
-        preferences: modifiedPreferences,
-        onProgress: (state) => {
-          console.log(`[${state.status}] Iteration ${state.iteration}/${state.maxIterations}`);
-        },
-      });
-
-      console.log(`[TIMING] Multi-Agent regeneration completed in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
-
-      if (orchestratorResult.success && orchestratorResult.plan) {
-        dayPlans = convertAgentPlanToDayPlans(orchestratorResult.plan, existing.startDate);
-        console.log(`Regeneration score: ${orchestratorResult.state.review?.score || 'N/A'}/100`);
-      } else {
-        console.warn('Multi-Agent regeneration failed, falling back to local pipeline');
-        dayPlans = await generateLocalItinerary(
-          existing.destination,
-          tripDuration,
-          modifiedPreferences,
-          existing.startDate
-        );
-      }
-    } catch (error) {
-      console.error('Multi-Agent regeneration error:', error);
-      dayPlans = await generateLocalItinerary(
-        existing.destination,
-        tripDuration,
-        modifiedPreferences,
-        existing.startDate
-      );
-    }
-  } else {
-    // Fallback: use local pipeline
-    dayPlans = await generateLocalItinerary(
-      existing.destination,
-      tripDuration,
-      modifiedPreferences,
-      existing.startDate
+  let poolEvents: ActivityData[] = [];
+  try {
+    const { from: windowStart, to: windowEnd } = nycNightWindow(
+      calendarDateOf(existing.startDate),
+      calendarDateOf(existing.endDate)
     );
+    const poolRows = await getTonightPool(supabase, { from: windowStart, to: windowEnd });
+    poolEvents = poolRowsToActivities(poolRows);
+  } catch (err) {
+    console.warn('[pool] candidate pool unavailable on regenerate:', err);
   }
 
-  // Delete existing days and activities
-  const { data: existingDays } = await supabase
+  const { research } = await discoverCandidates({
+    destination: existing.destination,
+    preferences,
+    startDate: existing.startDate,
+    endDate: existing.endDate,
+    poolEvents,
+  });
+
+  // Honour the exclusions by removing them from the pool outright, so the
+  // model cannot pick them back: an instruction not to would be advisory.
+  const excluded = new Set((options?.excludeActivities ?? []).map(dedupeKey).filter(Boolean));
+  const withoutExcluded: ResearchResult = excluded.size
+    ? {
+        ...research,
+        attractions: (research.attractions ?? []).filter((a) => !excluded.has(dedupeKey(a.name))),
+        restaurants: (research.restaurants ?? []).filter((r) => !excluded.has(dedupeKey(r.name))),
+        activities: (research.activities ?? []).filter((a) => !excluded.has(dedupeKey(a.name))),
+      }
+    : research;
+
+  const result = await runPipeline({
+    research: withoutExcluded,
+    preferences,
+    poolLimit: 24,
+  });
+
+  if (!result.success || !result.plan?.plans?.length) {
+    throw new Error(result.error ?? 'Could not put a new plan together');
+  }
+
+  // Swap the plans out under the existing itinerary. The day row is reused, so
+  // the itinerary keeps its id, share code and votes.
+  const { data: days } = await supabase
     .from('itinerary_days')
     .select('id')
     .eq('itinerary_id', itineraryId);
 
-  if (existingDays) {
-    for (const day of existingDays) {
-      await supabase.from('plans').delete().eq('day_id', day.id);
-    }
-    await supabase.from('itinerary_days').delete().eq('itinerary_id', itineraryId);
+  const dayIds = (days ?? []).map((d: { id: string }) => d.id);
+  if (dayIds.length > 0) {
+    await supabase.from('plans').delete().in('day_id', dayIds);
   }
 
-  // Update itinerary metadata
-  await supabase
-    .from('itineraries')
-    .update({
-      preferences_snapshot: modifiedPreferences,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', itineraryId);
-
-  // Create new day records with activities
-  for (const dayPlan of dayPlans) {
+  let dayId = dayIds[0];
+  if (!dayId) {
     const { data: day, error: dayError } = await supabase
       .from('itinerary_days')
       .insert({
         itinerary_id: itineraryId,
-        day_number: dayPlan.dayNumber,
-        date: dayPlan.date.toISOString().split('T')[0],
-        notes: dayPlan.notes,
+        day_number: 1,
+        date: existing.startDate.toISOString().split('T')[0],
+        notes: '',
       })
       .select()
       .single();
-
-    if (dayError) {
-      throw new Error(`Failed to create day: ${dayError.message}`);
-    }
-
-    // Create activity records for this day
-    for (let i = 0; i < dayPlan.activities.length; i++) {
-      const activity = dayPlan.activities[i];
-      const simpleActivity = activityToSimple(activity, i);
-
-      const activityData = {
-        day_id: day.id,
-        title: simpleActivity.title,
-        description: simpleActivity.description,
-        location_name: simpleActivity.locationName,
-        category: simpleActivity.category,
-        start_time: simpleActivity.startTime || null,
-        end_time: simpleActivity.endTime || null,
-        duration: simpleActivity.duration || null,
-        estimated_cost: simpleActivity.estimatedCost || null,
-        sort_order: simpleActivity.sortOrder,
-        notes: simpleActivity.notes,
-        source: simpleActivity.source ?? null,
-        ...coordsColumns(simpleActivity.coordinates),
-      };
-
-      await insertActivityRow(supabase, activityData);
-    }
+    if (dayError) throw new Error(`Failed to create day: ${dayError.message}`);
+    dayId = day.id;
   }
 
-  // Return the updated itinerary
+  const byName = new Map<string, PoolLookup>();
+  for (const item of [
+    ...(result.research.attractions ?? []),
+    ...(result.research.restaurants ?? []),
+    ...(result.research.activities ?? []),
+  ]) {
+    const key = dedupeKey(item.name);
+    if (key && !byName.has(key)) byName.set(key, item as PoolLookup);
+  }
+
+  const plans = result.plan.plans;
+  for (let i = 0; i < plans.length; i++) {
+    const plan = plans[i];
+    const pooled = byName.get(dedupeKey(plan.name));
+    await insertActivityRow(supabase, {
+      day_id: dayId,
+      title: plan.name,
+      description: plan.description ?? '',
+      location_name: pooled?.address?.trim() || plan.name,
+      category: plan.type,
+      start_time: toClockTime(plan.startsAt),
+      end_time: toClockTime(plan.endsAt),
+      duration: null,
+      estimated_cost: estimateActivityCost(plan.type, pooled?.priceRange) || null,
+      sort_order: i + 1,
+      notes: plan.matchReasons?.join(', ') || '',
+      source: plan.source ?? null,
+      ...coordsColumns(pooled?.coordinates),
+    });
+  }
+
   return {
     id: existing.id,
     userId: existing.userId,
@@ -1102,9 +683,11 @@ export async function regenerateItinerary(
     destination: existing.destination,
     startDate: existing.startDate,
     endDate: existing.endDate,
-    days: dayPlans,
+    days: [],
+    plans,
     status: existing.status,
     createdAt: existing.createdAt,
+    importantNotes: result.plan.importantNotes,
   };
 }
 

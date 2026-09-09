@@ -9,13 +9,12 @@ import {
   MapPin,
   Calendar,
   Check,
-  Route,
   Share2,
 } from 'lucide-react';
-import { DaySchedule } from './day-schedule';
+import { PlanList } from './plan-list';
 import { ItineraryMap } from './itinerary-map';
-import { HandDrawnCard } from '@/components/ui/hand-drawn-card';
-import { HandDrawnButton } from '@/components/ui/hand-drawn-button';
+import { Card } from '@/components/ui/card';
+import { OverflowMenu } from '@/components/ui/overflow-menu';
 import type { ItemSource } from '@/lib/ai/provenance';
 import {
   rollUpCost,
@@ -24,7 +23,6 @@ import {
   BUDGET_STATUS_LABEL,
   type BudgetStatus,
 } from '@/lib/itinerary/cost';
-import { isDaySpreadOut, canTidyDay } from '@/lib/itinerary/geo';
 
 interface Activity {
   id: string;
@@ -42,14 +40,6 @@ interface Activity {
   locationCoords?: { lat: number; lng: number };
 }
 
-interface Day {
-  id: string;
-  dayNumber: number;
-  date: Date;
-  notes?: string;
-  activities: Activity[];
-}
-
 interface Itinerary {
   id: string;
   title: string;
@@ -57,8 +47,8 @@ interface Itinerary {
   startDate: Date;
   endDate: Date;
   status: string;
-  days: Day[];
-  packingTips?: string[];
+  /** The Move-list, in rendered order. */
+  plans: Activity[];
   importantNotes?: string[];
   budgetRange?: string;
 }
@@ -67,18 +57,17 @@ interface ItineraryViewProps {
   itinerary: Itinerary;
   onEditActivity?: (activity: Activity) => void;
   onDeleteActivity?: (activityId: string) => void;
-  onAddActivity?: (dayId: string) => void;
-  onReorderActivities?: (dayId: string, activityIds: string[]) => void;
+  onAddActivity?: () => void;
+  onReorderActivities?: (planIds: string[]) => void;
   onRegenerate?: () => void;
   onDelete?: () => void;
   onStatusChange?: (status: string) => void;
-  onEditDay?: (dayId: string, dayNumber: number, activities: Activity[]) => void;
   onTitleChange?: (title: string) => void;
-  onTidyDay?: (dayId: string) => Promise<void> | void;
 }
 
 const STATUS_TONES: Record<string, string> = {
-  draft: 'bg-[color:var(--surface-soft)] text-[color:var(--ink-muted)] border-[color:var(--border)]',
+  draft:
+    'bg-[color:var(--surface-soft)] text-[color:var(--ink-muted)] border-[color:var(--border)]',
   active: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   completed: 'bg-sky-50 text-sky-800 border-sky-200',
   archived: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -93,15 +82,11 @@ export function ItineraryView({
   onRegenerate,
   onDelete,
   onStatusChange,
-  onEditDay,
   onTitleChange,
-  onTidyDay,
 }: ItineraryViewProps) {
-  const [activeTab, setActiveTab] = useState(0);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(itinerary.title);
-  const [isTidying, setIsTidying] = useState(false);
   const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
 
   const handleShare = async () => {
@@ -117,32 +102,17 @@ export function ItineraryView({
     }
   };
 
-  const activeDay = itinerary.days[activeTab];
-  const activeDayPoints = (activeDay?.activities || []).map((a) => ({
-    id: a.id,
-    coordinates: a.locationCoords,
-  }));
-
-  const handleTidy = async () => {
-    if (!onTidyDay || !activeDay) return;
-    setIsTidying(true);
-    try {
-      await onTidyDay(activeDay.id);
-    } finally {
-      setIsTidying(false);
-    }
-  };
-
   const formatDateRange = (start: Date, end: Date) => {
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
     return `${start.toLocaleDateString('en-US', options)} – ${end.toLocaleDateString('en-US', options)}`;
   };
 
-  // Estimated cost rollup + budget fit (only meaningful when activities carry
-  // cost estimates — many don't, so guard on hasData).
-  const cost = rollUpCost(itinerary.days);
+  // Estimated cost rollup + budget fit (only meaningful when plans carry cost
+  // estimates — many don't, so guard on hasData). One night, so the rollup
+  // takes the single-day shape it still expects.
+  const cost = rollUpCost([{ activities: itinerary.plans }]);
   const budgetFit = cost.hasData
-    ? classifyBudget(cost.total, itinerary.budgetRange, itinerary.days.length)
+    ? classifyBudget(cost.total, itinerary.budgetRange, 1)
     : null;
   const BUDGET_TONE: Record<BudgetStatus, string> = {
     under: 'bg-emerald-50 text-emerald-800 border-emerald-200',
@@ -168,9 +138,9 @@ export function ItineraryView({
   };
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-3">
       {/* Header */}
-      <HandDrawnCard className="animate-fade-up p-5 md:p-7">
+      <Card className="animate-fade-up p-5 md:p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             {isEditingTitle ? (
@@ -227,21 +197,21 @@ export function ItineraryView({
             </div>
           </div>
 
-          {/* A 2×2 grid below md. Free-wrapping these four gave a ragged two
-              rows with a hole in it, because the labels are wildly different
-              widths; an even grid reads as deliberate. Not a scroll row — the
-              status menu is `absolute top-full` and would be clipped. */}
-          <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:flex-wrap md:items-center">
+          {/* Status stays visible — it's state, not an action. Everything the
+              user can *do* collapses into one menu; the old row of five equal
+              pills made nothing look primary and wrapped raggedly on phones. */}
+          <div className="flex shrink-0 items-center gap-2">
             <div className="relative">
               <button
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
-                className={`inline-flex w-full items-center justify-center gap-1.5 rounded-full border px-3 py-2.5 text-xs font-medium capitalize md:w-auto md:py-1.5 ${STATUS_TONES[itinerary.status] ?? STATUS_TONES.draft}`}
+                aria-expanded={showStatusMenu}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium capitalize ${STATUS_TONES[itinerary.status] ?? STATUS_TONES.draft}`}
               >
                 {itinerary.status}
-                <ChevronDown className="h-3 w-3" strokeWidth={2.5} />
+                <ChevronDown className="h-3 w-3" strokeWidth={2.5} aria-hidden />
               </button>
               {showStatusMenu && (
-                <div className="absolute top-full right-0 z-20 mt-2 min-w-[160px] overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white shadow-[0_24px_64px_-20px_rgba(20,50,100,0.3)]">
+                <div className="absolute top-full right-0 z-30 mt-2 min-w-[160px] overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--border)] bg-[color:var(--surface)] shadow-[var(--shadow-card)]">
                   {(['draft', 'active', 'completed', 'archived'] as const).map((status) => (
                     <button
                       key={status}
@@ -258,6 +228,7 @@ export function ItineraryView({
                         <Check
                           className="ml-auto h-3.5 w-3.5 text-[color:var(--accent)]"
                           strokeWidth={2.5}
+                          aria-hidden
                         />
                       )}
                     </button>
@@ -265,175 +236,87 @@ export function ItineraryView({
                 </div>
               )}
             </div>
-            {onRegenerate && (
-              <HandDrawnButton
-                onClick={onRegenerate}
-                variant="primary"
-                size="sm"
-                className="w-full justify-center gap-2 md:w-auto"
-              >
-                <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.5} />
-                Regenerate
-              </HandDrawnButton>
-            )}
-            <a
-              href={`/api/itinerary/${itinerary.id}/calendar`}
-              download
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white bg-white/80 px-4 py-2.5 text-sm font-medium text-[color:var(--ink)] md:w-auto md:py-1.5 shadow-[0_8px_20px_-12px_rgba(20,50,100,0.25)] backdrop-blur-md transition-all hover:-translate-y-[1px] hover:bg-white active:translate-y-0"
-            >
-              <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
-              Add to calendar
-            </a>
-            {onDelete && (
-              <HandDrawnButton
-                onClick={onDelete}
-                variant="secondary"
-                size="sm"
-                className="w-full justify-center gap-2 md:w-auto"
-              >
-                <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                Delete
-              </HandDrawnButton>
-            )}
-            <HandDrawnButton
-              onClick={handleShare}
-              variant="secondary"
-              size="sm"
-              className="w-full justify-center gap-2 md:w-auto"
-            >
-              <Share2 className="h-3.5 w-3.5" strokeWidth={2} />
-              {shareState === 'copied' ? 'Link copied!' : 'Share'}
-            </HandDrawnButton>
+
+            <OverflowMenu
+              actions={[
+                {
+                  label: shareState === 'copied' ? 'Link copied' : 'Share',
+                  onSelect: handleShare,
+                  icon: <Share2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                },
+                {
+                  label: 'Add to calendar',
+                  onSelect: () => {},
+                  href: `/api/itinerary/${itinerary.id}/calendar`,
+                  download: true,
+                  icon: <Calendar className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                },
+                ...(onRegenerate
+                  ? [
+                      {
+                        label: 'Regenerate',
+                        onSelect: onRegenerate,
+                        icon: <RefreshCw className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                      },
+                    ]
+                  : []),
+                ...(onDelete
+                  ? [
+                      {
+                        label: 'Delete',
+                        onSelect: onDelete,
+                        destructive: true,
+                        icon: <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
           </div>
         </div>
-      </HandDrawnCard>
+      </Card>
 
       {/* Map */}
-      <HandDrawnCard className="animate-fade-up p-4 md:p-6" style={{ animationDelay: '0.05s' }}>
+      <Card className="animate-fade-up p-4 md:p-6" style={{ animationDelay: '0.05s' }}>
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-medium text-[color:var(--ink-muted)]">
-            Day {itinerary.days[activeTab]?.dayNumber} route
-          </p>
-          {cost.hasData && cost.perDay[activeTab] > 0 && (
+          <p className="text-sm font-medium text-[color:var(--ink-muted)]">Route</p>
+          {cost.hasData && (
             <p className="text-sm font-medium text-[color:var(--ink)]">
-              Est. {formatUsd(cost.perDay[activeTab])}
+              Est. {formatUsd(cost.total)}
             </p>
           )}
         </div>
-        {isDaySpreadOut(activeDayPoints) && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-            <p className="text-xs font-medium text-amber-800">
-              🗺️ This day covers a lot of ground — consider grouping nearby stops
-              to cut down on travel.
-            </p>
-            {onTidyDay && canTidyDay(activeDayPoints) && (
-              <button
-                onClick={handleTidy}
-                disabled={isTidying}
-                className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100 disabled:opacity-60"
-              >
-                <Route className="h-3 w-3" strokeWidth={2.5} />
-                {isTidying ? 'Tidying…' : 'Tidy route'}
-              </button>
-            )}
-          </div>
-        )}
-        <ItineraryMap
-          destination={itinerary.destination}
-          activities={itinerary.days[activeTab]?.activities || []}
-        />
-      </HandDrawnCard>
+        <ItineraryMap destination={itinerary.destination} activities={itinerary.plans} />
+      </Card>
 
-      {/* Before you go — packing tips + important notes from the planner */}
-      {((itinerary.packingTips?.length ?? 0) > 0 ||
-        (itinerary.importantNotes?.length ?? 0) > 0) && (
-        <HandDrawnCard
-          className="animate-fade-up grid gap-6 p-5 md:grid-cols-2 md:p-6"
+      {/* Good to know — notes from the planner */}
+      {(itinerary.importantNotes?.length ?? 0) > 0 && (
+        <Card
+          className="animate-fade-up p-5 md:p-6"
           style={{ animationDelay: '0.08s' }}
         >
-          {(itinerary.packingTips?.length ?? 0) > 0 && (
-            <div>
-              <h3 className="font-heading text-lg text-[color:var(--ink)]">Packing tips</h3>
-              <ul className="mt-3 space-y-1.5 text-sm text-[color:var(--ink-muted)]">
-                {itinerary.packingTips!.map((tip, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span aria-hidden>🧳</span>
-                    <span>{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {(itinerary.importantNotes?.length ?? 0) > 0 && (
-            <div>
-              <h3 className="font-heading text-lg text-[color:var(--ink)]">Good to know</h3>
-              <ul className="mt-3 space-y-1.5 text-sm text-[color:var(--ink-muted)]">
-                {itinerary.importantNotes!.map((note, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span aria-hidden>📌</span>
-                    <span>{note}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </HandDrawnCard>
+          <h3 className="text-sm font-medium text-[color:var(--ink-muted)]">Good to know</h3>
+          <ul className="mt-3 space-y-1.5 text-sm text-[color:var(--ink-muted)]">
+            {itinerary.importantNotes!.map((note, i) => (
+              <li key={i} className="flex gap-2">
+                <span aria-hidden>📌</span>
+                <span>{note}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
 
-      {/* Day Tabs */}
-      <HandDrawnCard
-        className="animate-fade-up overflow-hidden p-0"
-        style={{ animationDelay: '0.1s' }}
-      >
-        <div className="border-b border-[color:var(--border)] px-2 pt-2">
-          <div className="scrollbar-none flex gap-1 overflow-x-auto">
-            {itinerary.days.map((day, index) => (
-              <button
-                key={day.id}
-                onClick={() => setActiveTab(index)}
-                className={`whitespace-nowrap rounded-t-xl px-4 py-2.5 text-sm font-medium transition-all ${
-                  activeTab === index
-                    ? 'bg-[color:var(--surface-soft)] text-[color:var(--ink)]'
-                    : 'text-[color:var(--ink-muted)] hover:bg-[color:var(--surface-soft)]/60 hover:text-[color:var(--ink)]'
-                }`}
-              >
-                Day {day.dayNumber}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="p-4 md:p-6">
-          {itinerary.days[activeTab] && (
-            <DaySchedule
-              dayNumber={itinerary.days[activeTab].dayNumber}
-              date={itinerary.days[activeTab].date}
-              activities={itinerary.days[activeTab].activities}
-              notes={itinerary.days[activeTab].notes}
-              onEditActivity={onEditActivity}
-              onDeleteActivity={onDeleteActivity}
-              onAddActivity={
-                onAddActivity ? () => onAddActivity(itinerary.days[activeTab].id) : undefined
-              }
-              onReorder={
-                onReorderActivities
-                  ? (ids) => onReorderActivities(itinerary.days[activeTab].id, ids)
-                  : undefined
-              }
-              onEditDay={
-                onEditDay
-                  ? () =>
-                      onEditDay(
-                        itinerary.days[activeTab].id,
-                        itinerary.days[activeTab].dayNumber,
-                        itinerary.days[activeTab].activities
-                      )
-                  : undefined
-              }
-            />
-          )}
-        </div>
-      </HandDrawnCard>
+      {/* The Move-list */}
+      <Card className="animate-fade-up p-4 md:p-6" style={{ animationDelay: '0.1s' }}>
+        <PlanList
+          plans={itinerary.plans}
+          onEditPlan={onEditActivity}
+          onDeletePlan={onDeleteActivity}
+          onAddPlan={onAddActivity}
+          onReorder={onReorderActivities}
+        />
+      </Card>
     </div>
   );
 }

@@ -23,16 +23,16 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { dayId, activityIds } = body;
+    const { activityIds } = body;
 
-    if (!dayId || !Array.isArray(activityIds)) {
+    if (!Array.isArray(activityIds)) {
       return NextResponse.json(
-        { error: 'Missing required fields: dayId, activityIds (array)' },
+        { error: 'Missing required field: activityIds (array)' },
         { status: 400 }
       );
     }
 
-    const result = await reorderActivities(supabase, dayId, activityIds);
+    const result = await reorderActivities(supabase, activityIds);
 
     return NextResponse.json(result);
   } catch (error) {

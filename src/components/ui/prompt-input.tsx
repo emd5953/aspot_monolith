@@ -8,17 +8,36 @@ interface PromptInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, '
   onSubmit?: (value: string) => void | Promise<void>;
   submitLabel?: string;
   isSubmitting?: boolean;
+  /**
+   * `cinematic` — sits on the video (landing, dashboard): solid white pill.
+   * `paper`     — sits on a flat page: hairline border, no shadow.
+   */
+  tone?: 'cinematic' | 'paper';
 }
 
 /**
- * Pill-shaped prompt input with an inline dark CTA.
- * Tuned for light surfaces (on-page use, not on a photo).
+ * The one prompt pill. Previously duplicated three ways — this component, the
+ * landing `SkyPrompt`, and `LightPill` inside `itinerary-search` — which is
+ * why the three differed in height, radius, and disabled behavior.
  */
 export const PromptInput = forwardRef<HTMLInputElement, PromptInputProps>(
-  ({ className, onSubmit, submitLabel = 'Submit', isSubmitting, value, defaultValue, ...props }, ref) => {
+  (
+    {
+      className,
+      onSubmit,
+      submitLabel = 'Plan it',
+      isSubmitting,
+      tone = 'paper',
+      value,
+      defaultValue,
+      ...props
+    },
+    ref
+  ) => {
     const [internal, setInternal] = useState<string>((defaultValue as string) ?? '');
     const isControlled = value !== undefined;
     const current = isControlled ? String(value ?? '') : internal;
+    const isCinematic = tone === 'cinematic';
 
     const handleSubmit = async (e: FormEvent) => {
       e.preventDefault();
@@ -30,10 +49,11 @@ export const PromptInput = forwardRef<HTMLInputElement, PromptInputProps>(
       <form
         onSubmit={handleSubmit}
         className={cn(
-          'group relative flex w-full items-center gap-2',
-          'rounded-full border border-white bg-white py-1.5 pr-1.5 pl-6',
-          'shadow-[0_18px_40px_-18px_rgba(20,50,100,0.25)] transition-all duration-200',
-          'focus-within:border-[color:var(--accent)]/40 focus-within:ring-4 focus-within:ring-[color:var(--accent)]/12',
+          'mx-auto flex w-full max-w-xl items-center gap-2 rounded-full py-1.5 pr-1.5 pl-5',
+          'transition-colors duration-150',
+          isCinematic
+            ? 'bg-white focus-within:bg-white'
+            : 'border border-[color:var(--border)] bg-[color:var(--surface)] focus-within:border-[color:var(--accent)]/50',
           className
         )}
       >
@@ -44,7 +64,15 @@ export const PromptInput = forwardRef<HTMLInputElement, PromptInputProps>(
             if (!isControlled) setInternal(e.target.value);
             props.onChange?.(e);
           }}
-          className="flex-1 bg-transparent py-2.5 text-base text-[color:var(--ink)] outline-none placeholder:text-[color:var(--ink-soft)]"
+          disabled={isSubmitting}
+          className={cn(
+            'min-w-0 flex-1 bg-transparent py-2.5 outline-none disabled:opacity-70',
+            // 16px floor on mobile — iOS Safari auto-zooms below it.
+            'text-base',
+            isCinematic
+              ? 'text-slate-900 placeholder:text-slate-500'
+              : 'text-[color:var(--ink)] placeholder:text-[color:var(--ink-soft)]'
+          )}
           {...props}
         />
         <button
@@ -53,9 +81,9 @@ export const PromptInput = forwardRef<HTMLInputElement, PromptInputProps>(
           disabled={!current.trim() || isSubmitting}
           className={cn(
             'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-5',
-            'bg-[color:var(--ink)] text-sm font-medium text-white transition-all duration-200',
-            'hover:bg-[color:var(--ink)]/90 hover:-translate-y-[1px]',
-            'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0'
+            'bg-[color:var(--ink)] text-sm font-medium text-white',
+            'transition-colors duration-150 hover:bg-[color:var(--ink)]/88',
+            'disabled:cursor-not-allowed disabled:opacity-40'
           )}
         >
           {isSubmitting ? (
@@ -63,7 +91,7 @@ export const PromptInput = forwardRef<HTMLInputElement, PromptInputProps>(
           ) : (
             <>
               {submitLabel}
-              <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+              <ArrowRight className="h-4 w-4" strokeWidth={2.5} aria-hidden />
             </>
           )}
         </button>

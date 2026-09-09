@@ -1,22 +1,20 @@
 /**
- * Deterministic quality grader for the generation pipeline.
+ * Deterministic quality grader for the selection pipeline.
  *
- * This is the programmatic half of an eval suite. There is no model in the
- * loop: it runs the real partition → assemble → repair path over a real
- * research pool and reports `auditPlan`'s findings. Same input, same number,
- * every time — which is what makes it usable as a CI gate.
+ * No model in the loop: it runs the real curate → check path over real
+ * research pools and reports what came out. Same input, same number, every
+ * time — which is what makes it usable as a CI gate.
  *
- * It grades the *mechanical* floor only: duplicates, geography, meals,
- * chronology, opening hours, provenance. It says nothing about whether a trip
- * is interesting or on-theme. A plan can grade a clean 100 and still be four
- * days of tourist-trap sludge in the right order — judging that needs an LLM
- * judge or a human, and belongs in a separate suite.
+ * WHAT CHANGED. This suite used to grade a *schedule*: per-day geographic
+ * spread, empty morning buckets, missing lunches, backwards clocks, venues
+ * booked while shut. Spotz no longer schedules anything, so none of those
+ * defects can occur and none of those baselines mean anything. What can still
+ * go wrong is selection: shipping a venue twice, or naming a place research
+ * never found. That is what this grades now.
  *
- * The day assembly deliberately uses `buildFallbackDay` rather than the LLM
- * planner. That keeps the grade a measurement of everything downstream of the
- * model — partitioning, repair, audit — instead of a measurement of today's
- * sampling luck. A model-in-the-loop eval is a different, non-deterministic
- * tool; this one has to be stable enough to fail a build.
+ * It says nothing about whether a night is any *good* — a list can grade a
+ * clean 100 and still be four tourist traps in a row. Judging that needs an
+ * LLM judge or a human and belongs in a separate, non-deterministic suite.
  */
 
 import lisbonPortugal from '../fixtures/research/lisbon-portugal.json';
@@ -24,14 +22,11 @@ import nashvilleTennessee from '../fixtures/research/nashville-tennessee.json';
 import newYorkCity from '../fixtures/research/new-york-city.json';
 import newYorkCityUnlocated from '../fixtures/research/new-york-city-unlocated.json';
 import tokyoJapan from '../fixtures/research/tokyo-japan.json';
-import {
-  partitionResearchAcrossDays,
-  buildFallbackDay,
-} from '@/lib/ai/agents/pool-partition';
-import { auditPlan } from '@/lib/ai/agents/plan-audit';
-import { repairPlan } from '@/lib/ai/agents/plan-repair';
+import { checkPlan } from '@/lib/ai/agents/plan-check';
+import { orderByStartTime, dropDuplicatePlans } from '@/lib/ai/agents/order-plans';
 import { curateResearchByPreferences } from '@/lib/preferences/score-research';
-import type { ItineraryPlan, ResearchResult } from '@/lib/ai/agents/types';
+import { lookupSource, buildProvenanceIndex } from '@/lib/ai/provenance';
+import type { ItineraryPlan, PlanItem, ResearchResult } from '@/lib/ai/agents/types';
 import type { UserPreferences } from '@/types/profile';
 
 /**
@@ -39,17 +34,11 @@ import type { UserPreferences } from '@/types/profile';
  * depend on which directory the runner started in, and an explicit registry
  * makes it obvious what is being measured.
  *
- * Each entry is a real research pool captured from a live generation.
- * `new-york-city-unlocated` predates Places verification and carries no
- * coordinates at all; it is kept deliberately, as the case that proves the
- * pipeline degrades cleanly instead of breaking when geo data is missing.
- *
  * The double cast is not laziness: this is captured production data, and it
  * disagrees with the declared contract in one place — research sometimes emits
- * `rating: null` where `AttractionData.rating` is `number | undefined`. Widening
- * the cast keeps the fixtures byte-faithful to what the pipeline really
- * receives, which is the whole point of grading against them. Narrowing the
- * data to satisfy the type would hide the mismatch instead of measuring it.
+ * `rating: null` where `AttractionData.rating` is `number | undefined`.
+ * Widening the cast keeps the fixtures byte-faithful to what the pipeline
+ * really receives, which is the whole point of grading against them.
  */
 export const POOLS: Record<string, ResearchResult> = {
   'lisbon-portugal': lisbonPortugal as unknown as ResearchResult,
@@ -59,21 +48,17 @@ export const POOLS: Record<string, ResearchResult> = {
   'tokyo-japan': tokyoJapan as unknown as ResearchResult,
 };
 
-/** Trip shape every pool is graded at. Fixed so grades stay comparable. */
-export const TRIP_DAYS = 4;
-
-/** Monday. Chosen on purpose — it is when "closed today" venues bite. */
-export const START_DATE = '2026-09-14';
+export function poolNames(): string[] {
+  return Object.keys(POOLS).sort();
+}
 
 /**
- * A deliberately middle-of-the-road traveller. The grader measures mechanical
- * correctness, which should hold for any profile; a distinctive profile would
- * just make the curated pool smaller and the grade noisier.
+ * A middle-of-the-road profile. The grader measures mechanical correctness,
+ * which should hold for any profile; a distinctive one would just shrink the
+ * curated pool and make the grade noisier.
  */
 export const GRADING_PREFERENCES = {
-  activityTypes: ['museums', 'food'],
-  cuisinePreferences: ['local'],
-  travelMotivations: ['culture'],
+  activityTypes: ['museums', 'food', 'culture'],
   budgetRange: 'moderate',
   travelPace: 'moderate',
   comfortZone: 5,
@@ -81,139 +66,117 @@ export const GRADING_PREFERENCES = {
 
 export interface Grade {
   pool: string;
-  destination: string;
-  /** Curated pool size and how much of it Places resolved. */
-  items: number;
+  /** Candidates the curation step kept. */
+  curated: number;
+  /** How many of those carry real coordinates. */
   located: number;
-  withHours: number;
-  geoClustered: boolean;
-  /** Audit results before and after the deterministic repair pass. */
-  ceilingBefore: number;
-  ceilingAfter: number;
-  findingsBefore: number;
-  findingsAfter: number;
-  maxDaySpreadKm: number;
-  /** Scheduled items that survive to the final plan. */
-  scheduledItems: number;
-  /** Buckets left empty because the pool had nothing open to offer. */
-  emptyBuckets: number;
-  repairs: string[];
-  remaining: string[];
+  /** How many carry a real published start time. */
+  timed: number;
+  /** Plans in the finished list. */
+  plans: number;
+  /** Plans traceable to the research pool (the rest are model recall). */
+  fromPool: number;
+  /** Repeat venues the dedupe step removed. */
+  dropped: number;
+  /** plan-check ceiling, 0-100. Higher is better. */
+  ceiling: number;
+  findings: number;
 }
 
-export function poolNames(): string[] {
-  return Object.keys(POOLS).sort();
+/**
+ * Stand in for the model's selection, deterministically.
+ *
+ * The grader must measure everything around the LLM call without being at the
+ * mercy of today's sampling, so it "selects" the top N of the curated pool in
+ * rank order — exactly the set the model is choosing from. Putting a real
+ * model here would make the number non-deterministic and unfit to gate a build.
+ */
+function selectTopN(research: ResearchResult, n: number): PlanItem[] {
+  const provenance = buildProvenanceIndex([
+    ...(research.attractions ?? []),
+    ...(research.restaurants ?? []),
+    ...(research.activities ?? []),
+  ]);
+
+  const picks: PlanItem[] = [
+    ...(research.activities ?? []).map((a) => ({
+      name: a.name,
+      type: 'activity' as const,
+      startsAt: a.startsAt,
+      endsAt: a.endsAt,
+    })),
+    ...(research.restaurants ?? []).map((r) => ({
+      name: r.name,
+      type: 'restaurant' as const,
+    })),
+    ...(research.attractions ?? []).map((a) => ({
+      name: a.name,
+      type: 'attraction' as const,
+    })),
+  ].slice(0, n);
+
+  return picks.map((p) => ({ ...p, source: lookupSource(p.name, provenance) }));
 }
 
-function countItems(plan: ItineraryPlan): number {
-  return plan.days.reduce(
-    (n, d) => n + d.morning.length + d.afternoon.length + d.evening.length,
-    0
-  );
-}
-
-function countEmptyBuckets(plan: ItineraryPlan): number {
-  return plan.days.reduce(
-    (n, d) =>
-      n +
-      (d.morning.length === 0 ? 1 : 0) +
-      (d.afternoon.length === 0 ? 1 : 0) +
-      (d.evening.length === 0 ? 1 : 0),
-    0
-  );
-}
-
-/** Run the full deterministic path over one pool and grade the result. */
-export function gradePool(name: string): Grade {
-  const raw = POOLS[name];
-  if (!raw) throw new Error(`Unknown pool "${name}" — add it to POOLS.`);
-
+export function gradePool(pool: string, research: ResearchResult): Grade {
   const curated = curateResearchByPreferences(
-    raw,
+    research,
     GRADING_PREFERENCES,
-    {
-      attractionLimit: Math.max(12, TRIP_DAYS * 4),
-      restaurantLimit: Math.max(10, TRIP_DAYS * 3),
-      activityLimit: Math.max(8, TRIP_DAYS * 2),
-    },
-    undefined
+    { attractionLimit: 24, restaurantLimit: 24, activityLimit: 24 }
   );
 
-  const all = [...curated.attractions, ...curated.restaurants, ...curated.activities];
-  const { pools, geoClustered } = partitionResearchAcrossDays(curated, TRIP_DAYS);
+  const all = [
+    ...(curated.attractions ?? []),
+    ...(curated.restaurants ?? []),
+    ...(curated.activities ?? []),
+  ];
 
-  const start = new Date(`${START_DATE}T00:00:00Z`);
-  const days = pools.map((pool, i) => {
-    const date = new Date(start);
-    date.setUTCDate(date.getUTCDate() + i);
-    return {
-      ...buildFallbackDay(i + 1, `Day ${i + 1}`, pool),
-      date: date.toISOString().slice(0, 10),
-    };
-  });
+  const selected = selectTopN(curated, 6);
+  const deduped = dropDuplicatePlans(selected);
+  const plans = orderByStartTime(deduped);
 
   const plan: ItineraryPlan = {
     destination: curated.destination,
-    summary: `${TRIP_DAYS}-day graded plan`,
-    totalEstimatedCost: '$$',
-    days,
+    summary: 'graded selection',
+    plans,
+    totalEstimatedCost: 'Varies',
   };
 
-  const before = auditPlan(plan, curated);
-  const repaired = repairPlan(plan, curated, pools);
-  const after = auditPlan(repaired.plan, curated);
+  const check = checkPlan(plan, curated);
 
   return {
-    pool: name,
-    destination: curated.destination,
-    items: all.length,
+    pool,
+    curated: all.length,
     located: all.filter((i) => i.coordinates).length,
-    withHours: all.filter((i) => i.openingHours?.length).length,
-    geoClustered,
-    ceilingBefore: before.scoreCeiling,
-    ceilingAfter: after.scoreCeiling,
-    findingsBefore: before.findings.length,
-    findingsAfter: after.findings.length,
-    maxDaySpreadKm: after.stats.maxDaySpreadKm,
-    scheduledItems: countItems(repaired.plan),
-    emptyBuckets: countEmptyBuckets(repaired.plan),
-    repairs: repaired.repairs,
-    remaining: after.findings.map((f) => `[${f.severity}] ${f.issue}`),
+    timed: plans.filter((p) => p.startsAt).length,
+    plans: plans.length,
+    fromPool: plans.length - check.stats.offPoolItems,
+    dropped: selected.length - deduped.length,
+    ceiling: check.scoreCeiling,
+    findings: check.findings.length,
   };
 }
 
-/** Grade every fixture pool. */
 export function gradeAll(): Grade[] {
-  return poolNames().map(gradePool);
+  return poolNames().map((name) => gradePool(name, POOLS[name]));
 }
 
-/** Render grades as a table for the console. */
 export function formatGrades(grades: Grade[]): string {
-  const header = [
-    'pool'.padEnd(24),
-    'items'.padStart(6),
-    'loc%'.padStart(5),
-    'hrs'.padStart(4),
-    'geo'.padStart(5),
-    'ceiling'.padStart(10),
-    'findings'.padStart(10),
-    'sched'.padStart(6),
-    'empty'.padStart(6),
-  ].join(' ');
-
+  const header =
+    'pool                      curated  loc  timed  plans  pool  dropped  ceiling  findings';
+  const rule = '─'.repeat(header.length);
   const rows = grades.map((g) =>
     [
       g.pool.padEnd(24),
-      String(g.items).padStart(6),
-      `${Math.round((100 * g.located) / Math.max(g.items, 1))}%`.padStart(5),
-      String(g.withHours).padStart(4),
-      String(g.geoClustered).padStart(5),
-      `${g.ceilingBefore}→${g.ceilingAfter}`.padStart(10),
-      `${g.findingsBefore}→${g.findingsAfter}`.padStart(10),
-      String(g.scheduledItems).padStart(6),
-      String(g.emptyBuckets).padStart(6),
-    ].join(' ')
+      String(g.curated).padStart(7),
+      String(g.located).padStart(5),
+      String(g.timed).padStart(6),
+      String(g.plans).padStart(6),
+      String(g.fromPool).padStart(5),
+      String(g.dropped).padStart(8),
+      String(g.ceiling).padStart(8),
+      String(g.findings).padStart(9),
+    ].join('')
   );
-
-  return [header, '─'.repeat(header.length), ...rows].join('\n');
+  return [header, rule, ...rows].join('\n');
 }
