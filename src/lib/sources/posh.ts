@@ -194,6 +194,10 @@ export const poshSource: EventSource = {
       try {
         data = await politeFetchJson<unknown>(url);
       } catch (err) {
+        // A first-page failure means the whole source is down — there is
+        // nothing to salvage, and returning [] would report as "no events
+        // tonight" instead of an outage. Later pages degrade gracefully.
+        if (page === 0) throw err;
         console.warn('[posh] explore fetch failed on page', page, err);
         break;
       }

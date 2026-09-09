@@ -168,8 +168,9 @@ export const lumaSource: EventSource = {
       try {
         data = await politeFetchJson<Entry>(url.toString());
       } catch (err) {
-        // Keep what earlier pages produced instead of discarding everything,
-        // the way posh.ts does.
+        // A first-page failure means the source is down; surface it rather
+        // than reporting an empty night. Later pages keep what we collected.
+        if (page === 0) throw err;
         console.warn('[luma] discover fetch failed on page', page, err);
         break;
       }

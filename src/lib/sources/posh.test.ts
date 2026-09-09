@@ -232,4 +232,12 @@ describe('poshSource', () => {
       expect(extractEvents(null)).toEqual([]);
     });
   });
+
+  it('throws when the first page fails, so ingest reports an outage not an empty night', async () => {
+    // posh.vip returns 403 to datacenter IPs; swallowing that made /api/ingest
+    // answer ok:true with fetched:0, indistinguishable from a quiet night.
+    politeFetchJsonMock.mockRejectedValueOnce(new Error('politeFetch ... -> 403 Forbidden'));
+
+    await expect(poshSource.fetchCandidates()).rejects.toThrow('403');
+  });
 });

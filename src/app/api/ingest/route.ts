@@ -44,11 +44,35 @@ export async function GET(request: NextRequest) {
   }
 
   let expired = 0;
+  let expiryError: string | undefined;
   try {
     expired = await expireCandidates(supabase);
   } catch (err) {
     console.error('[ingest] expiry failed:', err);
+    expiryError = err instanceof Error ? err.message : 'unknown';
   }
 
-  return NextResponse.json({ ok: true, results, expired, at: new Date().toISOString() });
+  // `ok` has to mean "the whole run succeeded". Reporting ok:true while a
+  // source was failing is how a broken connector hides for weeks behind a
+  // green cron: posh returned 403 from Vercel for two runs and the response
+  // still said ok:true, because 0 candidates is indistinguishable from a
+  // quiet night unless the failure is named.
+  const failed = Object.entries(results)
+    .filter(([, r]) => 'error' in r)
+    .map(([name]) => name);
+  const ok = failed.length === 0 && !expiryError;
+
+  return NextResponse.json(
+    {
+      ok,
+      ...(failed.length > 0 ? { failedSources: failed } : {}),
+      results,
+      expired,
+      ...(expiryError ? { expiryError } : {}),
+      at: new Date().toISOString(),
+    },
+    // 207 Multi-Status: some sources ran, some did not. Distinguishable from a
+    // clean 200 by any uptime check watching the cron.
+    { status: ok ? 200 : 207 }
+  );
 }

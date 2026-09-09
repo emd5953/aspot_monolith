@@ -230,4 +230,10 @@ describe('lumaSource', () => {
       '2026-09-10T18:00:00.000Z'
     );
   });
+
+  it('throws when the first page fails, so ingest reports an outage not an empty night', async () => {
+    mockedFetch.mockRejectedValueOnce(new Error('politeFetch ... -> 503 Service Unavailable'));
+
+    await expect(lumaSource.fetchCandidates()).rejects.toThrow('503');
+  });
 });
