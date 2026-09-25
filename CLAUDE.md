@@ -58,21 +58,25 @@ Run `/sync-gbrain` to force-refresh, `/sync-gbrain --full` for full reindex.
 
 <!-- gstack-gbrain-search-guidance:end -->
 
-## Git workflow (trunk-based)
+## Git workflow (main = prod, develop = integration)
 
-Local `main` is a read-only mirror of remote. Never commit to it directly.
+- `main` is production. Vercel deploys it. Only release PRs from `develop` land here.
+- `develop` is where all work goes. It's the default branch, so PRs target it.
+- Local `main` and `develop` mirror the remote. Never commit to them directly.
 
 The loop:
-1. `git checkout main && git pull --rebase` — sync before anything
-2. `git checkout -b feat/thing` — branch off fresh main
+1. `git checkout develop && git pull --rebase`: sync before anything
+2. `git checkout -b feat/thing`: branch off fresh develop
 3. Commit freely on the branch
-4. `git pull --rebase origin main` periodically to stay current
-5. Push, open PR, merge via remote — never locally
-6. Delete the branch, re-sync main
+4. `git pull --rebase origin develop` periodically to stay current
+5. Push, open a PR into `develop`, merge via remote, never locally
+6. Delete the branch, re-sync develop
+
+Releasing to prod: open a PR `develop` → `main`, merge it, then re-sync both locally.
 
 Rules:
 - Branches stay short-lived (1–3 days). Long branches = merge pain.
 - One branch = one logical change.
 - Naming: `feat/`, `fix/`, `chore/` + ticket ID.
-- Rebase your branch onto main; merge main via PR. Don't repeatedly merge main into your branch.
-- Main is protected on the remote: no direct pushes, PR + review required.
+- Rebase feature branches onto develop. Don't merge develop into your branch.
+- Supabase migrations ride with their code. Apply them to prod when the release PR merges, not before.
