@@ -1,7 +1,7 @@
 # Spotz — Data Sourcing Strategy ("getting the data")
 
 > Status: REVISED — founder set priority order: **#1 Partiful, #2 Posh, #3 TikTok, #4 Luma**. These are the culture sources; ticketing APIs are backfill, not the product. ToS risk on Partiful/Posh acknowledged and accepted; mitigations: polite volume, provenance kept, swap-ready architecture.
-> Technical recon COMPLETE 2026-09-03. Extraction recipes below. Full reports: `~/.hermes/cache/delegation/subagent-summary-{1,2,3}-20260903_*.txt` + live transcript `live/deleg_a39276f8/task-0.log` (Partiful).
+> Technical recon COMPLETE 2026-09-03. Extraction recipes below.
 
 ## Priority sources — verified extraction recipes
 

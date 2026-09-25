@@ -30,7 +30,7 @@ The Moves supply chain. Source connectors pull live NYC events (parties, functio
 
 ## Work Guidance
 
-- New connector = implement `EventSource`, add to `ALL_SOURCES` in priority position, document the endpoint recipe in `.hermes/plans/2026-09-02-spotz-data-sourcing.md`, ship with fixture-based tests (mock `polite-fetch`; never hit the network in tests).
+- New connector = implement `EventSource`, add to `ALL_SOURCES` in priority position, document the endpoint recipe in `docs/specs/data-sourcing.md`, ship with fixture-based tests (mock `polite-fetch`; never hit the network in tests).
 - When a connector's endpoint changes shape, fix the connector's flexible extraction first; only add new hard assumptions with fixtures proving them.
 
 ## Verification
