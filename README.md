@@ -12,7 +12,7 @@ Not a top-10 list. Not a chatbot you have to coax. One night, planned.
 
 A going-out planner for NYC. One city, one night at a time.
 
-You give it one sentence. It hands back an ordered list of Moves — parties, functions, bars, popups — pulled from live event platforms and real places, arranged into an order that works geographically. Share the link and your friends vote 👍/👎 on each Move.
+You give it one sentence. It hands back an ordered list of Moves — parties, functions, bars, popups — pulled from live event platforms and real places, ordered by the start time each source published. Share the link and your friends vote 👍/👎 on each Move.
 
 You have **one active Move-list** at a time. Previous nights fall into history. That constraint is the product: Spotz is for tonight, not for a folder of maybes.
 
@@ -29,7 +29,7 @@ People who go out in New York and can tell the difference between "nightlife" an
 ### The core loop
 
 1. **Say the word.** One prompt on the home screen.
-2. **Watch it land.** Research finds candidates, the planner picks the Moves, the list appears.
+2. **Watch it land.** Research finds candidates, one selection pass picks the Moves, the list appears in start-time order.
 3. **Send it to the group.** Share the link; friends vote on each Move. You keep edit control.
 
 ### Two modes, one pipeline
@@ -41,7 +41,9 @@ People who go out in New York and can tell the difference between "nightlife" an
 | Latency        | ~15–30s                 | minutes                   |
 | Quality target | strong draft            | polished, more iterations |
 
-Fast is the default. Deep runs the fully agentic planner and advanced curation, then emails you when it lands.
+Fast is the default. Deep is the same pipeline over a wider research scrape and a bigger candidate pool, and emails you when it lands.
+
+There is no scheduling step. Spotz selects real events and orders them by the start time their source published; it never decides when anything happens.
 
 ---
 
@@ -93,7 +95,7 @@ These are all **undocumented third-party internals** that can change or block wi
 - **Deploy:** Vercel — `waitUntil` for Deep mode, cron for ingestion
 - **Validation:** Zod everywhere — the schema is the contract between pipeline steps
 - **Testing:** Vitest, fixture-based (connectors never hit the network in tests)
-- **Styling:** Tailwind CSS, hand-drawn components, Caveat + Inter
+- **Styling:** Tailwind CSS, flat primitives in `src/components/ui`, Inter + Instrument Serif
 
 ---
 
@@ -149,7 +151,7 @@ NEXT_PUBLIC_SITE_URL=
 
 ### Database
 
-Migrations live in `supabase/migrations/`, applied in order. The Spotz pivot is `016`–`019`; `016` is **destructive** (drops the trips/quiz tables, renames `activities` → `plans`).
+Migrations live in `supabase/migrations/`, applied in order. The Spotz pivot is `016`–`020`; `016` is **destructive** (drops the trips/quiz tables, renames `activities` → `plans`). `013`/`014` predate the rename and were never applied — `020` re-issues them against the current schema, so skip them.
 
 `supabase db push`, or paste them into the Supabase SQL editor. Note that `017` and `018` are not re-runnable as written.
 
@@ -208,6 +210,7 @@ Each significant directory carries an `AGENTS.md` describing its contracts — s
 
 ## Notes for contributors
 
+- **Branches:** `main` is production (Vercel deploys it); `develop` is the default branch and where all PRs land. Release by merging a `develop` → `main` PR with a merge commit, not a squash, and apply any new migrations to prod when it merges.
 - **Servers run UTC; the product is Eastern.** Never use `Date.prototype.setHours` to reason about "tonight" — use `src/lib/time/nyc.ts`. This bug class is invisible on an Eastern laptop and wrong in production.
 - **Connectors fetch and normalize only.** `pool-service` owns every database write.
 - **A failing source must be loud.** `fetched: 0` is indistinguishable from a quiet night, so a first-page failure throws rather than returning an empty list.

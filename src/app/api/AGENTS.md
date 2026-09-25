@@ -7,7 +7,7 @@ Next.js App Router route handlers. Thin HTTP layer over `@/lib`: authenticate, a
 ## Ownership
 
 - Route groups: `auth/`, `itinerary/`, `plans/`, `shared/`, `ingest/`.
-- Itinerary sub-routes own the editing surface: `[id]/days`, `[id]/activities` (move/reorder/[activityId]), `[id]/versions`, `[id]/revert`, `[id]/regenerate`, `[id]/days/[dayId]/regenerate`, `[id]/status`, `[id]/calendar`, `[id]/email`, `[id]/share` (mint the friend link).
+- Itinerary sub-routes own the editing surface: `[id]/activities` (add, `reorder`, `[activityId]`), `[id]/versions`, `[id]/revert`, `[id]/regenerate`, `[id]/status`, `[id]/calendar`, `[id]/email`, `[id]/share` (mint the friend link).
 - `plans/[planId]/vote` — 👍/👎 on an individual plan (owner or share-link friend). Visibility is checked in the route via `canVoteOnPlan` on the service client, NOT by RLS: `plan_votes_insert` only asserts `auth.uid() = user_id`, so without the check any signed-in user could vote on an arbitrary plan UUID. Unknown or unshared plans return `404`.
 - `shared/[code]` — read a shared itinerary + its vote tallies by share code. Authenticates with the user client (identity, for `mine` votes and `isOwner`) but reads with the service-role client: the unguessable code is the capability and this route is the gate. See `@/lib/itinerary/AGENTS.md`.
 - `ingest/` — cron-secret-gated, service-role only. NOT user-facing: runs the source connectors (`@/lib/sources`) and refreshes the `candidate_events` pool. Responds `200` only when every source succeeded; a partial run is `207` with `failedSources` (and `expiryError` when pool expiry fails), so a dead connector cannot hide behind a green cron.
