@@ -1,6 +1,6 @@
 # Spotz — Data Sourcing Strategy ("getting the data")
 
-> Status: REVISED — founder set priority order: **#1 Partiful, #2 Posh, #3 TikTok, #4 Luma**. These are the culture sources; ticketing APIs are backfill, not the product. ToS risk on Partiful/Posh acknowledged and accepted; mitigations: polite volume, provenance kept, swap-ready architecture.
+> Status: REVISED — founder set priority order: **#1 Partiful, #2 Posh, #3 Luma, #4 TikTok**. These are the culture sources; ticketing APIs are backfill, not the product. ToS risk on Partiful/Posh acknowledged and accepted; mitigations: polite volume, provenance kept, swap-ready architecture.
 > Technical recon COMPLETE 2026-09-03. Extraction recipes below.
 
 ## Priority sources — verified extraction recipes
@@ -22,7 +22,15 @@
 - **Event detail:** `/e/<slug>` pages with embedded state (venue, time, price, lineup); `/g/<slug>` group pages for recurring promoters.
 - **Caveats:** robots.txt disallows `/api/` for crawlers (we're calling it anyway — accepted risk); geo radius fuzzy (NYC query returned some NJ venues — post-filter by coordinates); Cloudflare could tighten anytime.
 
-### #3 TikTok — ⚠️ VIA COMMERCIAL SCRAPER API (no direct route)
+### #3 Luma — ✅ EXTRACTABLE (cleanest of all, verified live)
+
+- **The endpoint:** `GET https://api.lu.ma/discover/get-paginated-events?discover_place_api_id=discplace-Izx1rQVSh8njYpP&pagination_cursor=<cursor>&pagination_limit=25` — **NYC place id verified, no auth, clean cursor pagination, zero overlap between pages**.
+- Full event objects: `name`, `start_at`/`end_at`, timezone, `coordinate` (**precise lat/lng even when street address is guests-only**), hosts/calendar (with socials + verified flag), `guest_count`, `ticket_info`, cover images.
+- Sister endpoints seen in JS: `/discover/get-place`, `/discover/get-calendar...`.
+- `luma.com/nyc` SSR `__NEXT_DATA__` as fallback; plain HTTP + normal UA works everywhere.
+- **Caveats:** undocumented internal API — can change/require auth anytime; wrap in the same swap-ready source interface.
+
+### #4 TikTok — ⚠️ VIA COMMERCIAL SCRAPER API (no direct route)
 
 - Official APIs are dead ends for us: Research API = academic-only + 15-day retention + no commercial use; Display API = own-account only; oEmbed = single known URLs.
 - Open-source scraping (TikTokApi) = constant msToken/signature breakage. Not build-on-able.
@@ -30,14 +38,6 @@
 - **Pipeline:** curated NYC hashtag + creator list → daily pull → captions (+ transcript/OCR later) → LLM extracts venue/event/date/vibe → verify against Google Places (provenance rule: TikTok candidates MUST resolve to a real place or get dropped).
 - Creator-list approach > hashtag search: cheaper, higher signal, culture-curated. The list is editorial value, same as the Eventbrite venue list.
 - **Cost:** roughly $20-100/mo at daily refresh for a handful of hashtags/creators depending on vendor. Vendor bake-off = first implementation task.
-
-### #4 Luma — ✅ EXTRACTABLE (cleanest of all, verified live)
-
-- **The endpoint:** `GET https://api.lu.ma/discover/get-paginated-events?discover_place_api_id=discplace-Izx1rQVSh8njYpP&pagination_cursor=<cursor>&pagination_limit=25` — **NYC place id verified, no auth, clean cursor pagination, zero overlap between pages**.
-- Full event objects: `name`, `start_at`/`end_at`, timezone, `coordinate` (**precise lat/lng even when street address is guests-only**), hosts/calendar (with socials + verified flag), `guest_count`, `ticket_info`, cover images.
-- Sister endpoints seen in JS: `/discover/get-place`, `/discover/get-calendar...`.
-- `luma.com/nyc` SSR `__NEXT_DATA__` as fallback; plain HTTP + normal UA works everywhere.
-- **Caveats:** undocumented internal API — can change/require auth anytime; wrap in the same swap-ready source interface.
 
 ## Ingestion architecture (all four sources)
 

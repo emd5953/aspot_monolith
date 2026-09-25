@@ -13,7 +13,7 @@ The Moves supply chain. Source connectors pull live NYC events (parties, functio
 - `partiful.ts` — Partiful `/discover` `__NEXT_DATA__` trending NYC + `similarEvents` BFS (depth 2, capped); buildId re-extracted per run.
 - `tiktok.ts` — stub, disabled by default; awaits commercial scraper vendor decision.
 - `pool-service.ts` — pool persistence: `upsertCandidates` (geo-filter + upsert), `expireCandidates`, `getTonightPool` (windowed read + cross-source dedupe), `dedupeRows`/`normalizeDedupeKey`.
-- `index.ts` — `ALL_SOURCES` in product priority order (Partiful > Posh > TikTok > Luma), `enabledSources()`.
+- `index.ts` — `ALL_SOURCES` in product priority order (Partiful > Posh > Luma > TikTok), `enabledSources()`.
 
 ## Local Contracts
 
