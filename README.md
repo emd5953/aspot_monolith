@@ -210,7 +210,7 @@ Each significant directory carries an `AGENTS.md` describing its contracts — s
 
 ## Notes for contributors
 
-- **Branches:** `main` is production (Vercel deploys it); `develop` is the default branch and where all PRs land. Release by merging a `develop` → `main` PR with a merge commit, not a squash, and apply any new migrations to prod when it merges.
+- **Branches:** `main` is production (Vercel deploys it); `develop` is the default branch, and all work is pushed straight to it. Release with a `develop` → `main` PR merged as a merge commit, not a squash, and apply any new migrations to prod when it merges.
 - **Servers run UTC; the product is Eastern.** Never use `Date.prototype.setHours` to reason about "tonight" — use `src/lib/time/nyc.ts`. This bug class is invisible on an Eastern laptop and wrong in production.
 - **Connectors fetch and normalize only.** `pool-service` owns every database write.
 - **A failing source must be loud.** `fetched: 0` is indistinguishable from a quiet night, so a first-page failure throws rather than returning an empty list.
