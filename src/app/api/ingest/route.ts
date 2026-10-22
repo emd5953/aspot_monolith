@@ -28,15 +28,27 @@ export async function GET(request: NextRequest) {
   }
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  const results: Record<string, { fetched: number; written: number } | { error: string }> = {};
+  const results: Record<
+    string,
+    { fetched: number; written: number; warnings?: string[] } | { error: string }
+  > = {};
+  const partialSources: string[] = [];
 
   // Sequential on purpose: politeness across sources, and Vercel functions
   // don't need the parallelism.
   for (const source of enabledSources()) {
     try {
-      const candidates = await source.fetchCandidates();
+      const warnings: string[] = [];
+      const candidates = await source.fetchCandidates({
+        onWarning: (message) => warnings.push(message),
+      });
       const written = await upsertCandidates(supabase, candidates);
-      results[source.name] = { fetched: candidates.length, written };
+      if (warnings.length) partialSources.push(source.name);
+      results[source.name] = {
+        fetched: candidates.length,
+        written,
+        ...(warnings.length ? { warnings } : {}),
+      };
     } catch (err) {
       console.error(`[ingest] source ${source.name} failed:`, err);
       results[source.name] = { error: err instanceof Error ? err.message : 'unknown' };
@@ -60,12 +72,13 @@ export async function GET(request: NextRequest) {
   const failed = Object.entries(results)
     .filter(([, r]) => 'error' in r)
     .map(([name]) => name);
-  const ok = failed.length === 0 && !expiryError;
+  const ok = failed.length === 0 && partialSources.length === 0 && !expiryError;
 
   return NextResponse.json(
     {
       ok,
       ...(failed.length > 0 ? { failedSources: failed } : {}),
+      ...(partialSources.length > 0 ? { partialSources } : {}),
       results,
       expired,
       ...(expiryError ? { expiryError } : {}),

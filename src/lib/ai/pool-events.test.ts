@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { poolRowToActivity, poolRowsToActivities } from './pool-events';
+import { EventDetailsSchema } from '@/lib/sources/types';
 import type { PoolCandidateRow } from '@/lib/sources/pool-service';
 
 /**
@@ -26,6 +27,7 @@ const row = (over: Partial<PoolCandidateRow> = {}): PoolCandidateRow => ({
   price_min: 20,
   price_max: 30,
   is_free: false,
+  details: EventDetailsSchema.parse({ currency: 'USD' }),
   hype: {},
   tags: [],
   fetched_at: '2026-09-09T00:00:00Z',
@@ -89,10 +91,8 @@ describe('poolRowToActivity — the rest of the shape', () => {
     expect(poolRowToActivity(row({ price_max: 200 })).priceRange).toBe('$$$');
   });
 
-  it('defaults to $$ when the source priced nothing', () => {
-    expect(
-      poolRowToActivity(row({ price_min: null, price_max: null })).priceRange
-    ).toBe('$$');
+  it('keeps the price unknown when the source priced nothing', () => {
+    expect(poolRowToActivity(row({ price_min: null, price_max: null })).priceRange).toBe('unknown');
   });
 
   it('carries coordinates when present and omits them when not', () => {

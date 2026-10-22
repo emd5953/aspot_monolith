@@ -28,6 +28,31 @@ export interface PoliteFetchOptions {
   timeoutMs?: number;
 }
 
+/** Public response metadata only; never include response bodies, cookies, or credentials. */
+export class SourceHttpError extends Error {
+  readonly status: number;
+  readonly cloudflareChallenge: boolean;
+  readonly cloudflareRay?: string;
+
+  constructor(url: string, response: Response) {
+    const challenge = response.headers.get('cf-mitigated') === 'challenge';
+    const ray = response.headers.get('cf-ray');
+    const safeRay = ray && /^[a-f0-9]{16}-[a-z]{3}$/i.test(ray) ? ray : undefined;
+    const context = [
+      ...(challenge ? ['Cloudflare challenge; source authorization required'] : []),
+      ...(safeRay ? [`Cloudflare Ray ${safeRay}`] : []),
+    ];
+    super(
+      `politeFetch ${url} -> ${response.status} ${response.statusText}` +
+        (context.length ? ` (${context.join('; ')})` : '')
+    );
+    this.name = 'SourceHttpError';
+    this.status = response.status;
+    this.cloudflareChallenge = challenge;
+    this.cloudflareRay = safeRay;
+  }
+}
+
 /**
  * Fetch with a browser UA, a minimum inter-request delay (shared across all
  * connectors in this process), and a timeout. Throws on non-2xx.
@@ -52,9 +77,11 @@ export async function politeFetch(url: string, opts: PoliteFetchOptions = {}): P
       headers: { 'User-Agent': BROWSER_UA, ...opts.headers },
       signal: controller.signal,
     });
-    if (!res.ok) {
-      clearTimeout(timer);
-      throw new Error(`politeFetch ${url} -> ${res.status} ${res.statusText}`);
+    if (!res.ok || res.headers.get('cf-mitigated') === 'challenge') {
+      const error = new SourceHttpError(url, res);
+      // Stop the response body; challenged requests are never retried or parsed as events.
+      controller.abort();
+      throw error;
     }
     // Deliberately NOT cleared here: the body has not been read yet. Clearing
     // in a `finally` let a stalled response body hang forever with no timeout.

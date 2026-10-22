@@ -1,0 +1,26 @@
+{
+  "capturedOn": "2026-10-22",
+  "event": {
+    "id": "B9X0Wtx8YG2XNpRb6Teh",
+    "title": "DIONYSUS HALLOWEEN: H\u00f4tel des Fant\u00f4mes",
+    "startDate": "2026-11-01T02:00:00.000Z",
+    "endDate": "2026-11-01T09:00:00.000Z",
+    "locationInfo": {
+      "type": "structured",
+      "hasPostCode": true,
+      "mapsInfo": {
+        "addressLines": ["20 W 29th St", "New York, NY 10001"],
+        "approximateLocation": "New York, NY",
+        "appleMapsUrl": "http://maps.apple.com/?q=20%20W%2029th%20St%2C%20New%20York%2C%20NY%2010001&sll=40.75,-73.99",
+        "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=20%20W%2029th%20St%2C%20New%20York%2C%20NY%2010001"
+      },
+      "displayName": "ACE HOTEL",
+      "displayAddressLines": ["20 W 29th St", "New York, NY"],
+      "neighborhood": "Midtown West"
+    },
+    "status": "PUBLISHED",
+    "rsvpsEnabled": true,
+    "atCapacity": false,
+    "publicShortUrl": "https://go.partiful.com/1ypqkHeW"
+  }
+}

@@ -53,6 +53,13 @@ export function nycDate(at: Date = new Date()): string {
   }).format(at);
 }
 
+/** Before 6am, "tonight" still means the night that started yesterday. */
+export function nycNightDate(at: Date = new Date()): string {
+  const date = nycDate(at);
+  if (at >= nycTimeToUtc(date, 6)) return date;
+  return new Date(Date.parse(`${date}T12:00:00Z`) - 86400_000).toISOString().slice(0, 10);
+}
+
 /**
  * The UTC instant of a NYC wall-clock time on `dateIso` (YYYY-MM-DD).
  *
@@ -84,7 +91,10 @@ export function calendarDateOf(d: Date): string {
  * The night window for a NYC calendar date: local midnight through 6am the
  * following morning. `endDateIso` defaults to `startDateIso` (a one-night out).
  */
-export function nycNightWindow(startDateIso: string, endDateIso = startDateIso): {
+export function nycNightWindow(
+  startDateIso: string,
+  endDateIso = startDateIso
+): {
   from: Date;
   to: Date;
 } {

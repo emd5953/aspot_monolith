@@ -8,9 +8,15 @@
  * events array flexibly and normalizes each item defensively.
  */
 
-import { z } from 'zod';
-import { politeFetchJson } from './polite-fetch';
-import { RawCandidateSchema, type EventSource, type RawCandidate } from './types';
+import { politeFetchJson, politeFetchText } from './polite-fetch';
+import { extractStructuredEvents, normalizePoshStructuredEvent } from './structured-event';
+import { eventDetails, sourceTime, sourceEnd, sourceUrl } from './normalize';
+import {
+  RawCandidateSchema,
+  type EventSource,
+  type RawCandidate,
+  type SourceFetchOptions,
+} from './types';
 
 const EXPLORE_URL = 'https://posh.vip/api/bff/v1/explore/events';
 const MAX_PAGES = 5;
@@ -18,36 +24,10 @@ const PAGE_SIZE = 25;
 const LAT = 40.7128;
 const LNG = -74.006;
 const TIMEZONE = 'America/New_York';
-
-/** Every field optional/unknown — the shape is not guaranteed. */
-const eventSchema = z
-  .object({
-    id: z.unknown().optional(),
-    slug: z.unknown().optional(),
-    title: z.unknown().optional(),
-    name: z.unknown().optional(),
-    description: z.unknown().optional(),
-    startsAt: z.unknown().optional(),
-    starts_at: z.unknown().optional(),
-    endAt: z.unknown().optional(),
-    ends_at: z.unknown().optional(),
-    venue: z.unknown().optional(),
-    address: z.unknown().optional(),
-    latitude: z.unknown().optional(),
-    longitude: z.unknown().optional(),
-    lat: z.unknown().optional(),
-    lng: z.unknown().optional(),
-    priceMin: z.unknown().optional(),
-    priceMax: z.unknown().optional(),
-    isFree: z.unknown().optional(),
-    attendingCount: z.unknown().optional(),
-    attending_count: z.unknown().optional(),
-    guestCount: z.unknown().optional(),
-    tags: z.unknown().optional(),
-  })
-  .passthrough();
-
-type PoshEvent = z.infer<typeof eventSchema>;
+// Identify the actual server client. No browser session or challenge credentials are used.
+const FETCH_OPTIONS = {
+  headers: { 'User-Agent': 'Spotz/1.0 (+https://spotz-xi.vercel.app)' },
+};
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -98,46 +78,34 @@ function asNumber(v: unknown): number | undefined {
   return undefined;
 }
 
-/** ISO string with timezone offset (matches z.datetime({ offset: true })). */
-function asIsoWithOffset(v: unknown): string | undefined {
-  const s = asString(v);
-  if (!s) return undefined;
-  if (/^\d{4}-\d{2}-\d{2}T[\d:.]+(Z|[+-]\d{2}:?\d{2})$/.test(s)) {
-    // Already offset-aware; canonicalize Z and drop a zero-milliseconds fraction.
-    const normalized = s.endsWith('Z') ? `${s.slice(0, -1)}+00:00` : s;
-    return normalized.replace(/\.000(?=(?:[+-]\d{2}:?\d{2})?$)/, '');
-  }
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return undefined;
-  return d.toISOString().replace(/\.\d{3}Z$/, '+00:00');
-}
-
 /** Normalize one API event into a validated RawCandidate, or null. */
 export function normalizeEvent(item: unknown): RawCandidate | null {
-  const parsed = eventSchema.safeParse(item);
-  if (!parsed.success) return null;
-  const e: PoshEvent = parsed.data;
+  if (!isRecord(item)) return null;
+  const e = item;
 
-  const slug = asString(e.slug);
+  const slug = asString(e.slug) ?? asString(e.url);
   const id = asString(e.id) ?? slug;
   const title = asString(e.title) ?? asString(e.name);
   if (!id || !title) return null;
 
   const venue = isRecord(e.venue) ? e.venue : undefined;
-  const venueName = asString(venue?.name) ?? (venue === undefined ? asString(e.venue) : undefined) ?? asString(venue?.title);
+  const venueName =
+    asString(e.venueName) ??
+    asString(venue?.name) ??
+    (venue === undefined ? asString(e.venue) : undefined) ??
+    asString(venue?.title);
   const address = asString(e.address) ?? asString(venue?.address);
   const lat =
     asNumber(venue?.latitude) ?? asNumber(venue?.lat) ?? asNumber(e.latitude) ?? asNumber(e.lat);
   const lng =
-    asNumber(venue?.longitude) ??
-    asNumber(venue?.lng) ??
-    asNumber(e.longitude) ??
-    asNumber(e.lng);
+    asNumber(venue?.longitude) ?? asNumber(venue?.lng) ?? asNumber(e.longitude) ?? asNumber(e.lng);
 
-  const startsAt = asIsoWithOffset(e.startsAt) ?? asIsoWithOffset(e.starts_at);
-  const endsAt = asIsoWithOffset(e.endAt) ?? asIsoWithOffset(e.ends_at);
+  const start = e.startDate ?? e.startsAt ?? e.starts_at;
+  const end = e.endDate ?? e.endAt ?? e.ends_at;
+  const startsAt = sourceTime(start);
+  const endsAt = sourceEnd(start, end);
 
-  const priceMin = asNumber(e.priceMin);
+  const priceMin = asNumber(e.minTicketPrice) ?? asNumber(e.priceMin);
   const priceMax = asNumber(e.priceMax);
   const isFree = typeof e.isFree === 'boolean' ? e.isFree : undefined;
 
@@ -153,7 +121,7 @@ export function normalizeEvent(item: unknown): RawCandidate | null {
   const candidate = {
     source: 'posh' as const,
     sourceId: id,
-    sourceUrl: slug ? `https://posh.vip/e/${slug}` : undefined,
+    sourceUrl: sourceUrl(slug, 'https://posh.vip/e/', ['posh.vip']),
     title,
     description: asString(e.description),
     startsAt,
@@ -165,6 +133,20 @@ export function normalizeEvent(item: unknown): RawCandidate | null {
     priceMin,
     priceMax,
     isFree,
+    details: eventDetails({
+      title,
+      description: asString(e.description),
+      tags,
+      startsAt: start,
+      endsAt: end,
+      status: e.status,
+      cancelled: e.isCancelled ?? e.isCanceled,
+      availability: e.ticketStatus,
+      soldOut: e.isSoldOut,
+      locationVisibility: venueName || address ? 'public' : 'unknown',
+      currency:
+        typeof e.currency === 'string' && /^[A-Z]{3}$/.test(e.currency) ? e.currency : undefined,
+    }),
     hype,
     tags,
     raw: item,
@@ -180,7 +162,7 @@ export const poshSource: EventSource = {
     return process.env.SOURCE_POSH_ENABLED !== 'false';
   },
 
-  async fetchCandidates(): Promise<RawCandidate[]> {
+  async fetchCandidates(options: SourceFetchOptions = {}): Promise<RawCandidate[]> {
     if (!this.enabled()) return [];
 
     const out: RawCandidate[] = [];
@@ -194,13 +176,26 @@ export const poshSource: EventSource = {
 
       let data: unknown;
       try {
-        data = await politeFetchJson<unknown>(url);
+        data = await politeFetchJson<unknown>(url, FETCH_OPTIONS);
+        const envelope = isRecord(data) ? data : {};
+        if (
+          ![
+            envelope.events,
+            envelope.data,
+            envelope.results,
+            envelope.items,
+            isRecord(envelope.data) ? envelope.data.events : undefined,
+          ].some(Array.isArray)
+        ) {
+          throw new Error('[posh] explore response has no events array');
+        }
       } catch (err) {
         // A first-page failure means the whole source is down — there is
         // nothing to salvage, and returning [] would report as "no events
         // tonight" instead of an outage. Later pages degrade gracefully.
         if (page === 0) throw err;
         console.warn('[posh] explore fetch failed on page', page, err);
+        options.onWarning?.(`Page ${page + 1} failed; coverage is partial.`);
         break;
       }
 
@@ -218,13 +213,51 @@ export const poshSource: EventSource = {
       }
 
       // Repeated page (nothing fresh) -> stop.
-      if (newOnPage === 0) break;
+      if (newOnPage === 0) {
+        if (out.length === 0) throw new Error('[posh] no usable events on first nonempty page');
+        break;
+      }
 
+      if (isRecord(data) && 'nextCursor' in data && data.nextCursor === null) break;
       const next = extractNextCursor(data, cursor, events.length);
       if (next === cursor) break;
       cursor = next;
     }
 
+    // Bounded, opt-in page enrichment; no arbitrary URLs and no access bypass.
+    if (process.env.SOURCE_POSH_DETAILS_ENABLED === 'true') {
+      for (let i = 0; i < Math.min(out.length, 12); i++) {
+        const candidate = out[i];
+        if (!candidate.sourceUrl) continue;
+        try {
+          const html = await politeFetchText(candidate.sourceUrl, FETCH_OPTIONS);
+          const event = extractStructuredEvents(html)
+            .map((e) => normalizePoshStructuredEvent(e, candidate.sourceId))
+            .find((e) => e?.sourceUrl === candidate.sourceUrl);
+          if (!event) {
+            options.onWarning?.(`No structured details for ${candidate.sourceId}.`);
+            continue;
+          }
+          if (
+            candidate.startsAt &&
+            event.startsAt &&
+            Date.parse(candidate.startsAt) !== Date.parse(event.startsAt)
+          )
+            event.details?.issues.push(
+              'Discovery and detail page disagree on start time; showing the detail page time.'
+            );
+          out[i] = {
+            ...event,
+            hype: candidate.hype,
+            tags: candidate.tags,
+            raw: { discovery: candidate.raw, detail: event.raw },
+          };
+        } catch {
+          options.onWarning?.('Detail refresh failed; remaining page enrichment skipped.');
+          break;
+        }
+      }
+    }
     return out;
   },
 };

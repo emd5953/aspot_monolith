@@ -12,7 +12,7 @@ Not a top-10 list. Not a chatbot you have to coax. One night, planned.
 
 A going-out planner for NYC. One city, one night at a time.
 
-You give it one sentence. It hands back an ordered list of Moves — parties, functions, bars, popups — pulled from live event platforms and real places, arranged into an order that works geographically. Share the link and your friends vote 👍/👎 on each Move.
+You give it one sentence. It hands back an ordered list of Moves — parties, functions, bars, popups — pulled from live event platforms and real places, ordered by the start time each source published. Share the link and your friends vote 👍/👎 on each Move.
 
 You have **one active Move-list** at a time. Previous nights fall into history. That constraint is the product: Spotz is for tonight, not for a folder of maybes.
 
@@ -29,7 +29,7 @@ People who go out in New York and can tell the difference between "nightlife" an
 ### The core loop
 
 1. **Say the word.** One prompt on the home screen.
-2. **Watch it land.** Research finds candidates, the planner picks the Moves, the list appears.
+2. **Watch it land.** Research finds candidates, one selection pass picks the Moves, the list appears in start-time order.
 3. **Send it to the group.** Share the link; friends vote on each Move. You keep edit control.
 
 ### Two modes, one pipeline
@@ -41,7 +41,9 @@ People who go out in New York and can tell the difference between "nightlife" an
 | Latency        | ~15–30s                 | minutes                   |
 | Quality target | strong draft            | polished, more iterations |
 
-Fast is the default. Deep runs the fully agentic planner and advanced curation, then emails you when it lands.
+Fast is the default. Deep is the same pipeline over a wider research scrape and a bigger candidate pool, and emails you when it lands.
+
+There is no scheduling step. Spotz selects real events and orders them by the start time their source published; it never decides when anything happens.
 
 ---
 
@@ -53,18 +55,20 @@ Spotz never invents an event. Everything traces back to a source.
 
 Source connectors pull live NYC events into a `candidate_events` pool on a schedule. **Generation reads the pool and never fetches sources live** — that decouples freshness from request latency, so a slow third-party endpoint can't stall a user's night.
 
-| Source       | Endpoint                                                   | Status                                    |
-| ------------ | ---------------------------------------------------------- | ----------------------------------------- |
-| **Partiful** | `/discover` `__NEXT_DATA__` trending + `similarEvents` BFS | live                                      |
-| **Posh**     | `posh.vip` BFF explore, cursor pagination                  | live — currently 403s from datacenter IPs |
-| **Luma**     | `api.lu.ma` discover, NYC place id                         | live                                      |
-| **TikTok**   | commercial scraper API                                     | stubbed, disabled                         |
+| Source       | Endpoint                                                  | Status                                                     |
+| ------------ | --------------------------------------------------------- | ---------------------------------------------------------- |
+| **Partiful** | `/discover` SSR seeds + bounded `similarEvents` traversal | implemented; public trending subset                        |
+| **Posh**     | `posh.vip` BFF explore, bounded cursor pagination         | 100 listings verified from Vercel; detail coverage partial |
+| **Luma**     | `api.lu.ma` discover, NYC place id                        | implemented; bounded public discovery                      |
+| **TikTok**   | no configured feed                                        | unimplemented, disabled                                    |
 
 Ingestion runs every 4 hours via Vercel cron (`vercel.json` → `/api/ingest`, gated by `CRON_SECRET`, writes with the service role). Each connector is independently disableable with `SOURCE_<NAME>_ENABLED`.
 
-Every candidate carries provenance: `source`, `sourceId`, `sourceUrl`, and the untouched `raw` payload. A candidate that fails its Zod schema is skipped — never repaired by guessing. Duplicates of the same party across platforms are collapsed deterministically (normalized title + date, source-priority tiebreak).
+Every candidate carries provenance: `source`, `sourceId`, `sourceUrl`, the original `raw` payload, and an observation time. A candidate that fails its Zod schema is skipped — never repaired by guessing. Cross-platform dedupe requires shared identity or matching title, close published times, and compatible venue evidence. Unknown price, availability, and location remain unknown. Recommendations exclude stale, cancelled, sold-out, ended, and undated listings.
 
-These are all **undocumented third-party internals** that can change or block without notice. Connectors parse defensively and stay polite: sequential requests through a shared delay, bounded pagination.
+These are all **undocumented third-party internals** that can change or block without notice. Connectors parse defensively and stay polite: sequential requests through a shared delay, bounded pagination, and no access-control bypass. See [data sourcing](docs/specs/data-sourcing.md) for observed coverage, permission limitations, and future authorized feeds.
+
+The authenticated `POST /api/discovery` endpoint also reads this pool. It supports a bounded conversation about genre, NYC area, date, and budget, returning source-backed reasons and uncertainty. It has no external messaging transport or chat UI. See [conversational discovery](docs/specs/conversational-discovery.md) for the request format and supported vocabulary.
 
 ### Plus web research
 
@@ -77,7 +81,7 @@ These are all **undocumented third-party internals** that can change or block wi
 - **Not a trip planner.** One night in one city. No multi-day itineraries, no Lisbon.
 - **Not a booking platform.** Tickets, reservations, tables — out of scope.
 - **Not a content site.** Nothing pulled off a shelf.
-- **Not a chatbot.** You don't negotiate with it. Conversation refines an existing list; it doesn't create one.
+- **Not a general-purpose chatbot.** Conversation narrows sourced event candidates using supported preferences.
 - **Not a group-planning tool.** Share links and votes, deliberately. No roles, no membership, no governance.
 
 ---
@@ -93,7 +97,7 @@ These are all **undocumented third-party internals** that can change or block wi
 - **Deploy:** Vercel — `waitUntil` for Deep mode, cron for ingestion
 - **Validation:** Zod everywhere — the schema is the contract between pipeline steps
 - **Testing:** Vitest, fixture-based (connectors never hit the network in tests)
-- **Styling:** Tailwind CSS, hand-drawn components, Caveat + Inter
+- **Styling:** Tailwind CSS, flat primitives in `src/components/ui`, Inter + Instrument Serif
 
 ---
 
@@ -137,6 +141,7 @@ CRON_SECRET=                    # Authorization: Bearer <secret> on /api/ingest
 # Source connectors (all default on except TikTok)
 SOURCE_PARTIFUL_ENABLED=
 SOURCE_POSH_ENABLED=
+SOURCE_POSH_DETAILS_ENABLED=false # opt-in public detail enrichment, at most 12 candidates
 SOURCE_LUMA_ENABLED=
 SOURCE_LUMA_PLACE_ID=
 SOURCE_TIKTOK_ENABLED=false
@@ -149,9 +154,19 @@ NEXT_PUBLIC_SITE_URL=
 
 ### Database
 
-Migrations live in `supabase/migrations/`, applied in order. The Spotz pivot is `016`–`019`; `016` is **destructive** (drops the trips/quiz tables, renames `activities` → `plans`).
+Migrations live in `supabase/migrations/`, applied in order. The Spotz pivot is `016`–`020`; `016` is **destructive** (drops the trips/quiz tables, renames `activities` → `plans`). `013`/`014` predate the rename and were never applied — `020` re-issues them against the current schema, so skip them.
 
-`supabase db push`, or paste them into the Supabase SQL editor. Note that `017` and `018` are not re-runnable as written.
+Inspect the target database's migration history before applying SQL; do not blindly push the historical migrations. `017`, `018`, and `021` are not re-runnable as written. Apply `021_event_details.sql` before deploying the current `details` readers/writers, then run a fresh ingest so existing rows gain source evidence.
+
+For an empty Supabase project, apply numeric migrations `001`–`012`, then `015`–`022` in order. Skip `013`, `014`, and the `COMBINED_016-018` convenience file. Migration `022` repairs version-history author storage and owner reads on a fresh install. Run the bootstrap in a transaction and verify the final schema before connecting the app.
+
+### Independent Spotz workspace
+
+The Vercel team named **Spotz** has slug `drewstake`; its project is [`spotz`](https://vercel.com/drewstake/spotz), live at [spotz-xi.vercel.app](https://spotz-xi.vercel.app). Its Hobby deployment uses `vercel.spotz.json`, with ingestion once daily at 21:00 UTC (4pm EST / 5pm EDT; Hobby scheduling has a one-hour execution window). Configure its Supabase URL, anon key, service-role key, and `CRON_SECRET`, then prepare a temporary source copy for deployment. Use `vercel deploy --dry --json` to inspect the upload manifest; copy only its listed source files and install `vercel.spotz.json` as the copy's canonical `vercel.json`. Deploy from that directory with `vercel deploy --prod --scope drewstake --project spotz`. Check that the staged upload excludes `.env*`, `.git`, `.next`, and `node_modules`, and that the canonical cron runs once daily. `--local-config` alone does not replace the configuration read by the cloud build. The repository's `vercel.json` keeps the other deployment's four-hour schedule. A manual authorized ingest can refresh the pool between scheduled runs.
+
+This deployment targets the supplied existing Supabase project `sgowemquislfniitbpbq`, owned by Enrin. Its service key permits application data access; schema migrations require the owner's SQL Editor, a Postgres connection, or a management access token. Inspect the existing schema and apply only missing migrations, rather than running the empty-project bootstrap. Deployment credentials stay in Vercel and ignored local environment files.
+
+The deterministic `/api/discovery` endpoint and ingestion need only Supabase and cron configuration. Full itinerary generation additionally needs OpenAI, Tavily, and Maps configuration; Deep-mode email needs Resend. Supabase OAuth providers also require their own configuration before those sign-in buttons work.
 
 ### Triggering ingestion manually
 
@@ -159,7 +174,7 @@ Migrations live in `supabase/migrations/`, applied in order. The Spotz pivot is 
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/ingest
 ```
 
-Returns per-source `fetched`/`written` counts. **`ok: false` with a `207` means a source failed** — check `failedSources`.
+Returns per-source `fetched`/`written` counts. **`ok: false` with a `207` means ingestion was incomplete** — inspect `failedSources`, `partialSources`, per-source warnings, and any `expiryError`. Successful partial batches are still persisted.
 
 ---
 
@@ -169,7 +184,7 @@ Returns per-source `fetched`/`written` counts. **`ok: false` with a `207` means 
 src/
 ├── app/
 │   ├── (protected)/        dashboard, itinerary, profile
-│   ├── api/                itinerary, ingest, plans (votes), shared
+│   ├── api/                discovery, itinerary, ingest, plans (votes), shared
 │   ├── s/[code]/           public shared Move-list
 │   └── auth/               OAuth callback
 ├── components/
@@ -178,10 +193,11 @@ src/
 │   └── dashboard/ ui/
 ├── lib/
 │   ├── sources/            connectors + candidate pool  ← the Moves supply chain
+│   ├── discovery/          deterministic conversation + source-backed recommendations
 │   ├── ai/                 prompt parser, agents, Tavily, cache
 │   ├── itinerary/          CRUD, versioning, shares + votes
 │   ├── time/               NYC-anchored night windows (servers run UTC)
-│   ├── maps/ email/ calendar/ ratelimit/ preferences/
+│   ├── maps/ email/ calendar/ ratelimit/
 │   └── supabase/           client / server / service-role
 └── types/                  shared contracts
 ```
@@ -208,6 +224,7 @@ Each significant directory carries an `AGENTS.md` describing its contracts — s
 
 ## Notes for contributors
 
+- **Branches:** `main` is production (Vercel deploys it); `develop` is the default integration branch. Push work to `develop` unless the user requests a separate branch or another base. Use descriptive branch names without a `codex/` prefix. Release with a `develop` → `main` PR merged as a merge commit, not a squash. Apply required additive migrations before deploying code that depends on them; inspect history and migration-specific instructions first.
 - **Servers run UTC; the product is Eastern.** Never use `Date.prototype.setHours` to reason about "tonight" — use `src/lib/time/nyc.ts`. This bug class is invisible on an Eastern laptop and wrong in production.
 - **Connectors fetch and normalize only.** `pool-service` owns every database write.
 - **A failing source must be loud.** `fetched: 0` is indistinguishable from a quiet night, so a first-page failure throws rather than returning an empty list.
@@ -217,7 +234,7 @@ Each significant directory carries an `AGENTS.md` describing its contracts — s
 
 ## Where this is going
 
-1. Resolve the Posh 403 — browser-context headers, a proxy, or drop the source.
-2. TikTok connector behind a commercial scraper API.
+1. Establish permitted, reliable source coverage through organizer partnerships or licensed feeds.
+2. Evaluate creator-authorized TikTok access and submitted links with independently confirmed event dates.
 3. Reddit-targeted research for the long-tail local truth travel SEO buries.
 4. Eval harness — canonical prompts run on every release, so quality regressions get caught before users do.

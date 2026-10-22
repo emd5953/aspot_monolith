@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The generation engine. Turns a prompt + profile into a saved, day-by-day itinerary. The same pipeline runs Fast ("Plan it") and Deep ("Send it") modes, and full-trip or single-day regeneration.
+The generation engine. Turns a prompt into one saved, flat list of NYC Moves. The same pipeline runs Fast ("Plan it") and Deep ("Send it") modes and regeneration.
 
 ## Ownership
 
@@ -13,7 +13,8 @@ The generation engine. Turns a prompt + profile into a saved, day-by-day itinera
 - `parse-prompt.ts` — prompt → structured intent.
 - `provenance.ts` — `ItemSource` tracking so picks can be justified, not just listed.
 - `estimate-cost.ts` — per-activity cost estimates.
-- `pool-events.ts` — converts `candidate_events` pool rows (the Moves: Posh/Luma/Partiful) into `ActivityData`. Carries `startsAt`/`endsAt` through verbatim: that real published time is the product's ordering signal and must never be re-derived or invented.
+- `pool-events.ts` — converts eligible `candidate_events` rows into `ActivityData`. Carries published times, source links/check times, ticket facts, and music evidence. Unknown prices/currencies remain unknown; published instants must never be re-derived or invented.
+- `schemas/discovery.ts` — bounded conversation request, intent, and response contracts for `@/lib/discovery`; this adapter does not generate event facts with an LLM.
 - `schemas/plan.ts` — the Zod contracts. `MoveListSchema` / `SelectedPlanSchema` are the live pair; the day-shaped schemas below them are legacy and unused.
 
 ## Local Contracts
@@ -23,9 +24,10 @@ The generation engine. Turns a prompt + profile into a saved, day-by-day itinera
 - Ordering is `startsAt` ascending, unknown last, ties stable (`agents/order-plans.ts`). It compares instants, not strings, and treats an unparseable date as unknown rather than as epoch 0.
 - Spotz is NYC-only, single-day ("tonight"), no quiz. `parsePrompt` (`parse-prompt.ts`) always returns `destination: "New York City"`; it extracts date/neighborhood/vibe, not a place to travel to. Generation runs on `defaultPreferencesFor` (`@/types/profile`) — there is no per-user preference profile, and that type carries no quiz-shaped fields (motivations/cuisines/authenticity are gone; nothing could set them). Prompt intent, not a profile, is the taste signal — `userIntent` is what `score-research` and the Tavily queries actually steer on.
 - Pool events are merged by `agents/research.ts` AFTER the research cache is read and BEFORE curation — never inside the researcher or the cache — so a cache hit can never serve last week's events as tonight's. That module also never caches an empty result, so one Tavily failure cannot poison the next hour.
+- The shared source pool enforces freshness, real night windows, cancellation, and availability before conversion, for both generation and conversational discovery. Migration 021 supplies structured event details.
 - `saveItineraryToDatabase` archives the caller's previous draft/active itineraries before inserting the new one — Spotz keeps exactly one active itinerary per user; older ones become read-only history.
 - The system never invents places — candidates come from real research with provenance. Do not add code paths that fabricate venues. (The model can still name places from recall; `agents/plan-check.ts` measures that as the off-pool ratio, and such picks get no time and `source: 'ai'`.)
-- Google Places resolution (`@/lib/maps/place-verification`, gated by `PLACES_VERIFICATION_ENABLED`) **enriches, never filters**. Its job is stamping coordinates so the map can plot the night. Candidates it cannot resolve stay in the pool unlocated: the unresolvable ~10-25% is mostly dated events and walking tours that correctly have no Places entry, and dropping them deletes the events feature.
+- Google Places resolution (`@/lib/maps/place-verification`, enabled by a server key unless explicitly disabled) **enriches, never filters**. Its job is stamping coordinates so the map can plot the night. Candidates it cannot resolve stay in the pool unlocated: the unresolvable ~10-25% is mostly dated events and walking tours that correctly have no Places entry, and dropping them deletes the events feature.
 - Fast and Deep are one pipeline. They differ in pool width (`poolLimit`) and delivery — Fast streams to screen, Deep runs in the background and emails.
 - Persistence writes ONE hidden `itinerary_days` row (`day_number: 1`) so a flat list satisfies `plans.day_id NOT NULL` without a migration. Nothing above persistence knows days exist; read `StoredItinerary.plans`, never `.days`.
 - `plans.start_time` holds the real published time or NULL. Never write a fabricated slot.

@@ -1,26 +1,17 @@
-import { EventSource, RawCandidate } from './types';
+import { EventSource } from './types';
 
 /**
- * TikTok connector — STUB.
- *
- * TikTok has no self-serve official route (Research API is academic-only;
- * Display API is own-account only), so this source will run through a
- * commercial scraper API (Apify / EnsembleData / ScrapeCreators — vendor
- * bake-off pending). Pipeline shape when implemented:
- *   curated NYC creator+hashtag list → daily pull → captions →
- *   LLM extraction of venue/event/date → Google Places verification.
- * Provenance rule: a TikTok candidate that cannot be resolved to a real
- * place/event gets dropped, never guessed.
- *
- * Disabled by default until a vendor is wired in (SOURCE_TIKTOK_ENABLED=true).
+ * Not implemented. A scraper subscription is not permission to reuse content.
+ * See docs/specs/data-sourcing.md: creator-authorized Display API or submitted
+ * links + official embeds, with separate confirmation of event date/location.
  */
 export const tiktokSource: EventSource = {
   name: 'tiktok',
-  enabled(): boolean {
-    return process.env.SOURCE_TIKTOK_ENABLED === 'true';
-  },
-  async fetchCandidates(): Promise<RawCandidate[]> {
-    console.warn('[sources/tiktok] stub — vendor integration pending, returning no candidates');
-    return [];
+  enabled: () => process.env.SOURCE_TIKTOK_ENABLED === 'true',
+  async fetchCandidates() {
+    if (!this.enabled()) return [];
+    throw new Error(
+      'TikTok discovery is not implemented; authorized access and event verification are required'
+    );
   },
 };

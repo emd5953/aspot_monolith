@@ -32,7 +32,7 @@ NYC places for tonight. Spotz **selects**; it does not schedule.
   pins itself to the top of the night.
 - **Mechanical quality is decided in code, not by the model** (`plan-check.ts`).
   An LLM reviewer once scored 92/100 for a plan that booked one venue twice; a
-  Set notices, a model does not. The duplicate check is *within-list* — the old
+  Set notices, a model does not. The duplicate check is _within-list_ — the old
   day-based one only fired across two days and would be a silent no-op here.
 - **Theme judgement belongs to the model; theme structure belongs to code**
   (`theme.ts`). Whether a venue serves "house music" is world knowledge — a text
@@ -54,6 +54,9 @@ NYC places for tonight. Spotz **selects**; it does not schedule.
   "The Bluebird Cafe" and "Bluebird Cafe" shipped as two different places.
 - Fast and Deep are the same pipeline: they differ in pool width (`poolLimit`)
   and delivery, not in logic.
+- Pool activity descriptions expose source links, ticket status, source issues,
+  and literal music evidence to selection. These facts do not assign semantic
+  `themeFit`, and missing price/currency remains unknown.
 
 ## Work Guidance
 
@@ -72,3 +75,5 @@ NYC places for tonight. Spotz **selects**; it does not schedule.
   and that the list is ordered by when events actually start. Sabotaging the
   stamping or the ordering must turn it red — check that it still does before
   trusting a green run.
+
+## Child DOX Index

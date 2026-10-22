@@ -138,7 +138,7 @@ describe('partifulSource', () => {
     expect(candidates.length).toBeGreaterThan(0);
   });
 
-  it('strips the discover page\'s `event-` id prefix before hydrating', async () => {
+  it("strips the discover page's `event-` id prefix before hydrating", async () => {
     mockText.mockResolvedValue(discoverHtml(['event-ev-1']));
 
     const candidates = await partifulSource.fetchCandidates();
@@ -209,15 +209,15 @@ describe('partifulSource', () => {
     expect(mockJson).toHaveBeenCalledTimes(60);
   });
 
-  it('returns [] when __NEXT_DATA__ is missing or malformed', async () => {
+  it('reports an outage when __NEXT_DATA__ is missing or malformed', async () => {
     mockText.mockResolvedValue('<html><body>no data here</body></html>');
-    expect(await partifulSource.fetchCandidates()).toEqual([]);
+    await expect(partifulSource.fetchCandidates()).rejects.toThrow('discovery data');
     expect(mockJson).not.toHaveBeenCalled();
 
     mockText.mockResolvedValue(
       '<script id="__NEXT_DATA__" type="application/json">{definitely not json</script>'
     );
-    expect(await partifulSource.fetchCandidates()).toEqual([]);
+    await expect(partifulSource.fetchCandidates()).rejects.toThrow('discovery data');
     expect(mockJson).not.toHaveBeenCalled();
   });
 

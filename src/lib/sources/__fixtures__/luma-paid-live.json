@@ -1,0 +1,52 @@
+{
+  "capturedOn": "2026-10-22",
+  "entry": {
+    "event": {
+      "api_id": "evt-Mhu0MM7WcH2hVNl",
+      "name": "Undefined + EvolveDigital / Oct 22nd 2026",
+      "start_at": "2026-10-22T22:00:00.000Z",
+      "end_at": "2026-10-23T01:00:00.000Z",
+      "url": "undefined-20261022",
+      "geo_address_info": {
+        "city": "New York",
+        "type": "google",
+        "region": "New York",
+        "address": "Automattic",
+        "country": "United States",
+        "place_id": "ChIJrymeHJVZwokRVFgYEYKlB0Q",
+        "localized": null,
+        "city_state": "New York, NY",
+        "description": "",
+        "sublocality": "NoHo",
+        "country_code": "US",
+        "full_address": "Automattic, 166 Crosby St, New York, NY 10012, USA",
+        "region_short": "NY",
+        "short_address": "166 Crosby St, New York",
+        "place_coordinate": {
+          "latitude": 40.7258728,
+          "longitude": -73.9954015
+        },
+        "apple_maps_place_id": "IFF111942DC88C336",
+        "mode": "shown"
+      },
+      "geo_address_visibility": "public",
+      "coordinate": {
+        "longitude": -73.9954015,
+        "latitude": 40.7258728
+      }
+    },
+    "ticket_info": {
+      "price": {
+        "cents": 1000,
+        "currency": "usd",
+        "is_flexible": false
+      },
+      "is_free": false,
+      "max_price": null,
+      "is_sold_out": false,
+      "spots_remaining": 40,
+      "is_near_capacity": false,
+      "require_approval": false
+    }
+  }
+}

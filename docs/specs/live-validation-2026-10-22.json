@@ -1,0 +1,119 @@
+{
+  "deployment": {
+    "id": "dpl_sYjrJqG3fj4rHgDAEWVbi7ZozQqP",
+    "url": "spotz-9hgt8zg8h-drewstake.vercel.app",
+    "target": "production",
+    "readyState": "READY",
+    "aliases": ["spotz-xi.vercel.app", "spotz-drewstake.vercel.app"]
+  },
+  "productionUrl": "https://spotz-xi.vercel.app",
+  "database": {
+    "projectRef": "sgowemquislfniitbpbq",
+    "appliedMigrations": ["021_event_details.sql", "022_version_history_bootstrap.sql"],
+    "verified": [
+      "candidate_events.details exists",
+      "restriction-preserving trigger exists",
+      "itinerary_versions.created_by exists",
+      "owner-only version SELECT policy exists",
+      "candidate_events RLS enabled"
+    ],
+    "candidateCountImmediatelyAfterMigrations": 322
+  },
+  "cron": {
+    "path": "/api/ingest",
+    "schedule": "0 21 * * *",
+    "timezone": "UTC",
+    "enabled": true,
+    "hobbyExecutionWindow": "one hour"
+  },
+  "ingest": {
+    "base": "https://spotz-xi.vercel.app",
+    "startedAt": "2026-10-22T15:00:58.158Z",
+    "httpStatus": 207,
+    "cacheControl": "public, max-age=0, must-revalidate",
+    "body": {
+      "ok": false,
+      "failedSources": ["posh"],
+      "results": {
+        "partiful": {
+          "fetched": 53,
+          "written": 53
+        },
+        "posh": {
+          "error": "politeFetch https://posh.vip/api/bff/v1/explore/events?lat=40.7128&lng=-74.006&timezone=America%2FNew_York&cursor=0 -> 403 Forbidden"
+        },
+        "luma": {
+          "fetched": 88,
+          "written": 88
+        }
+      },
+      "expired": 1,
+      "at": "2026-10-22T15:02:26.130Z"
+    }
+  },
+  "discovery": {
+    "base": "https://spotz-xi.vercel.app",
+    "testedAt": "2026-10-22T15:02:40.016Z",
+    "query": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "What’s the move for R&B tonight in NYC?"
+        }
+      ]
+    },
+    "unauthorizedStatus": 401,
+    "httpStatus": 200,
+    "cacheControl": "no-store",
+    "body": {
+      "intent": {
+        "date": "2026-10-22",
+        "genres": ["rnb"],
+        "freeOnly": false
+      },
+      "status": "no_matches",
+      "reply": "I found no fresh, source-backed matches in the current pool. That does not mean nothing is happening. Try another area, budget, music style, or night.",
+      "recommendations": []
+    }
+  },
+  "pool": {
+    "inspectedAt": "2026-10-22T15:02:40.262Z",
+    "total": 321,
+    "freshBySource": {
+      "partiful": 122,
+      "luma": 89
+    },
+    "freshUpcomingTonight": 25,
+    "note": "Upcoming count is a date/freshness diagnostic, not the number passing every recommendation filter. The only fresh structured R&B evidence was for October 23 at 10pm EDT, outside the requested night."
+  },
+  "verification": {
+    "homepageStatus": 200,
+    "unauthorizedIngestStatus": 401,
+    "unauthorizedDiscoveryStatus": 401,
+    "temporaryTestUserDeleted": true,
+    "testsPassed": 404,
+    "testFilesPassed": 39,
+    "lint": "passed",
+    "localBuild": "passed",
+    "cloudBuild": "passed"
+  },
+  "limitations": [
+    "Posh first-page access from Vercel returns HTTP 403; the ingest is partial.",
+    "No OpenAI API key is configured, so full AI itinerary generation is not validated. The deterministic discovery route does not require OpenAI.",
+    "This release deploys the working source snapshot to the independent Spotz Vercel project; it does not merge or release the separate main-branch deployment."
+  ],
+  "dox": {
+    "updated": [
+      "AGENTS.md",
+      "README.md",
+      "docs/specs/data-sourcing.md",
+      "docs/specs/conversational-discovery.md"
+    ],
+    "unchangedForDeploymentPhase": [
+      "src/app/api/AGENTS.md",
+      "src/lib/sources/AGENTS.md",
+      "src/lib/discovery/AGENTS.md"
+    ],
+    "reason": "Deployment configuration and observed validation changed; existing API, source, and discovery runtime contracts did not."
+  }
+}

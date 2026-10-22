@@ -1,0 +1,38 @@
+{
+  "capturedOn": "2026-10-22",
+  "entry": {
+    "event": {
+      "api_id": "evt-1MFDTkuNlNm1pHw",
+      "name": "Coffee & Apple Ads Masterclass: Maximum ROI, End to End",
+      "start_at": "2026-10-22T19:00:00.000Z",
+      "end_at": "2026-10-22T22:00:00.000Z",
+      "timezone": "America/New_York",
+      "url": "06hgn26s",
+      "geo_address_info": {
+        "mode": "obfuscated",
+        "city": "New York",
+        "city_state": "New York, NY",
+        "sublocality": "Garment District",
+        "country": "United States",
+        "country_code": "US",
+        "region": "New York",
+        "region_short": "NY"
+      },
+      "geo_address_visibility": "guests-only",
+      "coordinate": {
+        "latitude": 40.7532651709693,
+        "longitude": -73.99187313761803
+      },
+      "waitlist_status": "enabled"
+    },
+    "ticket_info": {
+      "price": null,
+      "is_free": true,
+      "max_price": null,
+      "is_sold_out": false,
+      "spots_remaining": 38,
+      "is_near_capacity": false,
+      "require_approval": true
+    }
+  }
+}

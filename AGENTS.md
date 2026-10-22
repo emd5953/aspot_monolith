@@ -48,6 +48,7 @@ Update parent docs when parent-level structure, ownership, workflow, or child in
 - Verification must reflect an existing check; if no verification framework exists yet, leave it empty and update it when one exists
 
 Default section order:
+
 - Purpose
 - Ownership
 - Local Contracts
@@ -78,10 +79,10 @@ Default section order:
 
 Spotz finds the Moves for tonight. Say the word — "date night in the Village, no cover", "we tryna dance in Bushwick" — and it hands back a curated, time-anchored run of real NYC events, functions, popups, and food spots. Share the link; the crew votes 👍/👎 on individual plans. One active itinerary at a time — no trip dashboard, no quiz, no travel-agent chatbot.
 
-- **Stack:** Next.js (App Router) + React 19 + TypeScript; Supabase (Postgres, RLS, Realtime, OAuth); OpenAI via the Vercel AI SDK; Tavily for web research; Google Maps/Places; source connectors (Partiful/Posh/Luma + a TikTok stub) feed a `candidate_events` pool via a cron-gated `/api/ingest` — its `starts_at` is the ordering signal and is carried through the pipeline verbatim; Resend for Deep-mode email; deployed on Vercel.
+- **Stack:** Next.js (App Router) + React 19 + TypeScript; Supabase (Postgres, RLS, Realtime, OAuth); OpenAI via the Vercel AI SDK; Tavily for web research; Google Maps/Places; source connectors (Partiful/Posh/Luma + a disabled TikTok stub) feed a `candidate_events` pool via a cron-gated `/api/ingest` — its `starts_at` is the ordering signal and is carried through the pipeline verbatim; Resend for Deep-mode email; deployed on Vercel. The authenticated `/api/discovery` conversation endpoint shares the event pool; external messaging is not integrated.
 - **The contract is the schema.** Zod types in `src/lib/ai/schemas` are the hand-off between every pipeline step. LLM outputs are schema-validated, never regex-extracted.
 - **Core principle:** the prompt is the floor AND the steering wheel — there is no quiz, no preference profile. The system never invents places or events; every candidate (web research or the Moves pool) carries provenance.
-- **The servers run UTC; the product is Eastern.** Anything reasoning about "tonight" goes through `src/lib/time/nyc.ts` — never `Date.prototype.setHours`, which resolves in the server's zone and is therefore correct on an Eastern laptop and wrong in production.
+- **The servers run UTC; the product is Eastern.** Anything reasoning about "tonight" goes through `src/lib/time/nyc.ts` — never `Date.prototype.setHours`, which resolves in the server's zone and is therefore correct on an Eastern laptop and wrong in production. Conversational discovery treats 00:00–05:59 as the preceding nightlife date and displays after-midnight dates explicitly.
 - **Spotz selects, it does not schedule.** One night, one flat ordered list of real events. Each stop shows the time its source published, or no time — the system never invents a clock time, and there are no days or time buckets. Ordering is by real start time, and a manual reorder overrides it permanently.
 - **Two modes, one pipeline:** Fast ("Plan it", streams on screen) and Deep ("Send it", background work + email) differ in research width and delivery, not logic. Steps: Discover → Rank → Select → Order → Persist.
 - **Migrations** live in `supabase/migrations/`. Migration 016 dropped the pre-pivot tables (`trips`, `trip_members`, `quiz_progress`, `user_preferences`, notifications/rsvps/votes/suggestions), so `src/types/profile.ts` is an in-memory-only shape: it holds the neutral default `UserPreferences` the pipeline scores against, with no quiz-shaped fields and nothing that can vary it per user. `src/test` holds fixtures/setup.
@@ -89,17 +90,21 @@ Spotz finds the Moves for tonight. Say the word — "date night in the Village, 
 ### Verification
 
 - `npm test` (Vitest) · `npm run lint` (ESLint) · `npm run build` (type-check + build) · `npm run format`
+- Default release workflow: push work to `develop` unless the user requests a separate branch or another base; release through a `develop` → `main` PR merged with a merge commit. Vercel deploys `main`. Inspect production migration history and apply required additive schema changes before deploying dependent code. Verify the production deployment, run an authorized ingest, and inspect source failures/partial coverage before evaluating live discovery.
+- The user's Spotz deployment uses Vercel team `drewstake`, project `spotz`, the supplied Supabase project `sgowemquislfniitbpbq` (owned by Enrin), and the Hobby-compatible `vercel.spotz.json` (daily ingestion at 21:00 UTC). Deploy from a temporary source copy with that configuration installed as its canonical `vercel.json`; `--local-config` alone does not replace the configuration read by the cloud build. Exclude secrets and generated files, explicitly select the Spotz team/project, and verify the uploaded cron configuration. Do not merge to the existing production branch merely to deploy this separate Vercel workspace. The repository's `vercel.json` retains the existing deployment's four-hour schedule. Service-role credentials provide application data access, not SQL migration access; coordinate schema changes with the database owner.
 
 ## User Preferences
 
-When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
+- Use descriptive branch names without a `codex/` prefix. Explicit user instructions about the base branch override the default integration workflow.
+- Strengthen shared discovery for NYC nightlife/social events before adding messaging transports. Preserve source evidence and unknown details; explain recommendation matches without inventing them. Research permitted TikTok access and messaging options before committing to iMessage. Clearly separate working integrations from planned capabilities.
 
 ## Child DOX Index
 
 - [`src/lib/ai/`](src/lib/ai/AGENTS.md) — the generation engine: research, curation, persistence, schemas, cost/time. Contains child [`agents/`](src/lib/ai/agents/AGENTS.md).
 - [`src/lib/itinerary/`](src/lib/itinerary/AGENTS.md) — persistence, versioning, ownership, sharing/voting, and post-generation editing (manual reorder, revert, cost rollup).
 - [`src/lib/sources/`](src/lib/sources/AGENTS.md) — the Moves supply chain: source connectors (Partiful/Posh/Luma/TikTok), the candidate pool, ingestion.
+- [`src/lib/discovery/`](src/lib/discovery/AGENTS.md) — transport-independent conversational event discovery, explicit preferences, source-backed explanations, and replay tests.
 - [`src/app/api/`](src/app/api/AGENTS.md) — App Router route handlers: authenticate, authorize, delegate to `lib`.
 - [`src/components/`](src/components/AGENTS.md) — React UI: minimal surfaces, cinematic vs. paper mode.
 
-Owned directly by this root (no child doc yet — simple, single-purpose): `src/lib/maps`, `src/lib/calendar`, `src/lib/email`, `src/lib/ratelimit`, `src/lib/time` (NYC-anchored night windows), `src/lib/supabase` (client/server/middleware, plus `service.ts` — the RLS-bypassing service-role client, server-only, for ingestion and share-link reads), `src/app/(protected)`, `src/types`, `src/test`.
+Owned directly by this root (no child doc yet — simple, single-purpose): `src/lib/maps`, `src/lib/calendar`, `src/lib/email`, `src/lib/ratelimit`, `src/lib/time` (NYC-anchored night windows), `src/lib/supabase` (client/server/middleware, plus `service.ts` — the RLS-bypassing service-role client, server-only, for ingestion and share-link reads), `src/app/(protected)`, `src/types`, `src/test`, `supabase/migrations`, and `docs/specs` (product and integration contracts; `data-sourcing.md` and `conversational-discovery.md` distinguish observed capabilities from future work).

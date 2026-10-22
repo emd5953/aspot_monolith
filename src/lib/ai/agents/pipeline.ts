@@ -86,6 +86,15 @@ function describeCandidate(item: PoolCandidate): string {
   if ('cuisine' in item && item.cuisine?.length) bits.push(item.cuisine.join('/'));
   if ('category' in item && item.category) bits.push(item.category);
   if (item.priceRange) bits.push(item.priceRange);
+  if ('eventDetails' in item && item.eventDetails) {
+    bits.push(`ticket status: ${item.eventDetails.availability}`);
+    if (item.eventDetails.music.length)
+      bits.push(
+        `listing music mentions: ${item.eventDetails.music.map((m) => m.evidence).join('; ')}`
+      );
+    if (item.eventDetails.issues.length) bits.push(item.eventDetails.issues.join('; '));
+  }
+  if ('sourceUrl' in item && item.sourceUrl) bits.push(`source: ${item.sourceUrl}`);
   if ('startsAt' in item && item.startsAt) {
     bits.push(
       `starts ${new Intl.DateTimeFormat('en-US', {

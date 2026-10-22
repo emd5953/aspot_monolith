@@ -8,6 +8,7 @@ Persistence, versioning, ownership, and the editing operations applied to a Move
 
 - `itinerary-service.ts` — core read/write for itineraries and plans (`coordsColumns` is the shared coordinate projection used by the generator). `reorderActivities` sets `sort_order` from array position — the user's own arrangement, which overrides the start-time order generation seeded.
 - `version-service.ts` — version snapshots and revert.
+- Migration 022 repairs fresh installs: `itinerary_versions.created_by` is the application's author field, and version SELECT is owner-only after removal of the old trip tables. Preserve the legacy `changed_by` column for compatibility.
 - `ownership.ts` — access checks (who may read/edit a trip's itinerary).
 - `share-service.ts` — share codes + plan votes: `ensureShareCode`/`resolveShareCode` mint and resolve the friend-facing link; `castVote`/`getVoteCounts` handle 👍/👎 tallies; `canVoteOnPlan` answers whether a caller may vote (owner, or the itinerary carries a share code).
 - `cost.ts` — cost rollup from per-activity estimates.

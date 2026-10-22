@@ -6,11 +6,12 @@ Next.js App Router route handlers. Thin HTTP layer over `@/lib`: authenticate, a
 
 ## Ownership
 
-- Route groups: `auth/`, `itinerary/`, `plans/`, `shared/`, `ingest/`.
-- Itinerary sub-routes own the editing surface: `[id]/days`, `[id]/activities` (move/reorder/[activityId]), `[id]/versions`, `[id]/revert`, `[id]/regenerate`, `[id]/days/[dayId]/regenerate`, `[id]/status`, `[id]/calendar`, `[id]/email`, `[id]/share` (mint the friend link).
+- Route groups: `auth/`, `itinerary/`, `plans/`, `shared/`, `ingest/`, `discovery/`.
+- `discovery/` — authenticated, bounded Zod message input delegated to `@/lib/discovery`; returns source-backed recommendations, clarification, or no matches. No provider webhook or outbound messaging. HTTP 503 distinguishes backend failure from an empty result, and responses use `Cache-Control: no-store`.
+- Itinerary sub-routes own the editing surface: `[id]/activities` (add, `reorder`, `[activityId]`), `[id]/versions`, `[id]/revert`, `[id]/regenerate`, `[id]/status`, `[id]/calendar`, `[id]/email`, `[id]/share` (mint the friend link).
 - `plans/[planId]/vote` — 👍/👎 on an individual plan (owner or share-link friend). Visibility is checked in the route via `canVoteOnPlan` on the service client, NOT by RLS: `plan_votes_insert` only asserts `auth.uid() = user_id`, so without the check any signed-in user could vote on an arbitrary plan UUID. Unknown or unshared plans return `404`.
 - `shared/[code]` — read a shared itinerary + its vote tallies by share code. Authenticates with the user client (identity, for `mine` votes and `isOwner`) but reads with the service-role client: the unguessable code is the capability and this route is the gate. See `@/lib/itinerary/AGENTS.md`.
-- `ingest/` — cron-secret-gated, service-role only. NOT user-facing: runs the source connectors (`@/lib/sources`) and refreshes the `candidate_events` pool. Responds `200` only when every source succeeded; a partial run is `207` with `failedSources` (and `expiryError` when pool expiry fails), so a dead connector cannot hide behind a green cron.
+- `ingest/` — cron-secret-gated, service-role only. NOT user-facing: runs the source connectors (`@/lib/sources`) and refreshes the `candidate_events` pool. Responds `200` only when every source succeeded; HTTP `207` reports `failedSources`, `partialSources` plus per-source warnings, or `expiryError`. Successful partial batches are persisted without refreshing unseen old rows.
 - `auth/callback` — OAuth/email exchange. Honors `?next=` so the `/s/<code>` share flow survives sign-in; only same-origin paths are accepted, since the value is attacker-supplied and would otherwise be an open redirect.
 - Generation: `itinerary/generate` — Fast mode (awaited, returns the itinerary) and Deep mode (`waitUntil` background run + email). The single generation entry point.
 
@@ -19,8 +20,11 @@ Next.js App Router route handlers. Thin HTTP layer over `@/lib`: authenticate, a
 Every handler follows the house pattern:
 
 ```ts
-const supabase = await createClient();            // @/lib/supabase/server
-const { data: { user }, error } = await supabase.auth.getUser();
+const supabase = await createClient(); // @/lib/supabase/server
+const {
+  data: { user },
+  error,
+} = await supabase.auth.getUser();
 if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 // ...delegate to @/lib, then return NextResponse.json(...)
 ```
@@ -29,7 +33,7 @@ if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status
 - Authorize resource access through `@/lib/itinerary/ownership` — never trust an id from the request alone.
 - Two routes deliberately break the single-client pattern and read with `@/lib/supabase/service`: `ingest/` (no user at all) and the share surfaces (`shared/[code]`, and the vote permission check). Where the service client is used, the ROUTE owns authorization — RLS is not a second net behind it. Never reach for it elsewhere.
 - Keep business logic out of routes; call into `@/lib`. Routes orchestrate request/response only.
-- Wrap handlers in try/catch, `console.error` the cause, return a generic message with a `500`.
+- Wrap handlers in try/catch, `console.error` the cause, and return a generic error (`500`, or `503` for discovery availability failures).
 - Deep-mode background work uses `waitUntil` (`@vercel/functions`); the request returns immediately and email is delivered later.
 
 ## Work Guidance
@@ -38,4 +42,6 @@ if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status
 
 ## Verification
 
-- `npm run lint`, `npm run build` (route type-checking), and `npm test` for the underlying `@/lib` logic.
+- `npm run lint`, `npm run build` (route type-checking), and `npm test` for underlying logic and discovery/ingestion authentication, validation, and outage boundaries.
+
+## Child DOX Index

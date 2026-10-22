@@ -13,6 +13,41 @@ import { z } from 'zod';
 export const SOURCE_NAMES = ['posh', 'luma', 'partiful', 'tiktok', 'places', 'manual'] as const;
 export type SourceName = (typeof SOURCE_NAMES)[number];
 
+/** Only facts actually published by a source. Missing fields remain unknown. */
+export const EventDetailsSchema = z.object({
+  status: z.enum(['unknown', 'scheduled', 'cancelled', 'postponed']).default('unknown'),
+  availability: z
+    .enum([
+      'unknown',
+      'available',
+      'sold_out',
+      'waitlist',
+      'registration_closed',
+      'approval_required',
+    ])
+    .default('unknown'),
+  locationVisibility: z.enum(['unknown', 'public', 'approximate', 'hidden']).default('unknown'),
+  venueId: z.string().optional(),
+  neighborhood: z.string().optional(),
+  currency: z
+    .string()
+    .regex(/^[A-Z]{3}$/)
+    .optional(),
+  priceNotes: z.string().optional(),
+  categories: z.array(z.string()).default([]),
+  music: z
+    .array(
+      z.object({
+        genre: z.string(),
+        evidence: z.string(),
+        field: z.enum(['title', 'description', 'tags']),
+      })
+    )
+    .default([]),
+  issues: z.array(z.string()).default([]),
+});
+export type EventDetails = z.infer<typeof EventDetailsSchema>;
+
 export const RawCandidateSchema = z.object({
   source: z.enum(SOURCE_NAMES),
   sourceId: z.string().min(1),
@@ -28,6 +63,7 @@ export const RawCandidateSchema = z.object({
   priceMin: z.number().nonnegative().optional(),
   priceMax: z.number().nonnegative().optional(),
   isFree: z.boolean().optional(),
+  details: EventDetailsSchema.optional(),
   /** Source-specific traction signals (guest_count, ticket_count, ...). */
   hype: z.record(z.string(), z.unknown()).default({}),
   tags: z.array(z.string()).default([]),
@@ -37,12 +73,17 @@ export const RawCandidateSchema = z.object({
 
 export type RawCandidate = z.infer<typeof RawCandidateSchema>;
 
+export interface SourceFetchOptions {
+  /** Report partial coverage without discarding successfully fetched listings. */
+  onWarning?: (message: string) => void;
+}
+
 export interface EventSource {
   name: SourceName;
   /** Env-flag gate; disabled sources are skipped by ingestion. */
   enabled(): boolean;
   /** Fetch current NYC candidates. Implementations must be polite: sequential requests with delays. */
-  fetchCandidates(): Promise<RawCandidate[]>;
+  fetchCandidates(options?: SourceFetchOptions): Promise<RawCandidate[]>;
 }
 
 /** NYC bounding box (generous: five boroughs + close NJ/Westchester cut off). */

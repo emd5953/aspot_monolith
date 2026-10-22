@@ -91,8 +91,8 @@ describe('poshSource', () => {
       expect(c.sourceUrl).toBe('https://posh.vip/e/rooftop-sunset-sessions');
       expect(c.title).toBe('Rooftop Sunset Sessions');
       expect(c.description).toContain('House music');
-      expect(c.startsAt).toBe('2026-09-05T18:00:00-04:00');
-      expect(c.endsAt).toBe('2026-09-05T23:00:00-04:00');
+      expect(c.startsAt).toBe('2026-09-05T22:00:00.000Z');
+      expect(c.endsAt).toBe('2026-09-06T03:00:00.000Z');
       expect(c.startsAt).toMatch(VALID_ISO_OFFSET);
       expect(c.venueName).toBe('The Loft at Essex');
       expect(c.address).toBe('120 Essex St, New York, NY 10002');
@@ -108,14 +108,18 @@ describe('poshSource', () => {
     });
 
     it('falls back to slug as sourceId and ISO-normalizes a UTC date', async () => {
-      const ev = poshEvent({ id: undefined, startsAt: '2026-09-06T02:00:00.000Z', endAt: undefined });
+      const ev = poshEvent({
+        id: undefined,
+        startsAt: '2026-09-06T02:00:00.000Z',
+        endAt: undefined,
+      });
       politeFetchJsonMock.mockResolvedValueOnce(bffPage([ev], 25));
 
       const out = await poshSource.fetchCandidates();
 
       expect(out).toHaveLength(1);
       expect(out[0].sourceId).toBe('rooftop-sunset-sessions');
-      expect(out[0].startsAt).toBe('2026-09-06T02:00:00+00:00');
+      expect(out[0].startsAt).toBe('2026-09-06T02:00:00.000Z');
       expect(out[0].endsAt).toBeUndefined();
     });
 
@@ -184,6 +188,9 @@ describe('poshSource', () => {
       expect(firstUrl).toContain('lat=40.7128');
       expect(firstUrl).toContain('lng=-74.006');
       expect(secondUrl).toContain('cursor=25'); // reads next cursor from the response
+      expect(politeFetchJsonMock.mock.calls[0][1]).toEqual({
+        headers: { 'User-Agent': 'Spotz/1.0 (+https://spotz-xi.vercel.app)' },
+      });
     });
 
     it('stops when a page repeats the previous items (no fresh ids)', async () => {
@@ -201,7 +208,10 @@ describe('poshSource', () => {
 
     it('caps pagination at 5 pages', async () => {
       const page = (offset: number) =>
-        bffPage([poshEvent({ id: `evt_${offset}`, slug: `s-${offset}`, title: `E${offset}` })], offset + 25);
+        bffPage(
+          [poshEvent({ id: `evt_${offset}`, slug: `s-${offset}`, title: `E${offset}` })],
+          offset + 25
+        );
       for (let i = 0; i < 8; i++) politeFetchJsonMock.mockResolvedValueOnce(page(i * 25));
 
       const out = await poshSource.fetchCandidates();

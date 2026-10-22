@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { politeFetchJson, politeFetchText } from './polite-fetch';
+import { politeFetchJson, politeFetchText, SourceHttpError } from './polite-fetch';
 
 // Real timers with small delays: the rate limiter keeps module-level state
 // (the serialization gate), which fake timers make fragile across tests.
@@ -55,9 +55,59 @@ describe('politeFetch', () => {
       async () => new Response('nope', { status: 403, statusText: 'Forbidden' })
     ) as unknown as typeof fetch;
 
+    await expect(politeFetchJson('https://example.test/denied', { delayMs: 0 })).rejects.toThrow(
+      '403'
+    );
+  });
+
+  it('identifies a Cloudflare challenge without retrying or leaking response contents', async () => {
+    global.fetch = vi.fn(
+      async () =>
+        new Response('private response content', {
+          status: 403,
+          statusText: 'Forbidden',
+          headers: {
+            'cf-mitigated': 'challenge',
+            'cf-ray': 'a4e99c1d2cf490bd-IAD',
+            'set-cookie': 'private=value',
+          },
+        })
+    ) as unknown as typeof fetch;
+
+    const error = await politeFetchJson('https://example.test/denied', { delayMs: 0 }).catch(
+      (err: unknown) => err
+    );
+    expect(error).toBeInstanceOf(SourceHttpError);
+    expect(error).toMatchObject({
+      status: 403,
+      cloudflareChallenge: true,
+      cloudflareRay: 'a4e99c1d2cf490bd-IAD',
+    });
+    expect(String(error)).toContain('source authorization required');
+    expect(String(error)).not.toContain('private');
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call an ordinary 403 a challenge or accept arbitrary diagnostic headers', async () => {
+    global.fetch = vi.fn(
+      async () =>
+        new Response('Forbidden', { status: 403, headers: { 'cf-ray': 'untrusted text' } })
+    ) as unknown as typeof fetch;
+    const error = await politeFetchText('https://example.test/denied', { delayMs: 0 }).catch(
+      (err: unknown) => err
+    );
+    expect(error).toMatchObject({ status: 403, cloudflareChallenge: false });
+    expect(String(error)).not.toContain('untrusted text');
+    expect(String(error)).not.toContain('Cloudflare');
+  });
+
+  it('rejects a challenge even when the provider returns HTTP 200', async () => {
+    global.fetch = vi.fn(
+      async () => new Response('{"events":[]}', { headers: { 'cf-mitigated': 'challenge' } })
+    ) as unknown as typeof fetch;
     await expect(
-      politeFetchJson('https://example.test/denied', { delayMs: 0 })
-    ).rejects.toThrow('403');
+      politeFetchJson('https://example.test/challenge', { delayMs: 0 })
+    ).rejects.toMatchObject({ cloudflareChallenge: true });
   });
 
   it('keeps serving later callers after one fails', async () => {
@@ -65,7 +115,9 @@ describe('politeFetch', () => {
     global.fetch = vi
       .fn()
       .mockRejectedValueOnce(new Error('network down'))
-      .mockResolvedValueOnce(new Response('{"ok":true}', { status: 200 })) as unknown as typeof fetch;
+      .mockResolvedValueOnce(
+        new Response('{"ok":true}', { status: 200 })
+      ) as unknown as typeof fetch;
 
     await expect(politeFetchJson('https://example.test/1', { delayMs: 0 })).rejects.toThrow();
     await expect(politeFetchJson('https://example.test/2', { delayMs: 0 })).resolves.toEqual({

@@ -28,7 +28,9 @@ function fmtTime(iso: string | null): string | undefined {
 
 function priceRange(row: PoolCandidateRow): string {
   if (row.is_free) return 'free';
-  if (row.price_min == null && row.price_max == null) return '$$';
+  if (row.price_min == null && row.price_max == null) return 'unknown';
+  if (row.details?.currency && row.details.currency !== 'USD') return 'unknown';
+  if (!row.details?.currency) return 'unknown';
   const hi = row.price_max ?? row.price_min ?? 0;
   if (hi <= 15) return '$';
   if (hi <= 50) return '$$';
@@ -42,8 +44,7 @@ function priceRange(row: PoolCandidateRow): string {
  */
 function durationMinutes(row: PoolCandidateRow): number {
   if (!row.starts_at || !row.ends_at) return 120;
-  const span =
-    (new Date(row.ends_at).getTime() - new Date(row.starts_at).getTime()) / 60000;
+  const span = (new Date(row.ends_at).getTime() - new Date(row.starts_at).getTime()) / 60000;
   return Number.isFinite(span) && span > 0 ? Math.round(span) : 120;
 }
 
@@ -57,8 +58,12 @@ export function poolRowToActivity(row: PoolCandidateRow): ActivityData {
 
   return {
     name: row.title,
+    eventSource: row.source,
+    sourceUrl: row.source_url ?? undefined,
+    sourceCheckedAt: row.fetched_at,
+    eventDetails: row.details,
     description: descriptionBits.join(' — ') || row.title,
-    category: 'event',
+    category: row.details?.categories[0] ?? 'event',
     duration: durationMinutes(row),
     adventureLevel: 5,
     priceRange: priceRange(row),
@@ -70,7 +75,9 @@ export function poolRowToActivity(row: PoolCandidateRow): ActivityData {
     startsAt: row.starts_at ?? undefined,
     endsAt: row.ends_at ?? undefined,
     coordinates:
-      row.lat != null && row.lng != null ? { lat: Number(row.lat), lng: Number(row.lng) } : undefined,
+      row.lat != null && row.lng != null
+        ? { lat: Number(row.lat), lng: Number(row.lng) }
+        : undefined,
   };
 }
 

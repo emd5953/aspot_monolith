@@ -1,0 +1,227 @@
+{
+  "productionUrl": "https://spotz-xi.vercel.app",
+  "deployment": {
+    "id": "dpl_Fdc9uQc9WPPzs5Ukew6QkRboAvmZ",
+    "url": "spotz-jp6s0q357-drewstake.vercel.app",
+    "target": "production",
+    "readyState": "READY",
+    "aliases": ["spotz-xi.vercel.app", "spotz-drewstake.vercel.app"]
+  },
+  "ingestionDeploymentId": "dpl_B81L8CGsqujrY71UqnMWfqavFAUQ",
+  "changes": [
+    "Posh requests identify the actual Spotz service with User-Agent Spotz/1.0 (+https://spotz-xi.vercel.app).",
+    "HTTP errors carry safe Cloudflare challenge/Ray metadata; challenges are never retried or treated as data.",
+    "Published event starts must fall within the requested NYC night window. Long ranges starting on earlier nights are excluded without altering their source timestamps."
+  ],
+  "localRequestCheck": {
+    "testedAt": "2026-10-22T15:47:18.252Z",
+    "status": 200,
+    "cloudflareChallenge": null,
+    "cloudflareRay": "a4e9a3c2e9385f00-ORD",
+    "eventCount": 20
+  },
+  "ingest": {
+    "base": "https://spotz-xi.vercel.app",
+    "startedAt": "2026-10-22T15:48:45.853Z",
+    "httpStatus": 207,
+    "cacheControl": "public, max-age=0, must-revalidate",
+    "body": {
+      "ok": false,
+      "partialSources": ["posh"],
+      "results": {
+        "partiful": {
+          "fetched": 53,
+          "written": 53
+        },
+        "posh": {
+          "fetched": 100,
+          "written": 100,
+          "warnings": [
+            "No structured details for 6ac445f4743057dd0f693bc8.",
+            "No structured details for 6acd9a5b51a8fa39326b05ea.",
+            "No structured details for 6acd514b6e64cedef49cfe9e.",
+            "No structured details for 6acff4adad0a2acfb454dd56.",
+            "No structured details for 6ac8212fa5def4c65ac1fbf1."
+          ]
+        },
+        "luma": {
+          "fetched": 88,
+          "written": 88
+        }
+      },
+      "expired": 0,
+      "at": "2026-10-22T15:50:37.603Z"
+    }
+  },
+  "discovery": {
+    "base": "https://spotz-xi.vercel.app",
+    "testedAt": "2026-10-22T15:57:57.338Z",
+    "query": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "What’s the move for R&B tonight in NYC?"
+        }
+      ]
+    },
+    "unauthorizedStatus": 401,
+    "httpStatus": 200,
+    "cacheControl": "no-store",
+    "body": {
+      "intent": {
+        "date": "2026-10-22",
+        "genres": ["rnb"],
+        "freeOnly": false
+      },
+      "status": "recommendations",
+      "reply": "For the night of 2026-10-22 in NYC:\n\nR&B Thursdays at Hush Lounge Garden – Thursday Night Party in Queens NYC\nThu, Oct 22, 5:00 PM EDT · Hush Lounge and Garden\nFrom 0 (currency not listed); fees may apply · Tickets: unknown (source report)\nListing mentions R&B: “R&B Thursdays at Hush Lounge Garden – Thursday Night ”\nTicket availability is unconfirmed; check the source.\nhttps://posh.vip/e/rb-thursdays-at-hush-lounge-garden-thursday-night-party-in-queens-nyc-2026-10-23-8-30\n\nEarly Check In\nThu, Oct 22, 7:30 PM EDT · Record Room — 47-09 Center Blvd, Long Island City, NY 11101, USA\nFrom $0; fees may apply · Tickets: available (source report)\nListing mentions R&B: “ring the best across Hip-Hop, R&B, Funk and Soul, Reggae and Dance Hall and beyond ”\n\nhttps://posh.vip/e/early-check-in-70\n\nYours Truly, R&B | Every Thursday at Negril Village\nThu, Oct 22, 8:00 PM EDT · Negril Village\nFrom 0 (currency not listed); fees may apply · Tickets: unknown (source report)\nListing mentions R&B: “Yours Truly, R&B | Every Thursday at Negril Village”\nTicket availability is unconfirmed; check the source.\nhttps://posh.vip/e/yours-truly-rb-every-thursday-at-negril-village-2026-10-23-4-15\n\nCarl Thomas vs. Case: VERZUZ Watch Party at The Ivory on Park\nThu, Oct 22, 8:00 PM EDT · The Ivory On Park — 12 Park St, Brooklyn, NY 11206, USA\nFrom $0; fees may apply · Tickets: available (source report)\nListing mentions R&B: “y at The Ivory on Park**\n\nTwo R&B voices. A catalog full of memories. Who are you r”\n\nhttps://posh.vip/e/carl-thomas-vs-case-verzuz-watch-party-at-the-ivory-on-park\n\nLadies Love Thursdays: R&B Edition\nThu, Oct 22, 8:00 PM EDT · The Vault Cafe\nFrom 0 (currency not listed); fees may apply · Tickets: unknown (source report)\nListing mentions R&B: “Ladies Love Thursdays: R&B Edition”\nTicket availability is unconfirmed; check the source.\nhttps://posh.vip/e/ladies-love-thursdays-rb-edition-2026-10-23-5-0",
+      "recommendations": [
+        {
+          "id": "067134bb-851e-4501-a7ac-1fb6dc099691",
+          "title": "R&B Thursdays at Hush Lounge Garden – Thursday Night Party in Queens NYC",
+          "startsAt": "2026-10-22T21:00:00+00:00",
+          "endsAt": "2026-10-23T06:00:00+00:00",
+          "when": "Thu, Oct 22, 5:00 PM EDT",
+          "location": "Hush Lounge and Garden",
+          "price": "From 0 (currency not listed); fees may apply",
+          "availability": "unknown",
+          "reasons": [
+            "Listing mentions R&B: “R&B Thursdays at Hush Lounge Garden – Thursday Night ”"
+          ],
+          "caveats": ["Ticket availability is unconfirmed; check the source."],
+          "sources": [
+            {
+              "source": "posh",
+              "url": "https://posh.vip/e/rb-thursdays-at-hush-lounge-garden-thursday-night-party-in-queens-nyc-2026-10-23-8-30",
+              "fetchedAt": "2026-10-22T15:50:31.17+00:00"
+            }
+          ]
+        },
+        {
+          "id": "2bb23691-986f-4229-a5a3-cde30b50e4ac",
+          "title": "Early Check In",
+          "startsAt": "2026-10-22T23:30:00+00:00",
+          "endsAt": "2026-10-23T05:00:00+00:00",
+          "when": "Thu, Oct 22, 7:30 PM EDT",
+          "location": "Record Room — 47-09 Center Blvd, Long Island City, NY 11101, USA",
+          "price": "From $0; fees may apply",
+          "availability": "available",
+          "reasons": [
+            "Listing mentions R&B: “ring the best across Hip-Hop, R&B, Funk and Soul, Reggae and Dance Hall and beyond ”"
+          ],
+          "caveats": [],
+          "sources": [
+            {
+              "source": "posh",
+              "url": "https://posh.vip/e/early-check-in-70",
+              "fetchedAt": "2026-10-22T15:50:31.169+00:00"
+            }
+          ]
+        },
+        {
+          "id": "00eca261-1a5a-48b3-93a6-36da99951f5a",
+          "title": "Yours Truly, R&B | Every Thursday at Negril Village",
+          "startsAt": "2026-10-23T00:00:00+00:00",
+          "endsAt": "2026-10-23T04:15:00+00:00",
+          "when": "Thu, Oct 22, 8:00 PM EDT",
+          "location": "Negril Village",
+          "price": "From 0 (currency not listed); fees may apply",
+          "availability": "unknown",
+          "reasons": [
+            "Listing mentions R&B: “Yours Truly, R&B | Every Thursday at Negril Village”"
+          ],
+          "caveats": ["Ticket availability is unconfirmed; check the source."],
+          "sources": [
+            {
+              "source": "posh",
+              "url": "https://posh.vip/e/yours-truly-rb-every-thursday-at-negril-village-2026-10-23-4-15",
+              "fetchedAt": "2026-10-22T15:50:31.169+00:00"
+            }
+          ]
+        },
+        {
+          "id": "4044e1e0-0ddb-4e8e-8614-f22553ab2730",
+          "title": "Carl Thomas vs. Case: VERZUZ Watch Party at The Ivory on Park",
+          "startsAt": "2026-10-23T00:00:00+00:00",
+          "endsAt": "2026-10-23T04:00:00+00:00",
+          "when": "Thu, Oct 22, 8:00 PM EDT",
+          "location": "The Ivory On Park — 12 Park St, Brooklyn, NY 11206, USA",
+          "price": "From $0; fees may apply",
+          "availability": "available",
+          "reasons": [
+            "Listing mentions R&B: “y at The Ivory on Park**\n\nTwo R&B voices. A catalog full of memories. Who are you r”"
+          ],
+          "caveats": [],
+          "sources": [
+            {
+              "source": "posh",
+              "url": "https://posh.vip/e/carl-thomas-vs-case-verzuz-watch-party-at-the-ivory-on-park",
+              "fetchedAt": "2026-10-22T15:50:31.169+00:00"
+            }
+          ]
+        },
+        {
+          "id": "c01e6860-a534-4495-b2ce-c09751436929",
+          "title": "Ladies Love Thursdays: R&B Edition",
+          "startsAt": "2026-10-23T00:00:00+00:00",
+          "endsAt": "2026-10-23T05:00:00+00:00",
+          "when": "Thu, Oct 22, 8:00 PM EDT",
+          "location": "The Vault Cafe",
+          "price": "From 0 (currency not listed); fees may apply",
+          "availability": "unknown",
+          "reasons": ["Listing mentions R&B: “Ladies Love Thursdays: R&B Edition”"],
+          "caveats": ["Ticket availability is unconfirmed; check the source."],
+          "sources": [
+            {
+              "source": "posh",
+              "url": "https://posh.vip/e/ladies-love-thursdays-rb-edition-2026-10-23-5-0",
+              "fetchedAt": "2026-10-22T15:50:31.169+00:00"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "pool": {
+    "inspectedAt": "2026-10-22T15:57:58.185Z",
+    "count": 421,
+    "bySource": {
+      "posh": 100,
+      "partiful": 229,
+      "luma": 92
+    }
+  },
+  "verification": {
+    "testsPassed": 409,
+    "testFilesPassed": 39,
+    "lint": "passed",
+    "productionBuild": "passed",
+    "homepageStatus": 200,
+    "unauthorizedIngestStatus": 401,
+    "unauthorizedDiscoveryStatus": 401,
+    "temporaryTestUserDeleted": true,
+    "longRangeListingExcluded": true,
+    "sourceFixturesInsertedIntoProduction": false
+  },
+  "limitations": [
+    "Five Posh detail pages had no usable structured data; ingestion remains HTTP 207 with partialSources: posh.",
+    "Posh discovery is capped at five pages; the 100 fetched listings do not represent complete NYC coverage.",
+    "Three of the five returned recommendations have unknown ticket availability."
+  ],
+  "dox": {
+    "updated": [
+      "src/lib/sources/AGENTS.md",
+      "src/lib/discovery/AGENTS.md",
+      "README.md",
+      "docs/specs/data-sourcing.md",
+      "docs/specs/conversational-discovery.md"
+    ],
+    "intentionallyUnchanged": [
+      "AGENTS.md",
+      "src/app/api/AGENTS.md",
+      "src/lib/ai/AGENTS.md",
+      "src/lib/ai/agents/AGENTS.md"
+    ],
+    "reason": "Ownership, child indexes, HTTP interfaces and AI handoffs remain unchanged. Source request behavior and night eligibility are documented by their owning source/discovery contracts."
+  }
+}

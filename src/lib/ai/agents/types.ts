@@ -1,6 +1,6 @@
 /**
  * Multi-Agent System Types
- * 
+ *
  * Defines the contracts between agents in our agentic architecture.
  */
 
@@ -120,6 +120,11 @@ export interface RestaurantData extends ResearchProvenance {
 }
 
 export interface ActivityData extends ResearchProvenance {
+  /** Source-published event evidence; retained through shared discovery. */
+  eventSource?: string;
+  sourceUrl?: string;
+  sourceCheckedAt?: string;
+  eventDetails?: import('@/lib/sources/types').EventDetails;
   name: string;
   description: string;
   category: string;
@@ -280,7 +285,14 @@ export interface ReviewIssue {
 // Orchestrator types
 export interface OrchestrationState {
   sessionId: string;
-  status: 'initializing' | 'researching' | 'planning' | 'reviewing' | 'revising' | 'complete' | 'error';
+  status:
+    | 'initializing'
+    | 'researching'
+    | 'planning'
+    | 'reviewing'
+    | 'revising'
+    | 'complete'
+    | 'error';
   iteration: number;
   maxIterations: number;
   agents: Record<AgentRole, AgentState>;

@@ -1,5 +1,6 @@
-import { EventSource, RawCandidate, RawCandidateSchema } from './types';
+import { EventSource, RawCandidate, RawCandidateSchema, type SourceFetchOptions } from './types';
 import { politeFetchJson, politeFetchText } from './polite-fetch';
+import { eventDetails, sourceTime, sourceEnd, sourceUrl } from './normalize';
 
 /**
  * Partiful connector (Next.js on Vercel).
@@ -41,14 +42,6 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
-/** ISO-with-offset (RawCandidateSchema requires an offset or Z). */
-function toIso(value: unknown): string | undefined {
-  const s = asString(value);
-  if (!s) return undefined;
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
-}
-
 /**
  * Discover-page items carry an `event-`-prefixed id (`event-nP2El…`), while the
  * `/e/<id>` page, the `/_next/data` route and `similarEvents` all use the bare
@@ -83,6 +76,7 @@ function parseDiscover(html: string): DiscoverPage | null {
   const pageProps = asRecord(asRecord(asRecord(data?.props)?.pageProps));
   const trending = asRecord(pageProps?.trendingSections);
   const nycEventIds: string[] = [];
+  if (!trending) return null;
   if (trending) {
     for (const [region, section] of Object.entries(trending)) {
       if (region.toUpperCase() !== 'NYC') continue;
@@ -98,18 +92,13 @@ function parseDiscover(html: string): DiscoverPage | null {
   return { buildId, nycEventIds };
 }
 
-// ---- fetch steps (each failure is logged, never fatal) ----
+// ---- fetch steps (discovery failure is fatal; partial hydration is reported) ----
 
-async function fetchDiscover(): Promise<DiscoverPage | null> {
-  try {
-    const html = await politeFetchText(DISCOVER_URL);
-    const page = parseDiscover(html);
-    if (!page) console.warn('[partiful] discover: missing or malformed __NEXT_DATA__');
-    return page;
-  } catch (err) {
-    console.warn('[partiful] discover fetch failed:', err);
-    return null;
-  }
+async function fetchDiscover(): Promise<DiscoverPage> {
+  const html = await politeFetchText(DISCOVER_URL);
+  const page = parseDiscover(html);
+  if (!page) throw new Error('[partiful] discover: missing or malformed discovery data');
+  return page;
 }
 
 async function hydrateEvent(buildId: string, id: string): Promise<Hydrated | null> {
@@ -120,8 +109,7 @@ async function hydrateEvent(buildId: string, id: string): Promise<Hydrated | nul
     // The `/_next/data` route returns `{ pageProps }` at the top level; the
     // discover page's inlined `__NEXT_DATA__` nests it under `props`. Accept both.
     const root = asRecord(data);
-    const pageProps =
-      asRecord(root?.pageProps) ?? asRecord(asRecord(root?.props)?.pageProps);
+    const pageProps = asRecord(root?.pageProps) ?? asRecord(asRecord(root?.props)?.pageProps);
     const event = asRecord(pageProps?.event);
     if (!event) {
       console.warn(`[partiful] event ${id}: missing pageProps.event`);
@@ -146,7 +134,10 @@ export function normalizePartifulEvent(
 
   const locationInfo = asRecord(event.locationInfo);
   const mapsInfo = asRecord(locationInfo?.mapsInfo);
-  const addressLines = locationInfo?.addressLines;
+  const hidden = locationInfo?.type === 'hidden' || locationInfo?.type === 'tbd';
+  const addressLines = hidden
+    ? undefined
+    : (locationInfo?.displayAddressLines ?? locationInfo?.addressLines ?? mapsInfo?.addressLines);
 
   const hype: Record<string, unknown> = {};
   const going = asNumber(event.goingGuestCount);
@@ -164,13 +155,30 @@ export function normalizePartifulEvent(
   const candidate: RawCandidate = {
     source: 'partiful',
     sourceId: id,
-    sourceUrl: asString(event.publicShortUrl) ?? `https://partiful.com/e/${id}`,
+    sourceUrl:
+      sourceUrl(event.publicShortUrl, 'https://partiful.com/', [
+        'partiful.com',
+        'go.partiful.com',
+      ]) ?? `https://partiful.com/e/${encodeURIComponent(id)}`,
     title,
     description: asString(event.description),
-    startsAt: toIso(event.startDate),
-    endsAt: toIso(event.endDate),
-    venueName: asString(mapsInfo?.name),
+    startsAt: sourceTime(event.startDate),
+    endsAt: sourceEnd(event.startDate, event.endDate),
+    venueName: hidden
+      ? undefined
+      : (asString(locationInfo?.displayName) ?? asString(mapsInfo?.name)),
     address,
+    details: eventDetails({
+      title,
+      description: asString(event.description),
+      startsAt: event.startDate,
+      endsAt: event.endDate,
+      status: event.status,
+      cancelled: event.isCancelled ?? event.isCanceled,
+      closed: event.rsvpsEnabled === false || event.atCapacity === true,
+      locationVisibility: hidden ? 'hidden' : address ? 'public' : 'unknown',
+      neighborhood: asString(locationInfo?.neighborhood),
+    }),
     hype,
     tags: [],
     raw: event,
@@ -186,22 +194,28 @@ export function normalizePartifulEvent(
 
 // ---- BFS: discover → hydrate → similarEvents (depth 2, cap 60) ----
 
-export async function fetchPartifulCandidates(): Promise<RawCandidate[]> {
+export async function fetchPartifulCandidates(
+  options: SourceFetchOptions = {}
+): Promise<RawCandidate[]> {
+  if (process.env.SOURCE_PARTIFUL_ENABLED === 'false') return [];
   const discover = await fetchDiscover();
   if (!discover || discover.nycEventIds.length === 0) return [];
   const { buildId, nycEventIds } = discover;
 
   const queue: { id: string; depth: number }[] = nycEventIds.map((id) => ({ id, depth: 0 }));
   const enqueued = new Set<string>(nycEventIds);
-  const hydratedCount = { n: 0 };
+  let attempts = 0;
   const candidates: RawCandidate[] = [];
 
   let head = 0;
-  while (head < queue.length && hydratedCount.n < MAX_EVENTS) {
+  while (head < queue.length && attempts < MAX_EVENTS) {
     const { id, depth } = queue[head++];
+    attempts++;
     const hydrated = await hydrateEvent(buildId, id);
-    if (!hydrated) continue;
-    hydratedCount.n += 1;
+    if (!hydrated) {
+      options.onWarning?.(`Event ${id} could not be refreshed; coverage is partial.`);
+      continue;
+    }
 
     const candidate = normalizePartifulEvent(id, hydrated.event);
     if (candidate) candidates.push(candidate);
@@ -218,6 +232,8 @@ export async function fetchPartifulCandidates(): Promise<RawCandidate[]> {
       }
     }
   }
+  if (attempts > 0 && candidates.length === 0)
+    throw new Error('[partiful] no usable events hydrated from discovery seeds');
   return candidates;
 }
 

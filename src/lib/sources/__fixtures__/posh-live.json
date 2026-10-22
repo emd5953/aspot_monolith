@@ -1,0 +1,26 @@
+{
+  "capturedOn": "2026-10-22",
+  "url": "https://posh.vip/api/bff/v1/explore/events?lat=40.7128&lng=-74.006&timezone=America%2FNew_York&cursor=0",
+  "events": [
+    {
+      "id": "6ad7e02b746d6880c69d90ff",
+      "title": "Laila! Presents CLUB GENIUS",
+      "url": "laila-presents-club-genius",
+      "startDate": "2026-10-23T01:00:00.000Z",
+      "endDate": "2026-10-23T06:00:00.000Z",
+      "timezone": "America/New_York",
+      "venueName": "525 Waverly Ave",
+      "minTicketPrice": 0
+    },
+    {
+      "id": "6acff4adad0a2acfb454dd56",
+      "title": "THE FUR AFFAIR",
+      "url": "the-fur-affair-1",
+      "startDate": "2026-10-16T16:00:00.000Z",
+      "endDate": "2026-11-03T01:00:00.000Z",
+      "timezone": "America/New_York",
+      "venueName": "165 Bedford Ave",
+      "minTicketPrice": 0
+    }
+  ]
+}

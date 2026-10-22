@@ -105,9 +105,7 @@ describe('lumaSource', () => {
   });
 
   it('normalizes entries and terminates pagination on has_more=false', async () => {
-    mockedFetch
-      .mockResolvedValueOnce(PAGE_ONE)
-      .mockResolvedValueOnce(PAGE_TWO);
+    mockedFetch.mockResolvedValueOnce(PAGE_ONE).mockResolvedValueOnce(PAGE_TWO);
 
     const candidates = await lumaSource.fetchCandidates();
 
@@ -115,9 +113,7 @@ describe('lumaSource', () => {
     expect(mockedFetch).toHaveBeenCalledTimes(2);
     const firstUrl = new URL(mockedFetch.mock.calls[0][0]);
     expect(firstUrl.pathname).toBe('/discover/get-paginated-events');
-    expect(firstUrl.searchParams.get('discover_place_api_id')).toBe(
-      'discplace-Izx1rQVSh8njYpP'
-    );
+    expect(firstUrl.searchParams.get('discover_place_api_id')).toBe('discplace-Izx1rQVSh8njYpP');
     expect(firstUrl.searchParams.get('pagination_limit')).toBe('25');
     expect(firstUrl.searchParams.get('pagination_cursor')).toBeNull();
 
@@ -134,7 +130,7 @@ describe('lumaSource', () => {
       sourceUrl: 'https://lu.ma/rooftop-listening',
       startsAt: '2026-09-12T22:00:00.000Z',
       endsAt: '2026-09-13T02:00:00.000Z',
-      venueName: 'Brooklyn, NY, US',
+      details: { neighborhood: 'Brooklyn' },
       lat: 40.7191,
       lng: -73.9579,
       hype: { guestCount: 87, ticketCount: 30 },
@@ -156,7 +152,7 @@ describe('lumaSource', () => {
     mockedFetch.mockImplementation(async () => ({
       entries: [makeEntry({ event: { api_id: `evt-page-${page++}`, name: 'Endless' } })],
       has_more: true,
-      next_cursor: 'c',
+      next_cursor: `c-${page}`,
     }));
 
     const candidates = await lumaSource.fetchCandidates();

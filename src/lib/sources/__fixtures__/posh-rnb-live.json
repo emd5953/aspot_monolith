@@ -1,0 +1,37 @@
+{
+  "capturedOn": "2026-10-22",
+  "event": {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": "Yours Truly, R&B | Every Thursday at Negril Village",
+    "startDate": "2026-10-22T20:00:00-04:00",
+    "endDate": "2026-10-23T00:15:00-04:00",
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "url": "https://posh.vip/e/yours-truly-rb-every-thursday-at-negril-village-2026-10-23-4-15",
+    "location": {
+      "@type": "Place",
+      "name": "Negril Village",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "70 W 3rd St, New York, NY 10012, USA",
+        "addressLocality": "",
+        "addressRegion": "",
+        "postalCode": "",
+        "addressCountry": ""
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 40.729459,
+        "longitude": -73.99834659999999
+      }
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": "https://posh.vip/e/yours-truly-rb-every-thursday-at-negril-village-2026-10-23-4-15",
+      "price": 0,
+      "priceCurrency": "USD",
+      "availability": "https://schema.org/InStock"
+    }
+  }
+}
